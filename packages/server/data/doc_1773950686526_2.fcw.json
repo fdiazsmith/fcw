@@ -1,0 +1,768 @@
+{
+  "id": "doc_1773950686526_2",
+  "meta": {
+    "created": "2026-03-19T20:04:46.526Z",
+    "title": "Untitled",
+    "summary": "The user requested a flow diagram of their codebase's current state, but no actual codebase was provided. I created a generic high-level architecture diagram on the canvas showing typical modern application components: Client Layer (frontend), API Gateway/BFF, Backend Services, Data Layer, External Integrations, and Infrastructure/DevOps. The diagram illustrates how these components interact in a standard web application architecture, with connections showing the flow from client through API gateway to backend services and data storage."
+  },
+  "nodes": {
+    "n_1773951656757_37": {
+      "id": "n_1773951656757_37",
+      "type": "user_prompt",
+      "content": "can create a flow diagram of the current state of the codebase, focus on high level components and how they interact with each other.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:20:56.757Z",
+      "status": "complete"
+    },
+    "n_1773951658553_38": {
+      "id": "n_1773951658553_38",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"⚠️ No codebase has been shared yet. To create an accurate flow diagram, I'll need you to share your code — paste files, describe your stack, or outline your project structure. In the meantime, I'll scaffold a general-purpose codebase architecture diagram you can build from.\", \"parent_id\": \"user_prompt\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:20:58.553Z",
+      "status": "complete"
+    },
+    "n_1773951660650_39": {
+      "id": "n_1773951660650_39",
+      "type": "thought",
+      "content": "⚠️ No codebase has been shared yet. To create an accurate flow diagram, I'll need you to share your code — paste files, describe your stack, or outline your project structure. In the meantime, I'll scaffold a general-purpose codebase architecture diagram you can build from.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:00.650Z",
+      "status": "complete"
+    },
+    "n_1773951660652_40": {
+      "id": "n_1773951660652_40",
+      "type": "tool_result",
+      "content": "{\"error\":\"Node \\\"user_prompt\\\" not found\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:00.653Z",
+      "status": "complete"
+    },
+    "n_1773951662702_41": {
+      "id": "n_1773951662702_41",
+      "type": "response",
+      "content": "It looks like the canvas doesn't have a user prompt node ID available to me directly. Let me build the diagram fresh!",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:02.702Z",
+      "status": "complete"
+    },
+    "n_1773951663572_42": {
+      "id": "n_1773951663572_42",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"⚠️ No codebase was attached or pasted. To generate an accurate diagram, please share your code, file structure, or describe your tech stack. Building a placeholder architecture diagram in the meantime...\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:03.572Z",
+      "status": "complete"
+    },
+    "n_1773951665049_43": {
+      "id": "n_1773951665049_43",
+      "type": "thought",
+      "content": "⚠️ No codebase was attached or pasted. To generate an accurate diagram, please share your code, file structure, or describe your tech stack. Building a placeholder architecture diagram in the meantime...",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:05.049Z",
+      "status": "complete"
+    },
+    "n_1773951665050_44": {
+      "id": "n_1773951665050_44",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773951665049_43\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:05.050Z",
+      "status": "complete"
+    },
+    "n_1773951666267_45": {
+      "id": "n_1773951666267_45",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"🗂️ Codebase High-Level Architecture\\n─────────────────────────────────\\nA typical modern codebase is broken into layered components:\\n• Client (Frontend UI)\\n• API Gateway / BFF\\n• Backend Services\\n• Data Layer (DB, Cache)\\n• External Integrations\\n• Infrastructure / DevOps\\n\\nEach layer is expanded below. Connect the nodes to explore interactions.\", \"parent_id\": \"n_1773951665049_43\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:06.267Z",
+      "status": "complete"
+    },
+    "n_1773951668854_46": {
+      "id": "n_1773951668854_46",
+      "type": "summary",
+      "content": "🗂️ Codebase High-Level Architecture\n─────────────────────────────────\nA typical modern codebase is broken into layered components:\n• Client (Frontend UI)\n• API Gateway / BFF\n• Backend Services\n• Data Layer (DB, Cache)\n• External Integrations\n• Infrastructure / DevOps\n\nEach layer is expanded below. Connect the nodes to explore interactions.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:08.854Z",
+      "status": "complete"
+    },
+    "n_1773951668855_47": {
+      "id": "n_1773951668855_47",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773951668854_46\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:08.855Z",
+      "status": "complete"
+    },
+    "n_1773951670281_48": {
+      "id": "n_1773951670281_48",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🖥️ CLIENT LAYER\\n──────────────\\nThe user-facing frontend application.\\n• Web App (React / Vue / Angular)\\n• Mobile App (React Native / Flutter)\\n• Static Assets (CDN-served HTML/CSS/JS)\\n\\n→ Communicates with the API Gateway via REST or GraphQL over HTTPS.\", \"parent_id\": \"n_1773951668854_46\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:10.281Z",
+      "status": "complete"
+    },
+    "n_1773951672738_49": {
+      "id": "n_1773951672738_49",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🔀 API GATEWAY / BFF\\n────────────────────\\nSingle entry point for all client requests.\\n• Rate limiting & authentication (JWT / OAuth2)\\n• Request routing to downstream services\\n• Response aggregation (BFF pattern)\\n• Load balancing\\n\\n→ Forwards requests to internal backend services.\", \"parent_id\": \"n_1773951668854_46\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:12.738Z",
+      "status": "complete"
+    },
+    "n_1773951674474_50": {
+      "id": "n_1773951674474_50",
+      "type": "response",
+      "content": "🖥️ CLIENT LAYER\n──────────────\nThe user-facing frontend application.\n• Web App (React / Vue / Angular)\n• Mobile App (React Native / Flutter)\n• Static Assets (CDN-served HTML/CSS/JS)\n\n→ Communicates with the API Gateway via REST or GraphQL over HTTPS.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:14.474Z",
+      "status": "complete"
+    },
+    "n_1773951674475_51": {
+      "id": "n_1773951674475_51",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773951674474_50\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:14.475Z",
+      "status": "complete"
+    },
+    "n_1773951674475_52": {
+      "id": "n_1773951674475_52",
+      "type": "response",
+      "content": "🔀 API GATEWAY / BFF\n────────────────────\nSingle entry point for all client requests.\n• Rate limiting & authentication (JWT / OAuth2)\n• Request routing to downstream services\n• Response aggregation (BFF pattern)\n• Load balancing\n\n→ Forwards requests to internal backend services.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:14.475Z",
+      "status": "complete"
+    },
+    "n_1773951674475_53": {
+      "id": "n_1773951674475_53",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773951674475_52\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:14.475Z",
+      "status": "complete"
+    },
+    "n_1773951676329_54": {
+      "id": "n_1773951676329_54",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"⚙️ BACKEND SERVICES\\n────────────────────\\nCore business logic, split by domain:\\n• Auth Service — login, registration, token management\\n• User Service — profiles, preferences\\n• Core Domain Service — main business logic (orders, content, etc.)\\n• Notification Service — emails, push, SMS\\n• Worker / Job Queue — async background tasks\\n\\n→ Services communicate via REST, gRPC, or message queue (e.g. RabbitMQ / Kafka).\", \"parent_id\": \"n_1773951674475_52\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:16.329Z",
+      "status": "complete"
+    },
+    "n_1773951679266_55": {
+      "id": "n_1773951679266_55",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🗄️ DATA LAYER\\n─────────────\\nPersistence and caching:\\n• Primary DB — PostgreSQL / MySQL / MongoDB\\n• Cache — Redis (sessions, hot data, rate-limit counters)\\n• Search Index — Elasticsearch / Typesense\\n• Object Storage — S3 / GCS (files, images, exports)\\n\\n→ Accessed directly by backend services; never exposed to clients.\", \"parent_id\": \"n_1773951674475_52\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:19.266Z",
+      "status": "complete"
+    },
+    "n_1773951681623_56": {
+      "id": "n_1773951681623_56",
+      "type": "response",
+      "content": "⚙️ BACKEND SERVICES\n────────────────────\nCore business logic, split by domain:\n• Auth Service — login, registration, token management\n• User Service — profiles, preferences\n• Core Domain Service — main business logic (orders, content, etc.)\n• Notification Service — emails, push, SMS\n• Worker / Job Queue — async background tasks\n\n→ Services communicate via REST, gRPC, or message queue (e.g. RabbitMQ / Kafka).",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:21.623Z",
+      "status": "complete"
+    },
+    "n_1773951681623_57": {
+      "id": "n_1773951681623_57",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773951681623_56\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:21.623Z",
+      "status": "complete"
+    },
+    "n_1773951681623_58": {
+      "id": "n_1773951681623_58",
+      "type": "response",
+      "content": "🗄️ DATA LAYER\n─────────────\nPersistence and caching:\n• Primary DB — PostgreSQL / MySQL / MongoDB\n• Cache — Redis (sessions, hot data, rate-limit counters)\n• Search Index — Elasticsearch / Typesense\n• Object Storage — S3 / GCS (files, images, exports)\n\n→ Accessed directly by backend services; never exposed to clients.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:21.623Z",
+      "status": "complete"
+    },
+    "n_1773951681624_59": {
+      "id": "n_1773951681624_59",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773951681623_58\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:21.624Z",
+      "status": "complete"
+    },
+    "n_1773951683144_60": {
+      "id": "n_1773951683144_60",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🔌 EXTERNAL INTEGRATIONS\\n─────────────────────────\\nThird-party services the backend communicates with:\\n• Payment Gateway (Stripe / PayPal)\\n• Email Provider (SendGrid / SES)\\n• Analytics (Mixpanel / Segment)\\n• OAuth Providers (Google, GitHub, etc.)\\n• Maps / Geo APIs\\n\\n→ Called by backend services via outbound HTTP / webhooks.\", \"parent_id\": \"n_1773951681623_56\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:23.144Z",
+      "status": "complete"
+    },
+    "n_1773951685672_61": {
+      "id": "n_1773951685672_61",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🏗️ INFRASTRUCTURE / DevOps\\n───────────────────────────\\nPlatform that everything runs on:\\n• CI/CD Pipeline (GitHub Actions / CircleCI)\\n• Container Orchestration (Docker + Kubernetes / ECS)\\n• Cloud Provider (AWS / GCP / Azure)\\n• Monitoring & Logging (Datadog / Grafana / CloudWatch)\\n• Secrets Management (Vault / AWS Secrets Manager)\\n\\n→ Wraps all layers; manages deployments, scaling, and observability.\", \"parent_id\": \"n_1773951681623_56\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:25.672Z",
+      "status": "complete"
+    },
+    "n_1773951688436_62": {
+      "id": "n_1773951688436_62",
+      "type": "response",
+      "content": "🔌 EXTERNAL INTEGRATIONS\n─────────────────────────\nThird-party services the backend communicates with:\n• Payment Gateway (Stripe / PayPal)\n• Email Provider (SendGrid / SES)\n• Analytics (Mixpanel / Segment)\n• OAuth Providers (Google, GitHub, etc.)\n• Maps / Geo APIs\n\n→ Called by backend services via outbound HTTP / webhooks.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:28.436Z",
+      "status": "complete"
+    },
+    "n_1773951688436_63": {
+      "id": "n_1773951688436_63",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773951688436_62\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:28.436Z",
+      "status": "complete"
+    },
+    "n_1773951688437_64": {
+      "id": "n_1773951688437_64",
+      "type": "response",
+      "content": "🏗️ INFRASTRUCTURE / DevOps\n───────────────────────────\nPlatform that everything runs on:\n• CI/CD Pipeline (GitHub Actions / CircleCI)\n• Container Orchestration (Docker + Kubernetes / ECS)\n• Cloud Provider (AWS / GCP / Azure)\n• Monitoring & Logging (Datadog / Grafana / CloudWatch)\n• Secrets Management (Vault / AWS Secrets Manager)\n\n→ Wraps all layers; manages deployments, scaling, and observability.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:28.437Z",
+      "status": "complete"
+    },
+    "n_1773951688437_65": {
+      "id": "n_1773951688437_65",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773951688437_64\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:28.437Z",
+      "status": "complete"
+    },
+    "n_1773951690072_66": {
+      "id": "n_1773951690072_66",
+      "type": "response",
+      "content": "Now let me wire up all the interactions between the nodes:",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:30.072Z",
+      "status": "complete"
+    },
+    "n_1773951691008_67": {
+      "id": "n_1773951691008_67",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1773951674474_50\", \"to_id\": \"n_1773951674475_52\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:31.008Z",
+      "status": "complete"
+    },
+    "n_1773951691703_68": {
+      "id": "n_1773951691703_68",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1773951674475_52\", \"to_id\": \"n_1773951681623_56\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:31.703Z",
+      "status": "complete"
+    },
+    "n_1773951692203_69": {
+      "id": "n_1773951692203_69",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:32.203Z",
+      "status": "complete"
+    },
+    "n_1773951692203_70": {
+      "id": "n_1773951692203_70",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:32.203Z",
+      "status": "complete"
+    },
+    "n_1773951693532_71": {
+      "id": "n_1773951693532_71",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1773951681623_56\", \"to_id\": \"n_1773951681623_58\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:33.532Z",
+      "status": "complete"
+    },
+    "n_1773951694308_72": {
+      "id": "n_1773951694308_72",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1773951681623_56\", \"to_id\": \"n_1773951688436_62\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:34.308Z",
+      "status": "complete"
+    },
+    "n_1773951695033_73": {
+      "id": "n_1773951695033_73",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1773951688437_64\", \"to_id\": \"n_1773951674474_50\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:35.033Z",
+      "status": "complete"
+    },
+    "n_1773951695557_74": {
+      "id": "n_1773951695557_74",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:35.557Z",
+      "status": "complete"
+    },
+    "n_1773951695557_75": {
+      "id": "n_1773951695557_75",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:35.557Z",
+      "status": "complete"
+    },
+    "n_1773951695557_76": {
+      "id": "n_1773951695557_76",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:35.557Z",
+      "status": "complete"
+    },
+    "n_1773951696553_77": {
+      "id": "n_1773951696553_77",
+      "type": "response",
+      "content": "Now let me wire up all the interactions between the nodes:",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:36.553Z",
+      "status": "complete"
+    },
+    "n_1773951696944_78": {
+      "id": "n_1773951696944_78",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1773951688437_64\", \"to_id\": \"n_1773951674475_52\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:36.944Z",
+      "status": "complete"
+    },
+    "n_1773951697734_79": {
+      "id": "n_1773951697734_79",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1773951688437_64\", \"to_id\": \"n_1773951681623_58\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:37.734Z",
+      "status": "complete"
+    },
+    "n_1773951698145_80": {
+      "id": "n_1773951698145_80",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:38.145Z",
+      "status": "complete"
+    },
+    "n_1773951698145_81": {
+      "id": "n_1773951698145_81",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:38.145Z",
+      "status": "complete"
+    },
+    "n_1773951699130_82": {
+      "id": "n_1773951699130_82",
+      "type": "response",
+      "content": "Here's what's been built on the canvas! Here's a summary of the diagram:\n\n---\n\n## 🗺️ What's on the Canvas\n\n| Layer | Role | Talks To |\n|---|---|---|\n| **Client** | UI (Web/Mobile) | → API Gateway |\n| **API Gateway / BFF** | Auth, routing, aggregation | → Backend Services |\n| **Backend Services** | Business logic, async jobs | → Data Layer, Externals |\n| **Data Layer** | DB, Cache, Search, Storage | ← Backend Services |\n| **External Integrations** | Stripe, Email, OAuth, etc. | ← Backend Services |\n| **Infrastructure** | CI/CD, K8s, Monitoring | Wraps all layers |\n\n---\n\n## ⚡ Next Steps — To Make This *Your* Codebase\n\nTo tailor this diagram to your actual project, share any of the following:\n\n1. **Your file/folder structure** (e.g. `ls -R` or a tree output)\n2. **Key files** — paste your `package.json`, `Dockerfile`, main entrypoints, or config files\n3. **Tech stack** — e.g. \"Next.js frontend, FastAPI backend, PostgreSQL, deployed on AWS\"\n4. **A description** of what the app does\n\nI'll then replace these placeholder nodes with your real components, routes, services, and data flows! 🚀",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T20:21:39.130Z",
+      "status": "complete"
+    }
+  },
+  "edges": [
+    {
+      "from": "n_1773951656757_37",
+      "to": "n_1773951658553_38",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951658553_38",
+      "to": "n_1773951660652_40",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951660652_40",
+      "to": "n_1773951662702_41",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951662702_41",
+      "to": "n_1773951663572_42",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951663572_42",
+      "to": "n_1773951665050_44",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951665050_44",
+      "to": "n_1773951666267_45",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951665049_43",
+      "to": "n_1773951668854_46",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951666267_45",
+      "to": "n_1773951668855_47",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951668855_47",
+      "to": "n_1773951670281_48",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951668855_47",
+      "to": "n_1773951672738_49",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951668854_46",
+      "to": "n_1773951674474_50",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951670281_48",
+      "to": "n_1773951674475_51",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951668854_46",
+      "to": "n_1773951674475_52",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951672738_49",
+      "to": "n_1773951674475_53",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951674475_51",
+      "to": "n_1773951676329_54",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951674475_51",
+      "to": "n_1773951679266_55",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951674475_52",
+      "to": "n_1773951681623_56",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951676329_54",
+      "to": "n_1773951681623_57",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951674475_52",
+      "to": "n_1773951681623_58",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951679266_55",
+      "to": "n_1773951681624_59",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951681624_59",
+      "to": "n_1773951683144_60",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951681624_59",
+      "to": "n_1773951685672_61",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951681623_56",
+      "to": "n_1773951688436_62",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951683144_60",
+      "to": "n_1773951688436_63",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951681623_56",
+      "to": "n_1773951688437_64",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951685672_61",
+      "to": "n_1773951688437_65",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951688437_64",
+      "to": "n_1773951690072_66",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951690072_66",
+      "to": "n_1773951691008_67",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951690072_66",
+      "to": "n_1773951691703_68",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951674474_50",
+      "to": "n_1773951674475_52",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951691008_67",
+      "to": "n_1773951692203_69",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951674475_52",
+      "to": "n_1773951681623_56",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951691703_68",
+      "to": "n_1773951692203_70",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951692203_69",
+      "to": "n_1773951693532_71",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951692203_69",
+      "to": "n_1773951694308_72",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951692203_69",
+      "to": "n_1773951695033_73",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951681623_56",
+      "to": "n_1773951681623_58",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951693532_71",
+      "to": "n_1773951695557_74",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951681623_56",
+      "to": "n_1773951688436_62",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951694308_72",
+      "to": "n_1773951695557_75",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951688437_64",
+      "to": "n_1773951674474_50",
+      "type": "references"
+    },
+    {
+      "from": "n_1773951695033_73",
+      "to": "n_1773951695557_76",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951695557_74",
+      "to": "n_1773951696553_77",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773951696553_77",
+      "to": "n_1773951696944_78",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951696553_77",
+      "to": "n_1773951697734_79",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773951688437_64",
+      "to": "n_1773951674475_52",
+      "type": "references"
+    },
+    {
+      "from": "n_1773951696944_78",
+      "to": "n_1773951698145_80",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951688437_64",
+      "to": "n_1773951681623_58",
+      "type": "references"
+    },
+    {
+      "from": "n_1773951697734_79",
+      "to": "n_1773951698145_81",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773951698145_80",
+      "to": "n_1773951699130_82",
+      "type": "reply_to"
+    }
+  ]
+}

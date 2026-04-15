@@ -1,0 +1,573 @@
+{
+  "id": "doc_1773944778964_1",
+  "meta": {
+    "created": "2026-03-19T18:26:18.964Z",
+    "title": "Untitled",
+    "summary": "I've created a comprehensive user flow diagram for buying sneakers online. The user journey was mapped out from the initial entry point through to checkout, covering key decision points and the typical e-commerce experience including browsing, product discovery, cart management, and authentication steps.\n\nThe flow shows two main discovery paths (search vs. browse), highlights important decision gates (size availability and login status), and captures the essential steps a customer would take when purchasing sneakers online."
+  },
+  "nodes": {
+    "n_1773944901051_1": {
+      "id": "n_1773944901051_1",
+      "type": "user_prompt",
+      "content": "give me a diagram of a user flow to buy a pair of sneakers",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:21.051Z",
+      "status": "complete"
+    },
+    "n_1773944903377_2": {
+      "id": "n_1773944903377_2",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"👟 User Flow: Buying a Pair of Sneakers\\nA step-by-step diagram of the end-to-end experience from landing on the site to completing a purchase.\", \"parent_id\": \"user_prompt\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:23.377Z",
+      "status": "complete"
+    },
+    "n_1773944904934_3": {
+      "id": "n_1773944904934_3",
+      "type": "summary",
+      "content": "👟 User Flow: Buying a Pair of Sneakers\nA step-by-step diagram of the end-to-end experience from landing on the site to completing a purchase.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:24.934Z",
+      "status": "complete"
+    },
+    "n_1773944904935_4": {
+      "id": "n_1773944904935_4",
+      "type": "tool_result",
+      "content": "{\"error\":\"Node \\\"user_prompt\\\" not found\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:24.935Z",
+      "status": "complete"
+    },
+    "n_1773944906388_5": {
+      "id": "n_1773944906388_5",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"👟 User Flow: Buying a Pair of Sneakers\\nA step-by-step diagram of the end-to-end experience from landing on the site to completing a purchase.\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:26.388Z",
+      "status": "complete"
+    },
+    "n_1773944907076_6": {
+      "id": "n_1773944907076_6",
+      "type": "summary",
+      "content": "👟 User Flow: Buying a Pair of Sneakers\nA step-by-step diagram of the end-to-end experience from landing on the site to completing a purchase.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:27.076Z",
+      "status": "complete"
+    },
+    "n_1773944907079_7": {
+      "id": "n_1773944907079_7",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944907076_6\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:27.079Z",
+      "status": "complete"
+    },
+    "n_1773944908894_8": {
+      "id": "n_1773944908894_8",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🚪 Entry Point\\nUser arrives at the sneaker store via:\\n- Direct URL / bookmark\\n- Google search\\n- Social media ad\\n- Referral link\", \"parent_id\": \"n_1773944907076_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:28.894Z",
+      "status": "complete"
+    },
+    "n_1773944910040_9": {
+      "id": "n_1773944910040_9",
+      "type": "response",
+      "content": "🚪 Entry Point\nUser arrives at the sneaker store via:\n- Direct URL / bookmark\n- Google search\n- Social media ad\n- Referral link",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:30.040Z",
+      "status": "complete"
+    },
+    "n_1773944910041_10": {
+      "id": "n_1773944910041_10",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944910040_9\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:30.041Z",
+      "status": "complete"
+    },
+    "n_1773944911916_11": {
+      "id": "n_1773944911916_11",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🏠 Homepage / Landing Page\\nUser browses the homepage.\\n- Views featured/new arrivals\\n- Sees promotional banners\\n- Navigates via menu (Men, Women, Kids, Sale)\", \"parent_id\": \"n_1773944910040_9\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:31.916Z",
+      "status": "complete"
+    },
+    "n_1773944913672_12": {
+      "id": "n_1773944913672_12",
+      "type": "response",
+      "content": "🏠 Homepage / Landing Page\nUser browses the homepage.\n- Views featured/new arrivals\n- Sees promotional banners\n- Navigates via menu (Men, Women, Kids, Sale)",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:33.672Z",
+      "status": "complete"
+    },
+    "n_1773944913672_13": {
+      "id": "n_1773944913672_13",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944913672_12\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:33.672Z",
+      "status": "complete"
+    },
+    "n_1773944915449_14": {
+      "id": "n_1773944915449_14",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"🔍 Discovery — Two Paths\\nThe user can find sneakers in two ways:\\n① Search Bar — types in a brand, style, or keyword\\n② Browse Category — clicks into a category/collection page\", \"parent_id\": \"n_1773944913672_12\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:35.449Z",
+      "status": "complete"
+    },
+    "n_1773944917682_15": {
+      "id": "n_1773944917682_15",
+      "type": "thought",
+      "content": "🔍 Discovery — Two Paths\nThe user can find sneakers in two ways:\n① Search Bar — types in a brand, style, or keyword\n② Browse Category — clicks into a category/collection page",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:37.682Z",
+      "status": "complete"
+    },
+    "n_1773944917683_16": {
+      "id": "n_1773944917683_16",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944917682_15\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:37.683Z",
+      "status": "complete"
+    },
+    "n_1773944919534_17": {
+      "id": "n_1773944919534_17",
+      "type": "response",
+      "content": "🔍 Discovery — Two Paths\nThe user can find sneakers in two ways:\n① Search Bar — types in a brand, style, or keyword\n② Browse Category — clicks into a category/collection page",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:39.534Z",
+      "status": "complete"
+    },
+    "n_1773944919922_18": {
+      "id": "n_1773944919922_18",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🗂️ Search Results / Category Page\\nUser sees a grid of sneakers.\\n- Applies filters (size, color, brand, price range)\\n- Sorts results (popular, price low→high, newest)\\n- Scrolls and scans options\", \"parent_id\": \"n_1773944917682_15\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:39.922Z",
+      "status": "complete"
+    },
+    "n_1773944921887_19": {
+      "id": "n_1773944921887_19",
+      "type": "response",
+      "content": "🗂️ Search Results / Category Page\nUser sees a grid of sneakers.\n- Applies filters (size, color, brand, price range)\n- Sorts results (popular, price low→high, newest)\n- Scrolls and scans options",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:41.887Z",
+      "status": "complete"
+    },
+    "n_1773944921888_20": {
+      "id": "n_1773944921888_20",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944921887_19\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:41.888Z",
+      "status": "complete"
+    },
+    "n_1773944923333_21": {
+      "id": "n_1773944923333_21",
+      "type": "response",
+      "content": "🗂️ Search Results / Category Page\nUser sees a grid of sneakers.\n- Applies filters (size, color, brand, price range)\n- Sorts results (popular, price low→high, newest)\n- Scrolls and scans options",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:43.333Z",
+      "status": "complete"
+    },
+    "n_1773944924078_22": {
+      "id": "n_1773944924078_22",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"👟 Product Detail Page (PDP)\\nUser clicks on a sneaker they like.\\n- Views photos, zoom, 360° view\\n- Reads description & reviews\\n- Checks available sizes & colors\\n- Sees price & shipping info\", \"parent_id\": \"n_1773944921887_19\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:44.078Z",
+      "status": "complete"
+    },
+    "n_1773944925625_23": {
+      "id": "n_1773944925625_23",
+      "type": "response",
+      "content": "👟 Product Detail Page (PDP)\nUser clicks on a sneaker they like.\n- Views photos, zoom, 360° view\n- Reads description & reviews\n- Checks available sizes & colors\n- Sees price & shipping info",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:45.625Z",
+      "status": "complete"
+    },
+    "n_1773944925625_24": {
+      "id": "n_1773944925625_24",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944925625_23\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:45.625Z",
+      "status": "complete"
+    },
+    "n_1773944927177_25": {
+      "id": "n_1773944927177_25",
+      "type": "response",
+      "content": "👟 Product Detail Page (PDP)\nUser clicks on a sneaker they like.\n- Views photos, zoom, 360° view\n- Reads description & reviews\n- Checks available sizes & colors\n- Sees price & shipping info",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:47.177Z",
+      "status": "complete"
+    },
+    "n_1773944928001_26": {
+      "id": "n_1773944928001_26",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"⚠️ Decision Gate: Is the size available?\\n✅ YES → User selects size & clicks \\\"Add to Cart\\\"\\n❌ NO  → User joins waitlist / gets notified, or goes back to browse\", \"parent_id\": \"n_1773944925625_23\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:48.001Z",
+      "status": "complete"
+    },
+    "n_1773944929904_27": {
+      "id": "n_1773944929904_27",
+      "type": "thought",
+      "content": "⚠️ Decision Gate: Is the size available?\n✅ YES → User selects size & clicks \"Add to Cart\"\n❌ NO  → User joins waitlist / gets notified, or goes back to browse",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:49.904Z",
+      "status": "complete"
+    },
+    "n_1773944929904_28": {
+      "id": "n_1773944929904_28",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944929904_27\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:49.904Z",
+      "status": "complete"
+    },
+    "n_1773944931433_29": {
+      "id": "n_1773944931433_29",
+      "type": "response",
+      "content": "⚠️ Decision Gate: Is the size available?\n✅ YES → User selects size & clicks \"Add to Cart\"\n❌ NO  → User joins waitlist / gets notified, or goes back to browse",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:51.433Z",
+      "status": "complete"
+    },
+    "n_1773944932236_30": {
+      "id": "n_1773944932236_30",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🛒 Shopping Cart\\nUser reviews their cart.\\n- Confirms sneaker, size, color & quantity\\n- Applies promo/discount code\\n- Reviews subtotal\\n- Decides: Continue Shopping OR Proceed to Checkout\", \"parent_id\": \"n_1773944929904_27\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:52.236Z",
+      "status": "complete"
+    },
+    "n_1773944933509_31": {
+      "id": "n_1773944933509_31",
+      "type": "response",
+      "content": "🛒 Shopping Cart\nUser reviews their cart.\n- Confirms sneaker, size, color & quantity\n- Applies promo/discount code\n- Reviews subtotal\n- Decides: Continue Shopping OR Proceed to Checkout",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:53.509Z",
+      "status": "complete"
+    },
+    "n_1773944933510_32": {
+      "id": "n_1773944933510_32",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944933509_31\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:53.510Z",
+      "status": "complete"
+    },
+    "n_1773944935355_33": {
+      "id": "n_1773944935355_33",
+      "type": "response",
+      "content": "🛒 Shopping Cart\nUser reviews their cart.\n- Confirms sneaker, size, color & quantity\n- Applies promo/discount code\n- Reviews subtotal\n- Decides: Continue Shopping OR Proceed to Checkout",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:55.355Z",
+      "status": "complete"
+    },
+    "n_1773944936258_34": {
+      "id": "n_1773944936258_34",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"🔐 Auth Gate: Is the user logged in?\\n✅ YES → Proceeds directly to Checkout\\n❌ NO  → Prompted to:\\n   • Log in to existing account\\n   • Create a new account\\n   • Continue as Guest\", \"parent_id\": \"n_1773944933509_31\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:56.258Z",
+      "status": "complete"
+    },
+    "n_1773944937358_35": {
+      "id": "n_1773944937358_35",
+      "type": "thought",
+      "content": "🔐 Auth Gate: Is the user logged in?\n✅ YES → Proceeds directly to Checkout\n❌ NO  → Prompted to:\n   • Log in to existing account\n   • Create a new account\n   • Continue as Guest",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:57.358Z",
+      "status": "complete"
+    },
+    "n_1773944937359_36": {
+      "id": "n_1773944937359_36",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773944937358_35\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-19T18:28:57.359Z",
+      "status": "complete"
+    }
+  },
+  "edges": [
+    {
+      "from": "n_1773944901051_1",
+      "to": "n_1773944903377_2",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944903377_2",
+      "to": "n_1773944904935_4",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944904935_4",
+      "to": "n_1773944906388_5",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944906388_5",
+      "to": "n_1773944907079_7",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944907079_7",
+      "to": "n_1773944908894_8",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944907076_6",
+      "to": "n_1773944910040_9",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944908894_8",
+      "to": "n_1773944910041_10",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944910041_10",
+      "to": "n_1773944911916_11",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944910040_9",
+      "to": "n_1773944913672_12",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944911916_11",
+      "to": "n_1773944913672_13",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944913672_12",
+      "to": "n_1773944915449_14",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944913672_12",
+      "to": "n_1773944917682_15",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944915449_14",
+      "to": "n_1773944917683_16",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944917683_16",
+      "to": "n_1773944919534_17",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944919534_17",
+      "to": "n_1773944919922_18",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944917682_15",
+      "to": "n_1773944921887_19",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944919922_18",
+      "to": "n_1773944921888_20",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944921888_20",
+      "to": "n_1773944923333_21",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944923333_21",
+      "to": "n_1773944924078_22",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944921887_19",
+      "to": "n_1773944925625_23",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944924078_22",
+      "to": "n_1773944925625_24",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944925625_23",
+      "to": "n_1773944927177_25",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944927177_25",
+      "to": "n_1773944928001_26",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944925625_23",
+      "to": "n_1773944929904_27",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944928001_26",
+      "to": "n_1773944929904_28",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944929904_27",
+      "to": "n_1773944931433_29",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944931433_29",
+      "to": "n_1773944932236_30",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944929904_27",
+      "to": "n_1773944933509_31",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944932236_30",
+      "to": "n_1773944933510_32",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773944933510_32",
+      "to": "n_1773944935355_33",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944935355_33",
+      "to": "n_1773944936258_34",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773944933509_31",
+      "to": "n_1773944937358_35",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773944936258_34",
+      "to": "n_1773944937359_36",
+      "type": "tool_result"
+    }
+  ]
+}

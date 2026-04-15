@@ -1,0 +1,275 @@
+{
+  "id": "doc_1773776062532_1",
+  "meta": {
+    "created": "2026-03-17T19:34:22.532Z",
+    "title": "Untitled",
+    "summary": "Graph: 18 nodes, 13 edges\nNode types:\n  user_prompt: 6\n  response: 12\nUser prompts:\n  - hellp\n  - hellp\n  - sdf\n  - help me schafold and plan a personal porfolio plan\n  - sd\n  - create a scaffold for a personal portfolio sign."
+  },
+  "nodes": {
+    "n_1773776155725_1": {
+      "id": "n_1773776155725_1",
+      "type": "user_prompt",
+      "content": "hellp",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:35:55.725Z",
+      "status": "complete"
+    },
+    "n_1773776156160_2": {
+      "id": "n_1773776156160_2",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9DPpAVqrNqUBMp8dZcK\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:35:56.160Z",
+      "status": "error"
+    },
+    "n_1773776156161_3": {
+      "id": "n_1773776156161_3",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9DPpAVqrNqUBMp8dZcK\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:35:56.161Z",
+      "status": "error"
+    },
+    "n_1773776180982_4": {
+      "id": "n_1773776180982_4",
+      "type": "user_prompt",
+      "content": "hellp",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:36:20.982Z",
+      "status": "complete"
+    },
+    "n_1773776181279_5": {
+      "id": "n_1773776181279_5",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9DRfgpqCXvuppr71rSq\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:36:21.279Z",
+      "status": "error"
+    },
+    "n_1773776181279_6": {
+      "id": "n_1773776181279_6",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9DRfgpqCXvuppr71rSq\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:36:21.279Z",
+      "status": "error"
+    },
+    "n_1773776449058_7": {
+      "id": "n_1773776449058_7",
+      "type": "user_prompt",
+      "content": "sdf",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:40:49.058Z",
+      "status": "complete"
+    },
+    "n_1773776449379_8": {
+      "id": "n_1773776449379_8",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9DmRyNfemuB8zEMcagc\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:40:49.379Z",
+      "status": "error"
+    },
+    "n_1773776449380_9": {
+      "id": "n_1773776449380_9",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9DmRyNfemuB8zEMcagc\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:40:49.380Z",
+      "status": "error"
+    },
+    "n_1773776562632_10": {
+      "id": "n_1773776562632_10",
+      "type": "user_prompt",
+      "content": "help me schafold and plan a personal porfolio plan",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:42:42.632Z",
+      "status": "complete"
+    },
+    "n_1773776562819_11": {
+      "id": "n_1773776562819_11",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9Dunyej1Cvv55oXNXP6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:42:42.819Z",
+      "status": "error"
+    },
+    "n_1773776562820_12": {
+      "id": "n_1773776562820_12",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9Dunyej1Cvv55oXNXP6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:42:42.820Z",
+      "status": "error"
+    },
+    "n_1773776571522_13": {
+      "id": "n_1773776571522_13",
+      "type": "user_prompt",
+      "content": "sd",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:42:51.522Z",
+      "status": "complete"
+    },
+    "n_1773776571708_14": {
+      "id": "n_1773776571708_14",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9DvSxAN5mVPRqzHTtok\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:42:51.708Z",
+      "status": "error"
+    },
+    "n_1773776571708_15": {
+      "id": "n_1773776571708_15",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9DvSxAN5mVPRqzHTtok\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:42:51.708Z",
+      "status": "error"
+    },
+    "n_1773777288847_16": {
+      "id": "n_1773777288847_16",
+      "type": "user_prompt",
+      "content": "create a scaffold for a personal portfolio sign.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:54:48.848Z",
+      "status": "complete"
+    },
+    "n_1773777289067_17": {
+      "id": "n_1773777289067_17",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9EqKwiGyWzkSskDX7An\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:54:49.067Z",
+      "status": "error"
+    },
+    "n_1773777289067_18": {
+      "id": "n_1773777289067_18",
+      "type": "response",
+      "content": "Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.\"},\"request_id\":\"req_011CZ9EqKwiGyWzkSskDX7An\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:54:49.067Z",
+      "status": "error"
+    }
+  },
+  "edges": [
+    {
+      "from": "n_1773776155725_1",
+      "to": "n_1773776156160_2",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776155725_1",
+      "to": "n_1773776156161_3",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776180982_4",
+      "to": "n_1773776181279_5",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776180982_4",
+      "to": "n_1773776181279_6",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776449058_7",
+      "to": "n_1773776449379_8",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776449058_7",
+      "to": "n_1773776449380_9",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776562632_10",
+      "to": "n_1773776562819_11",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776562632_10",
+      "to": "n_1773776562820_12",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776562632_10",
+      "to": "n_1773776571522_13",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776571522_13",
+      "to": "n_1773776571708_14",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773776571522_13",
+      "to": "n_1773776571708_15",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773777288847_16",
+      "to": "n_1773777289067_17",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773777288847_16",
+      "to": "n_1773777289067_18",
+      "type": "reply_to"
+    }
+  ]
+}

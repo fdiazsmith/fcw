@@ -1,0 +1,482 @@
+{
+  "id": "doc_1773779976491_1",
+  "meta": {
+    "created": "2026-03-17T20:39:36.491Z",
+    "title": "Untitled",
+    "summary": "I created a complete scaffold for a modern personal portfolio website. The discussion covered building a responsive site with HTML, CSS, and JavaScript, organized into key sections like Hero, About, Projects, and Contact. The scaffold includes a full file structure, semantic HTML markup, modern CSS with custom properties and animations, and JavaScript for interactivity and dynamic content loading. The final deliverable provides everything needed to build and customize a professional portfolio site."
+  },
+  "nodes": {
+    "n_1773779990130_1": {
+      "id": "n_1773779990130_1",
+      "type": "user_prompt",
+      "content": "create the scaffold for a personal portfolio site",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:50.130Z",
+      "status": "complete"
+    },
+    "n_1773779991256_2": {
+      "id": "n_1773779991256_2",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"# 🗂️ Personal Portfolio Site Scaffold\\n\\nA modern, responsive personal portfolio site built with **HTML, CSS, and JavaScript** (or optionally React). Structured into key sections:\\n\\n- 🏠 Hero / Landing\\n- 👤 About\\n- 🛠️ Projects\\n- 🧰 Skills\\n- 📬 Contact\\n- 🔧 Tech Stack & File Structure\", \"parent_id\": \"user_prompt\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:51.256Z",
+      "status": "complete"
+    },
+    "n_1773779993839_3": {
+      "id": "n_1773779993839_3",
+      "type": "summary",
+      "content": "# 🗂️ Personal Portfolio Site Scaffold\n\nA modern, responsive personal portfolio site built with **HTML, CSS, and JavaScript** (or optionally React). Structured into key sections:\n\n- 🏠 Hero / Landing\n- 👤 About\n- 🛠️ Projects\n- 🧰 Skills\n- 📬 Contact\n- 🔧 Tech Stack & File Structure",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:53.839Z",
+      "status": "complete"
+    },
+    "n_1773779993839_4": {
+      "id": "n_1773779993839_4",
+      "type": "tool_result",
+      "content": "{\"error\":\"Node \\\"user_prompt\\\" not found\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:53.839Z",
+      "status": "complete"
+    },
+    "n_1773779995149_5": {
+      "id": "n_1773779995149_5",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"# 🗂️ Personal Portfolio Site Scaffold\\n\\nA modern, responsive personal portfolio site built with **HTML, CSS, and JavaScript**. Structured into key sections:\\n\\n- 🏠 Hero / Landing\\n- 👤 About\\n- 🛠️ Projects\\n- 🧰 Skills\\n- 📬 Contact\\n- 🔧 Tech Stack & File Structure\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:55.149Z",
+      "status": "complete"
+    },
+    "n_1773779996237_6": {
+      "id": "n_1773779996237_6",
+      "type": "summary",
+      "content": "# 🗂️ Personal Portfolio Site Scaffold\n\nA modern, responsive personal portfolio site built with **HTML, CSS, and JavaScript**. Structured into key sections:\n\n- 🏠 Hero / Landing\n- 👤 About\n- 🛠️ Projects\n- 🧰 Skills\n- 📬 Contact\n- 🔧 Tech Stack & File Structure",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:56.237Z",
+      "status": "complete"
+    },
+    "n_1773779996237_7": {
+      "id": "n_1773779996237_7",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773779996237_6\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:56.237Z",
+      "status": "complete"
+    },
+    "n_1773779997518_8": {
+      "id": "n_1773779997518_8",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"## 🔧 Tech Stack\\n\\n- **HTML5** — semantic markup\\n- **CSS3** — custom properties, flexbox, grid, animations\\n- **Vanilla JS** — interactivity, smooth scroll, form handling\\n- **Google Fonts** — typography\\n- **Optional:** React + Tailwind CSS for component-based version\", \"parent_id\": \"n_1773779996237_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:57.518Z",
+      "status": "complete"
+    },
+    "n_1773779999479_9": {
+      "id": "n_1773779999479_9",
+      "type": "thought",
+      "content": "## 🔧 Tech Stack\n\n- **HTML5** — semantic markup\n- **CSS3** — custom properties, flexbox, grid, animations\n- **Vanilla JS** — interactivity, smooth scroll, form handling\n- **Google Fonts** — typography\n- **Optional:** React + Tailwind CSS for component-based version",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:59.479Z",
+      "status": "complete"
+    },
+    "n_1773779999480_10": {
+      "id": "n_1773779999480_10",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773779999479_9\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:39:59.480Z",
+      "status": "complete"
+    },
+    "n_1773780000890_11": {
+      "id": "n_1773780000890_11",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"## 📁 File Structure\\n\\n```\\nportfolio/\\n├── index.html\\n├── css/\\n│   ├── style.css\\n│   └── animations.css\\n├── js/\\n│   └── main.js\\n├── assets/\\n│   ├── images/\\n│   │   ├── avatar.jpg\\n│   │   └── project-1.png\\n│   └── icons/\\n├── components/       ← optional if using JS includes\\n└── README.md\\n```\", \"parent_id\": \"n_1773779996237_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:00.890Z",
+      "status": "complete"
+    },
+    "n_1773780002847_12": {
+      "id": "n_1773780002847_12",
+      "type": "code",
+      "content": "## 📁 File Structure\n\n```\nportfolio/\n├── index.html\n├── css/\n│   ├── style.css\n│   └── animations.css\n├── js/\n│   └── main.js\n├── assets/\n│   ├── images/\n│   │   ├── avatar.jpg\n│   │   └── project-1.png\n│   └── icons/\n├── components/       ← optional if using JS includes\n└── README.md\n```",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:02.847Z",
+      "status": "complete"
+    },
+    "n_1773780002847_13": {
+      "id": "n_1773780002847_13",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773780002847_12\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:02.847Z",
+      "status": "complete"
+    },
+    "n_1773780004090_14": {
+      "id": "n_1773780004090_14",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"## 📄 index.html — Full Scaffold\\n\\n```html\\n<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<head>\\n  <meta charset=\\\"UTF-8\\\" />\\n  <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1.0\\\"/>\\n  <title>Your Name | Portfolio</title>\\n  <link rel=\\\"stylesheet\\\" href=\\\"css/style.css\\\" />\\n  <link rel=\\\"stylesheet\\\" href=\\\"css/animations.css\\\" />\\n  <link href=\\\"https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap\\\" rel=\\\"stylesheet\\\"/>\\n</head>\\n<body>\\n\\n  <!-- NAV -->\\n  <nav id=\\\"navbar\\\">\\n    <div class=\\\"logo\\\">YourName</div>\\n    <ul class=\\\"nav-links\\\">\\n      <li><a href=\\\"#about\\\">About</a></li>\\n      <li><a href=\\\"#projects\\\">Projects</a></li>\\n      <li><a href=\\\"#skills\\\">Skills</a></li>\\n      <li><a href=\\\"#contact\\\">Contact</a></li>\\n    </ul>\\n    <button class=\\\"hamburger\\\" id=\\\"hamburger\\\">☰</button>\\n  </nav>\\n\\n  <!-- HERO -->\\n  <section id=\\\"hero\\\">\\n    <div class=\\\"hero-content\\\">\\n      <h1>Hi, I'm <span class=\\\"highlight\\\">Your Name</span></h1>\\n      <p class=\\\"tagline\\\">Full-Stack Developer · Designer · Problem Solver</p>\\n      <a href=\\\"#projects\\\" class=\\\"btn\\\">View My Work</a>\\n      <a href=\\\"#contact\\\" class=\\\"btn btn-outline\\\">Get In Touch</a>\\n    </div>\\n  </section>\\n\\n  <!-- ABOUT -->\\n  <section id=\\\"about\\\">\\n    <h2 class=\\\"section-title\\\">About Me</h2>\\n    <div class=\\\"about-grid\\\">\\n      <img src=\\\"assets/images/avatar.jpg\\\" alt=\\\"Avatar\\\" class=\\\"avatar\\\"/>\\n      <div class=\\\"about-text\\\">\\n        <p>I'm a passionate developer with X years of experience building web apps...</p>\\n        <a href=\\\"assets/resume.pdf\\\" class=\\\"btn\\\" download>Download Resume</a>\\n      </div>\\n    </div>\\n  </section>\\n\\n  <!-- PROJECTS -->\\n  <section id=\\\"projects\\\">\\n    <h2 class=\\\"section-title\\\">Projects</h2>\\n    <div class=\\\"projects-grid\\\" id=\\\"projects-grid\\\">\\n      <!-- Cards injected by JS -->\\n    </div>\\n  </section>\\n\\n  <!-- SKILLS -->\\n  <section id=\\\"skills\\\">\\n    <h2 class=\\\"section-title\\\">Skills</h2>\\n    <div class=\\\"skills-grid\\\">\\n      <span class=\\\"skill-tag\\\">HTML</span>\\n      <span class=\\\"skill-tag\\\">CSS</span>\\n      <span class=\\\"skill-tag\\\">JavaScript</span>\\n      <span class=\\\"skill-tag\\\">React</span>\\n      <span class=\\\"skill-tag\\\">Node.js</span>\\n      <span class=\\\"skill-tag\\\">Git</span>\\n    </div>\\n  </section>\\n\\n  <!-- CONTACT -->\\n  <section id=\\\"contact\\\">\\n    <h2 class=\\\"section-title\\\">Contact Me</h2>\\n    <form id=\\\"contact-form\\\">\\n      <input type=\\\"text\\\"  name=\\\"name\\\"    placeholder=\\\"Your Name\\\"    required />\\n      <input type=\\\"email\\\" name=\\\"email\\\"   placeholder=\\\"Your Email\\\"   required />\\n      <textarea           name=\\\"message\\\" placeholder=\\\"Your Message\\\" required></textarea>\\n      <button type=\\\"submit\\\" class=\\\"btn\\\">Send Message</button>\\n    </form>\\n  </section>\\n\\n  <!-- FOOTER -->\\n  <footer>\\n    <p>© 2024 Your Name · <a href=\\\"https://github.com/yourhandle\\\">GitHub</a> · <a href=\\\"https://linkedin.com/in/yourhandle\\\">LinkedIn</a></p>\\n  </footer>\\n\\n  <script src=\\\"js/main.js\\\"></script>\\n</body>\\n</html>\\n```\", \"parent_id\": \"n_1773779996237_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:04.090Z",
+      "status": "complete"
+    },
+    "n_1773780014306_15": {
+      "id": "n_1773780014306_15",
+      "type": "code",
+      "content": "## 📄 index.html — Full Scaffold\n\n```html\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"/>\n  <title>Your Name | Portfolio</title>\n  <link rel=\"stylesheet\" href=\"css/style.css\" />\n  <link rel=\"stylesheet\" href=\"css/animations.css\" />\n  <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap\" rel=\"stylesheet\"/>\n</head>\n<body>\n\n  <!-- NAV -->\n  <nav id=\"navbar\">\n    <div class=\"logo\">YourName</div>\n    <ul class=\"nav-links\">\n      <li><a href=\"#about\">About</a></li>\n      <li><a href=\"#projects\">Projects</a></li>\n      <li><a href=\"#skills\">Skills</a></li>\n      <li><a href=\"#contact\">Contact</a></li>\n    </ul>\n    <button class=\"hamburger\" id=\"hamburger\">☰</button>\n  </nav>\n\n  <!-- HERO -->\n  <section id=\"hero\">\n    <div class=\"hero-content\">\n      <h1>Hi, I'm <span class=\"highlight\">Your Name</span></h1>\n      <p class=\"tagline\">Full-Stack Developer · Designer · Problem Solver</p>\n      <a href=\"#projects\" class=\"btn\">View My Work</a>\n      <a href=\"#contact\" class=\"btn btn-outline\">Get In Touch</a>\n    </div>\n  </section>\n\n  <!-- ABOUT -->\n  <section id=\"about\">\n    <h2 class=\"section-title\">About Me</h2>\n    <div class=\"about-grid\">\n      <img src=\"assets/images/avatar.jpg\" alt=\"Avatar\" class=\"avatar\"/>\n      <div class=\"about-text\">\n        <p>I'm a passionate developer with X years of experience building web apps...</p>\n        <a href=\"assets/resume.pdf\" class=\"btn\" download>Download Resume</a>\n      </div>\n    </div>\n  </section>\n\n  <!-- PROJECTS -->\n  <section id=\"projects\">\n    <h2 class=\"section-title\">Projects</h2>\n    <div class=\"projects-grid\" id=\"projects-grid\">\n      <!-- Cards injected by JS -->\n    </div>\n  </section>\n\n  <!-- SKILLS -->\n  <section id=\"skills\">\n    <h2 class=\"section-title\">Skills</h2>\n    <div class=\"skills-grid\">\n      <span class=\"skill-tag\">HTML</span>\n      <span class=\"skill-tag\">CSS</span>\n      <span class=\"skill-tag\">JavaScript</span>\n      <span class=\"skill-tag\">React</span>\n      <span class=\"skill-tag\">Node.js</span>\n      <span class=\"skill-tag\">Git</span>\n    </div>\n  </section>\n\n  <!-- CONTACT -->\n  <section id=\"contact\">\n    <h2 class=\"section-title\">Contact Me</h2>\n    <form id=\"contact-form\">\n      <input type=\"text\"  name=\"name\"    placeholder=\"Your Name\"    required />\n      <input type=\"email\" name=\"email\"   placeholder=\"Your Email\"   required />\n      <textarea           name=\"message\" placeholder=\"Your Message\" required></textarea>\n      <button type=\"submit\" class=\"btn\">Send Message</button>\n    </form>\n  </section>\n\n  <!-- FOOTER -->\n  <footer>\n    <p>© 2024 Your Name · <a href=\"https://github.com/yourhandle\">GitHub</a> · <a href=\"https://linkedin.com/in/yourhandle\">LinkedIn</a></p>\n  </footer>\n\n  <script src=\"js/main.js\"></script>\n</body>\n</html>\n```",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:14.306Z",
+      "status": "complete"
+    },
+    "n_1773780014306_16": {
+      "id": "n_1773780014306_16",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773780014306_15\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:14.306Z",
+      "status": "complete"
+    },
+    "n_1773780015717_17": {
+      "id": "n_1773780015717_17",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"## 🎨 css/style.css\\n\\n```css\\n*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\\n\\n:root {\\n  --bg: #0f0f0f;\\n  --surface: #1a1a1a;\\n  --accent: #6c63ff;\\n  --text: #f0f0f0;\\n  --muted: #888;\\n  --radius: 12px;\\n  --font: 'Inter', sans-serif;\\n}\\n\\nbody { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.7; }\\n\\n/* NAV */\\n#navbar {\\n  position: fixed; top: 0; width: 100%; background: rgba(15,15,15,0.9);\\n  backdrop-filter: blur(10px); display: flex; justify-content: space-between;\\n  align-items: center; padding: 1rem 2rem; z-index: 100;\\n}\\n.nav-links { list-style: none; display: flex; gap: 2rem; }\\n.nav-links a { color: var(--text); text-decoration: none; font-weight: 600; transition: color .3s; }\\n.nav-links a:hover { color: var(--accent); }\\n.hamburger { display: none; background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }\\n\\n/* HERO */\\n#hero {\\n  height: 100vh; display: flex; align-items: center; justify-content: center;\\n  text-align: center; padding: 2rem;\\n}\\n#hero h1 { font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 800; }\\n.highlight { color: var(--accent); }\\n.tagline { color: var(--muted); margin: 1rem 0 2rem; font-size: 1.2rem; }\\n\\n/* BUTTONS */\\n.btn {\\n  display: inline-block; background: var(--accent); color: #fff;\\n  padding: .75rem 1.75rem; border-radius: var(--radius); text-decoration: none;\\n  font-weight: 600; margin: .5rem; transition: opacity .3s;\\n}\\n.btn:hover { opacity: .85; }\\n.btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }\\n\\n/* SECTIONS */\\nsection { padding: 6rem 2rem; max-width: 1100px; margin: auto; }\\n.section-title { font-size: 2rem; font-weight: 800; margin-bottom: 2.5rem; position: relative; }\\n.section-title::after {\\n  content: ''; display: block; width: 50px; height: 4px;\\n  background: var(--accent); margin-top: .5rem; border-radius: 2px;\\n}\\n\\n/* ABOUT */\\n.about-grid { display: grid; grid-template-columns: 200px 1fr; gap: 3rem; align-items: center; }\\n.avatar { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid var(--accent); }\\n\\n/* PROJECTS */\\n.projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }\\n.project-card {\\n  background: var(--surface); border-radius: var(--radius); overflow: hidden;\\n  transition: transform .3s; cursor: pointer;\\n}\\n.project-card:hover { transform: translateY(-6px); }\\n.project-card img { width: 100%; height: 180px; object-fit: cover; }\\n.card-body { padding: 1.25rem; }\\n.card-body h3 { margin-bottom: .5rem; }\\n.card-body p { color: var(--muted); font-size: .9rem; }\\n.card-links { margin-top: 1rem; display: flex; gap: 1rem; }\\n.card-links a { color: var(--accent); font-size: .85rem; font-weight: 600; text-decoration: none; }\\n\\n/* SKILLS */\\n.skills-grid { display: flex; flex-wrap: wrap; gap: 1rem; }\\n.skill-tag {\\n  background: var(--surface); border: 1px solid var(--accent); color: var(--accent);\\n  padding: .5rem 1.25rem; border-radius: 999px; font-size: .9rem; font-weight: 600;\\n}\\n\\n/* CONTACT */\\n#contact-form { display: flex; flex-direction: column; gap: 1rem; max-width: 600px; }\\n#contact-form input, #contact-form textarea {\\n  background: var(--surface); border: 1px solid #333; color: var(--text);\\n  padding: .85rem 1rem; border-radius: var(--radius); font-family: var(--font); font-size: 1rem;\\n}\\n#contact-form textarea { min-height: 150px; resize: vertical; }\\n#contact-form input:focus, #contact-form textarea:focus { outline: none; border-color: var(--accent); }\\n\\n/* FOOTER */\\nfooter { text-align: center; padding: 2rem; color: var(--muted); font-size: .85rem; }\\nfooter a { color: var(--accent); text-decoration: none; }\\n\\n/* RESPONSIVE */\\n@media (max-width: 700px) {\\n  .nav-links { display: none; flex-direction: column; position: absolute; top: 60px; right: 0;\\n    background: var(--surface); width: 200px; padding: 1rem; border-radius: var(--radius); }\\n  .nav-links.open { display: flex; }\\n  .hamburger { display: block; }\\n  .about-grid { grid-template-columns: 1fr; text-align: center; }\\n  .avatar { margin: auto; }\\n}\\n```\", \"parent_id\": \"n_1773779996237_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:15.717Z",
+      "status": "complete"
+    },
+    "n_1773780035027_18": {
+      "id": "n_1773780035027_18",
+      "type": "code",
+      "content": "## 🎨 css/style.css\n\n```css\n*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\n\n:root {\n  --bg: #0f0f0f;\n  --surface: #1a1a1a;\n  --accent: #6c63ff;\n  --text: #f0f0f0;\n  --muted: #888;\n  --radius: 12px;\n  --font: 'Inter', sans-serif;\n}\n\nbody { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.7; }\n\n/* NAV */\n#navbar {\n  position: fixed; top: 0; width: 100%; background: rgba(15,15,15,0.9);\n  backdrop-filter: blur(10px); display: flex; justify-content: space-between;\n  align-items: center; padding: 1rem 2rem; z-index: 100;\n}\n.nav-links { list-style: none; display: flex; gap: 2rem; }\n.nav-links a { color: var(--text); text-decoration: none; font-weight: 600; transition: color .3s; }\n.nav-links a:hover { color: var(--accent); }\n.hamburger { display: none; background: none; border: none; color: var(--text); font-size: 1.5rem; cursor: pointer; }\n\n/* HERO */\n#hero {\n  height: 100vh; display: flex; align-items: center; justify-content: center;\n  text-align: center; padding: 2rem;\n}\n#hero h1 { font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 800; }\n.highlight { color: var(--accent); }\n.tagline { color: var(--muted); margin: 1rem 0 2rem; font-size: 1.2rem; }\n\n/* BUTTONS */\n.btn {\n  display: inline-block; background: var(--accent); color: #fff;\n  padding: .75rem 1.75rem; border-radius: var(--radius); text-decoration: none;\n  font-weight: 600; margin: .5rem; transition: opacity .3s;\n}\n.btn:hover { opacity: .85; }\n.btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }\n\n/* SECTIONS */\nsection { padding: 6rem 2rem; max-width: 1100px; margin: auto; }\n.section-title { font-size: 2rem; font-weight: 800; margin-bottom: 2.5rem; position: relative; }\n.section-title::after {\n  content: ''; display: block; width: 50px; height: 4px;\n  background: var(--accent); margin-top: .5rem; border-radius: 2px;\n}\n\n/* ABOUT */\n.about-grid { display: grid; grid-template-columns: 200px 1fr; gap: 3rem; align-items: center; }\n.avatar { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 4px solid var(--accent); }\n\n/* PROJECTS */\n.projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }\n.project-card {\n  background: var(--surface); border-radius: var(--radius); overflow: hidden;\n  transition: transform .3s; cursor: pointer;\n}\n.project-card:hover { transform: translateY(-6px); }\n.project-card img { width: 100%; height: 180px; object-fit: cover; }\n.card-body { padding: 1.25rem; }\n.card-body h3 { margin-bottom: .5rem; }\n.card-body p { color: var(--muted); font-size: .9rem; }\n.card-links { margin-top: 1rem; display: flex; gap: 1rem; }\n.card-links a { color: var(--accent); font-size: .85rem; font-weight: 600; text-decoration: none; }\n\n/* SKILLS */\n.skills-grid { display: flex; flex-wrap: wrap; gap: 1rem; }\n.skill-tag {\n  background: var(--surface); border: 1px solid var(--accent); color: var(--accent);\n  padding: .5rem 1.25rem; border-radius: 999px; font-size: .9rem; font-weight: 600;\n}\n\n/* CONTACT */\n#contact-form { display: flex; flex-direction: column; gap: 1rem; max-width: 600px; }\n#contact-form input, #contact-form textarea {\n  background: var(--surface); border: 1px solid #333; color: var(--text);\n  padding: .85rem 1rem; border-radius: var(--radius); font-family: var(--font); font-size: 1rem;\n}\n#contact-form textarea { min-height: 150px; resize: vertical; }\n#contact-form input:focus, #contact-form textarea:focus { outline: none; border-color: var(--accent); }\n\n/* FOOTER */\nfooter { text-align: center; padding: 2rem; color: var(--muted); font-size: .85rem; }\nfooter a { color: var(--accent); text-decoration: none; }\n\n/* RESPONSIVE */\n@media (max-width: 700px) {\n  .nav-links { display: none; flex-direction: column; position: absolute; top: 60px; right: 0;\n    background: var(--surface); width: 200px; padding: 1rem; border-radius: var(--radius); }\n  .nav-links.open { display: flex; }\n  .hamburger { display: block; }\n  .about-grid { grid-template-columns: 1fr; text-align: center; }\n  .avatar { margin: auto; }\n}\n```",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:35.027Z",
+      "status": "complete"
+    },
+    "n_1773780035027_19": {
+      "id": "n_1773780035027_19",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773780035027_18\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:35.027Z",
+      "status": "complete"
+    },
+    "n_1773780036479_20": {
+      "id": "n_1773780036479_20",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"## ✨ css/animations.css\\n\\n```css\\n/* Fade-in on scroll */\\n.fade-in {\\n  opacity: 0;\\n  transform: translateY(30px);\\n  transition: opacity 0.6s ease, transform 0.6s ease;\\n}\\n.fade-in.visible {\\n  opacity: 1;\\n  transform: translateY(0);\\n}\\n\\n/* Hero text entrance */\\n#hero .hero-content {\\n  animation: heroEntrance 1s ease forwards;\\n}\\n@keyframes heroEntrance {\\n  from { opacity: 0; transform: translateY(40px); }\\n  to   { opacity: 1; transform: translateY(0); }\\n}\\n\\n/* Navbar scroll shadow */\\n#navbar.scrolled {\\n  box-shadow: 0 2px 20px rgba(0,0,0,0.5);\\n}\\n```\", \"parent_id\": \"n_1773779996237_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:36.479Z",
+      "status": "complete"
+    },
+    "n_1773780039637_21": {
+      "id": "n_1773780039637_21",
+      "type": "code",
+      "content": "## ✨ css/animations.css\n\n```css\n/* Fade-in on scroll */\n.fade-in {\n  opacity: 0;\n  transform: translateY(30px);\n  transition: opacity 0.6s ease, transform 0.6s ease;\n}\n.fade-in.visible {\n  opacity: 1;\n  transform: translateY(0);\n}\n\n/* Hero text entrance */\n#hero .hero-content {\n  animation: heroEntrance 1s ease forwards;\n}\n@keyframes heroEntrance {\n  from { opacity: 0; transform: translateY(40px); }\n  to   { opacity: 1; transform: translateY(0); }\n}\n\n/* Navbar scroll shadow */\n#navbar.scrolled {\n  box-shadow: 0 2px 20px rgba(0,0,0,0.5);\n}\n```",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:39.637Z",
+      "status": "complete"
+    },
+    "n_1773780039637_22": {
+      "id": "n_1773780039637_22",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773780039637_21\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:39.637Z",
+      "status": "complete"
+    },
+    "n_1773780041000_23": {
+      "id": "n_1773780041000_23",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"## ⚙️ js/main.js\\n\\n```js\\n// ─── PROJECT DATA ───────────────────────────────────────────\\nconst projects = [\\n  {\\n    title: \\\"Project One\\\",\\n    description: \\\"A full-stack web app built with React and Node.js.\\\",\\n    image: \\\"assets/images/project-1.png\\\",\\n    demo: \\\"#\\\",\\n    repo: \\\"https://github.com/yourhandle/project-one\\\"\\n  },\\n  {\\n    title: \\\"Project Two\\\",\\n    description: \\\"A mobile-first e-commerce UI with smooth animations.\\\",\\n    image: \\\"assets/images/project-2.png\\\",\\n    demo: \\\"#\\\",\\n    repo: \\\"https://github.com/yourhandle/project-two\\\"\\n  },\\n  {\\n    title: \\\"Project Three\\\",\\n    description: \\\"REST API with authentication and PostgreSQL.\\\",\\n    image: \\\"assets/images/project-3.png\\\",\\n    demo: \\\"#\\\",\\n    repo: \\\"https://github.com/yourhandle/project-three\\\"\\n  }\\n];\\n\\n// ─── RENDER PROJECT CARDS ────────────────────────────────────\\nconst grid = document.getElementById(\\\"projects-grid\\\");\\nprojects.forEach(p => {\\n  grid.innerHTML += `\\n    <div class=\\\"project-card fade-in\\\">\\n      <img src=\\\"${p.image}\\\" alt=\\\"${p.title}\\\" />\\n      <div class=\\\"card-body\\\">\\n        <h3>${p.title}</h3>\\n        <p>${p.description}</p>\\n        <div class=\\\"card-links\\\">\\n          <a href=\\\"${p.demo}\\\" target=\\\"_blank\\\">🔗 Live Demo</a>\\n          <a href=\\\"${p.repo}\\\" target=\\\"_blank\\\">💻 GitHub</a>\\n        </div>\\n      </div>\\n    </div>`;\\n});\\n\\n// ─── SCROLL ANIMATIONS ───────────────────────────────────────\\nconst observer = new IntersectionObserver(entries => {\\n  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add(\\\"visible\\\"); });\\n}, { threshold: 0.15 });\\n\\ndocument.querySelectorAll(\\\".fade-in, section\\\").forEach(el => {\\n  el.classList.add(\\\"fade-in\\\");\\n  observer.observe(el);\\n});\\n\\n// ─── NAVBAR SCROLL EFFECT ────────────────────────────────────\\nconst navbar = document.getElementById(\\\"navbar\\\");\\nwindow.addEventListener(\\\"scroll\\\", () => {\\n  navbar.classList.toggle(\\\"scrolled\\\", window.scrollY > 50);\\n});\\n\\n// ─── HAMBURGER MENU ──────────────────────────────────────────\\nconst hamburger = document.getElementById(\\\"hamburger\\\");\\nconst navLinks  = document.querySelector(\\\".nav-links\\\");\\nhamburger.addEventListener(\\\"click\\\", () => navLinks.classList.toggle(\\\"open\\\"));\\n\\n// Close menu on link click\\nnavLinks.querySelectorAll(\\\"a\\\").forEach(a =>\\n  a.addEventListener(\\\"click\\\", () => navLinks.classList.remove(\\\"open\\\"))\\n);\\n\\n// ─── CONTACT FORM ────────────────────────────────────────────\\ndocument.getElementById(\\\"contact-form\\\").addEventListener(\\\"submit\\\", e => {\\n  e.preventDefault();\\n  const data = new FormData(e.target);\\n  // Replace with your form service (Formspree, EmailJS, etc.)\\n  console.log(\\\"Form submitted:\\\", Object.fromEntries(data));\\n  alert(\\\"Thanks for reaching out! I'll get back to you soon. 🚀\\\");\\n  e.target.reset();\\n});\\n```\", \"parent_id\": \"n_1773779996237_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:41.000Z",
+      "status": "complete"
+    },
+    "n_1773780052602_24": {
+      "id": "n_1773780052602_24",
+      "type": "code",
+      "content": "## ⚙️ js/main.js\n\n```js\n// ─── PROJECT DATA ───────────────────────────────────────────\nconst projects = [\n  {\n    title: \"Project One\",\n    description: \"A full-stack web app built with React and Node.js.\",\n    image: \"assets/images/project-1.png\",\n    demo: \"#\",\n    repo: \"https://github.com/yourhandle/project-one\"\n  },\n  {\n    title: \"Project Two\",\n    description: \"A mobile-first e-commerce UI with smooth animations.\",\n    image: \"assets/images/project-2.png\",\n    demo: \"#\",\n    repo: \"https://github.com/yourhandle/project-two\"\n  },\n  {\n    title: \"Project Three\",\n    description: \"REST API with authentication and PostgreSQL.\",\n    image: \"assets/images/project-3.png\",\n    demo: \"#\",\n    repo: \"https://github.com/yourhandle/project-three\"\n  }\n];\n\n// ─── RENDER PROJECT CARDS ────────────────────────────────────\nconst grid = document.getElementById(\"projects-grid\");\nprojects.forEach(p => {\n  grid.innerHTML += `\n    <div class=\"project-card fade-in\">\n      <img src=\"${p.image}\" alt=\"${p.title}\" />\n      <div class=\"card-body\">\n        <h3>${p.title}</h3>\n        <p>${p.description}</p>\n        <div class=\"card-links\">\n          <a href=\"${p.demo}\" target=\"_blank\">🔗 Live Demo</a>\n          <a href=\"${p.repo}\" target=\"_blank\">💻 GitHub</a>\n        </div>\n      </div>\n    </div>`;\n});\n\n// ─── SCROLL ANIMATIONS ───────────────────────────────────────\nconst observer = new IntersectionObserver(entries => {\n  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add(\"visible\"); });\n}, { threshold: 0.15 });\n\ndocument.querySelectorAll(\".fade-in, section\").forEach(el => {\n  el.classList.add(\"fade-in\");\n  observer.observe(el);\n});\n\n// ─── NAVBAR SCROLL EFFECT ────────────────────────────────────\nconst navbar = document.getElementById(\"navbar\");\nwindow.addEventListener(\"scroll\", () => {\n  navbar.classList.toggle(\"scrolled\", window.scrollY > 50);\n});\n\n// ─── HAMBURGER MENU ──────────────────────────────────────────\nconst hamburger = document.getElementById(\"hamburger\");\nconst navLinks  = document.querySelector(\".nav-links\");\nhamburger.addEventListener(\"click\", () => navLinks.classList.toggle(\"open\"));\n\n// Close menu on link click\nnavLinks.querySelectorAll(\"a\").forEach(a =>\n  a.addEventListener(\"click\", () => navLinks.classList.remove(\"open\"))\n);\n\n// ─── CONTACT FORM ────────────────────────────────────────────\ndocument.getElementById(\"contact-form\").addEventListener(\"submit\", e => {\n  e.preventDefault();\n  const data = new FormData(e.target);\n  // Replace with your form service (Formspree, EmailJS, etc.)\n  console.log(\"Form submitted:\", Object.fromEntries(data));\n  alert(\"Thanks for reaching out! I'll get back to you soon. 🚀\");\n  e.target.reset();\n});\n```",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:52.602Z",
+      "status": "complete"
+    },
+    "n_1773780052602_25": {
+      "id": "n_1773780052602_25",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773780052602_24\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:52.602Z",
+      "status": "complete"
+    },
+    "n_1773780054275_26": {
+      "id": "n_1773780054275_26",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## 🚀 Next Steps & Customization Tips\\n\\n1. **Replace placeholder content** — swap in your name, avatar, bio, and project data in `main.js`\\n2. **Contact form backend** — wire up [Formspree](https://formspree.io) or [EmailJS](https://emailjs.com) for real email delivery\\n3. **Deploy** — push to GitHub and enable **GitHub Pages** for free hosting, or use **Netlify** / **Vercel**\\n4. **SEO** — add `<meta name=\\\"description\\\">` and Open Graph tags in `<head>`\\n5. **Dark/Light toggle** — swap CSS custom properties on a `data-theme` attribute on `<body>`\\n6. **Upgrade path** — migrate to **React + Vite + Tailwind** for a component-based architecture\", \"parent_id\": \"n_1773779996237_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:54.275Z",
+      "status": "complete"
+    },
+    "n_1773780058860_27": {
+      "id": "n_1773780058860_27",
+      "type": "response",
+      "content": "## 🚀 Next Steps & Customization Tips\n\n1. **Replace placeholder content** — swap in your name, avatar, bio, and project data in `main.js`\n2. **Contact form backend** — wire up [Formspree](https://formspree.io) or [EmailJS](https://emailjs.com) for real email delivery\n3. **Deploy** — push to GitHub and enable **GitHub Pages** for free hosting, or use **Netlify** / **Vercel**\n4. **SEO** — add `<meta name=\"description\">` and Open Graph tags in `<head>`\n5. **Dark/Light toggle** — swap CSS custom properties on a `data-theme` attribute on `<body>`\n6. **Upgrade path** — migrate to **React + Vite + Tailwind** for a component-based architecture",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:58.860Z",
+      "status": "complete"
+    },
+    "n_1773780058860_28": {
+      "id": "n_1773780058860_28",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1773780058860_27\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:40:58.860Z",
+      "status": "complete"
+    },
+    "n_1773780060155_29": {
+      "id": "n_1773780060155_29",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1773780014306_15\", \"to_id\": \"n_1773780035027_18\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:41:00.155Z",
+      "status": "complete"
+    },
+    "n_1773780061088_30": {
+      "id": "n_1773780061088_30",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T20:41:01.088Z",
+      "status": "complete"
+    }
+  },
+  "edges": [
+    {
+      "from": "n_1773779990130_1",
+      "to": "n_1773779991256_2",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779991256_2",
+      "to": "n_1773779993839_4",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773779993839_3",
+      "to": "n_1773779995149_5",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779995149_5",
+      "to": "n_1773779996237_7",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773779996237_6",
+      "to": "n_1773779997518_8",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779996237_6",
+      "to": "n_1773779999479_9",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773779997518_8",
+      "to": "n_1773779999480_10",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773779999480_10",
+      "to": "n_1773780000890_11",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779996237_6",
+      "to": "n_1773780002847_12",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773780000890_11",
+      "to": "n_1773780002847_13",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773780002847_12",
+      "to": "n_1773780004090_14",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779996237_6",
+      "to": "n_1773780014306_15",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773780004090_14",
+      "to": "n_1773780014306_16",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773780014306_15",
+      "to": "n_1773780015717_17",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779996237_6",
+      "to": "n_1773780035027_18",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773780015717_17",
+      "to": "n_1773780035027_19",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773780035027_18",
+      "to": "n_1773780036479_20",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779996237_6",
+      "to": "n_1773780039637_21",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773780036479_20",
+      "to": "n_1773780039637_22",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773780039637_21",
+      "to": "n_1773780041000_23",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779996237_6",
+      "to": "n_1773780052602_24",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773780041000_23",
+      "to": "n_1773780052602_25",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773780052602_24",
+      "to": "n_1773780054275_26",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773779996237_6",
+      "to": "n_1773780058860_27",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1773780054275_26",
+      "to": "n_1773780058860_28",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1773780058860_27",
+      "to": "n_1773780060155_29",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1773780014306_15",
+      "to": "n_1773780035027_18",
+      "type": "references"
+    },
+    {
+      "from": "n_1773780060155_29",
+      "to": "n_1773780061088_30",
+      "type": "tool_result"
+    }
+  ]
+}

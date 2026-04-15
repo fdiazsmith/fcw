@@ -1,0 +1,22 @@
+{
+  "id": "doc_1773775793001_1",
+  "meta": {
+    "created": "2026-03-17T19:29:53.001Z",
+    "title": "Untitled",
+    "summary": "Graph: 1 node, 0 edges\nNode types:\n  user_prompt: 1\nUser prompts:\n  - help me create a portfolio site outline"
+  },
+  "nodes": {
+    "n_1773775807564_1": {
+      "id": "n_1773775807564_1",
+      "type": "user_prompt",
+      "content": "help me create a portfolio site outline",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-03-17T19:30:07.564Z",
+      "status": "complete"
+    }
+  },
+  "edges": []
+}

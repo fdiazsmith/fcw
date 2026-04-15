@@ -1,0 +1,41 @@
+/* Move tldraw toolbar to left side, stacked vertically */
+
+.tlui-layout__bottom {
+  position: fixed !important;
+  bottom: unset !important;
+  left: 0 !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  width: auto !important;
+  padding: 0 !important;
+  z-index: 300 !important;
+}
+
+.tlui-toolbar {
+  flex-direction: column !important;
+  border-radius: 0 12px 12px 0 !important;
+  padding: 4px !important;
+}
+
+.tlui-toolbar__tools {
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.tlui-toolbar__extras {
+  flex-direction: column !important;
+}
+
+/* Keep action bar horizontal but stack below toolbar */
+.tlui-layout__bottom__main {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+}
+
+/* Style panel stays in its default position */
+.tlui-style-panel__wrapper {
+  left: 56px !important;
+  right: unset !important;
+}
