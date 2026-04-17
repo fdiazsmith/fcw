@@ -87,14 +87,14 @@ export class StreamMapper {
     if (cb.type === 'text') {
       // Determine parent: if we had tool_use before, connect to last tool_result or parent
       const connectTo = this.hadToolUse ? this.findLastToolResultOrParent() : this.parentNodeId;
-      const nodeId = this.manager.createNode('response', '', connectTo, { status: 'streaming' });
+      const nodeId = this.manager.createNode('response', '', connectTo, { status: 'streaming', executionStatus: 'in_progress' });
       this.lastResponseNodeId = nodeId;
       this.blocks.set(event.index, { nodeId, blockType: 'text', inputJson: '' });
     } else if (cb.type === 'tool_use') {
       // Connect tool_call to the last response node if available, otherwise parent
       const connectTo = this.lastResponseNodeId ?? this.parentNodeId;
       const content = `tool: ${cb.name}`;
-      const nodeId = this.manager.createNode('tool_call', content, undefined, { status: 'streaming' });
+      const nodeId = this.manager.createNode('tool_call', content, undefined, { status: 'streaming', executionStatus: 'in_progress' });
       this.manager.createEdge(connectTo, nodeId, 'tool_call');
       this.toolUseIdToNodeId.set(cb.id, nodeId);
       this.blocks.set(event.index, {
@@ -144,7 +144,7 @@ export class StreamMapper {
     const toolNodeId = this.toolUseIdToNodeId.get(toolUseId);
     if (!toolNodeId) return;
 
-    const resultNodeId = this.manager.createNode('tool_result', result, undefined, { status: 'complete' });
+    const resultNodeId = this.manager.createNode('tool_result', result, undefined, { status: 'completed', executionStatus: 'completed' });
     this.manager.createEdge(toolNodeId, resultNodeId, 'tool_result');
   }
 
@@ -152,7 +152,8 @@ export class StreamMapper {
     for (const block of this.blocks.values()) {
       const node = this.manager.document.nodes[block.nodeId];
       if (node && node.status === 'streaming') {
-        this.manager.setNodeStatus(block.nodeId, 'complete');
+        this.manager.setNodeStatus(block.nodeId, 'completed');
+        this.manager.setExecutionStatus(block.nodeId, 'completed');
       }
     }
   }
@@ -171,6 +172,7 @@ export class StreamMapper {
         const errorMsg = `\n\n[Error]\n${message}`;
         this.manager.updateNodeContent(block.nodeId, node.content + errorMsg);
         this.manager.setNodeStatus(block.nodeId, 'error');
+        this.manager.setExecutionStatus(block.nodeId, 'completed');
       }
     }
   }

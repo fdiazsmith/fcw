@@ -7,9 +7,9 @@ function makeDoc(): GraphDocument {
     id: 'doc1',
     meta: { created: '2024-01-01', title: 'Test' },
     nodes: {
-      n1: { id: 'n1', type: 'user_prompt', content: 'Hello world', position: { x: 0, y: 0 }, created: '', status: 'complete' },
-      n2: { id: 'n2', type: 'response', content: 'Goodbye moon', position: { x: 0, y: 0 }, created: '', status: 'complete' },
-      n3: { id: 'n3', type: 'thought', content: 'hello again', position: { x: 0, y: 0 }, created: '', status: 'complete' },
+      n1: { id: 'n1', type: 'user_prompt', content: 'Hello world', position: { x: 0, y: 0 }, created: '', status: 'completed' },
+      n2: { id: 'n2', type: 'response', content: 'Goodbye moon', position: { x: 0, y: 0 }, created: '', status: 'completed' },
+      n3: { id: 'n3', type: 'thought', content: 'hello again', position: { x: 0, y: 0 }, created: '', status: 'completed' },
     },
     edges: [],
   };

@@ -1,0 +1,660 @@
+{
+  "id": "doc_1776226258316_1",
+  "meta": {
+    "created": "2026-04-15T04:10:58.316Z",
+    "title": "Untitled",
+    "summary": "I created a comprehensive high-level diagram for a personal website, breaking it down into 4 main areas: Pages (Home, About, Portfolio/Work, Contact), Design (visual elements and UX), Content (bio, skills, project descriptions), and Tech Stack (frontend frameworks, hosting, domain). The diagram also includes detailed breakdowns for key pages like the Home page structure and Portfolio requirements, plus a launch checklist with essential items like mobile responsiveness and SEO optimization, all interconnected to show how these components relate to each other."
+  },
+  "nodes": {
+    "n_1776226376812_1": {
+      "id": "n_1776226376812_1",
+      "type": "user_prompt",
+      "content": "can you make a high level diagram of what a personal site needs.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:12:56.812Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226379184_2": {
+      "id": "n_1776226379184_2",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"🌐 Personal Website — High-Level Overview\\nA personal site typically has 4 core areas: Pages, Design, Content, and Tech Stack. Each serves a distinct purpose in presenting you to the world.\", \"parent_id\": \"user_prompt_1\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:12:59.184Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226381273_3": {
+      "id": "n_1776226381273_3",
+      "type": "summary",
+      "content": "🌐 Personal Website — High-Level Overview\nA personal site typically has 4 core areas: Pages, Design, Content, and Tech Stack. Each serves a distinct purpose in presenting you to the world.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:01.273Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226381273_4": {
+      "id": "n_1776226381273_4",
+      "type": "tool_result",
+      "content": "{\"error\":\"Node \\\"user_prompt_1\\\" not found\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:01.273Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226382601_5": {
+      "id": "n_1776226382601_5",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"🌐 Personal Website — High-Level Overview\\nA personal site typically has 4 core areas: Pages, Design, Content, and Tech Stack. Each serves a distinct purpose in presenting you to the world.\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:02.601Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226383056_6": {
+      "id": "n_1776226383056_6",
+      "type": "summary",
+      "content": "🌐 Personal Website — High-Level Overview\nA personal site typically has 4 core areas: Pages, Design, Content, and Tech Stack. Each serves a distinct purpose in presenting you to the world.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:03.056Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226383056_7": {
+      "id": "n_1776226383056_7",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776226383056_6\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:03.056Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226384410_8": {
+      "id": "n_1776226384410_8",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"📄 Pages\\nThe core pages your site should include:\\n- **Home** — First impression, elevator pitch\\n- **About** — Your story, background, personality\\n- **Portfolio/Work** — Projects, case studies, or resume\\n- **Blog** *(optional)* — Articles, thoughts, tutorials\\n- **Contact** — How people can reach you\", \"parent_id\": \"n_1776226383056_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:04.410Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226386401_9": {
+      "id": "n_1776226386401_9",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🎨 Design\\nThe visual and UX layer:\\n- **Color Palette** — 2–3 brand colors\\n- **Typography** — Heading + body fonts\\n- **Layout** — Grid, spacing, responsiveness\\n- **Dark/Light Mode** *(optional)*\\n- **Animations** — Subtle transitions for polish\", \"parent_id\": \"n_1776226383056_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:06.401Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226388343_10": {
+      "id": "n_1776226388343_10",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"✍️ Content\\nWhat you actually put on the site:\\n- **Bio / Headline** — Who you are in one line\\n- **Skills & Tools** — Technologies or expertise\\n- **Project Descriptions** — What you built & why it matters\\n- **Profile Photo** — A clear, professional image\\n- **Resume/CV** — Downloadable PDF link\\n- **Social Links** — GitHub, LinkedIn, Twitter, etc.\", \"parent_id\": \"n_1776226383056_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:08.343Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226390327_11": {
+      "id": "n_1776226390327_11",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"⚙️ Tech Stack\\nHow you actually build and ship it:\\n- **Frontend** — HTML/CSS/JS, React, Next.js, Astro, etc.\\n- **Hosting** — Vercel, Netlify, GitHub Pages\\n- **Domain** — Custom domain (e.g. yourname.com)\\n- **CMS** *(optional)* — Contentful, Sanity for blog posts\\n- **Analytics** *(optional)* — Plausible, Google Analytics\", \"parent_id\": \"n_1776226383056_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:10.327Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226393451_12": {
+      "id": "n_1776226393451_12",
+      "type": "response",
+      "content": "📄 Pages\nThe core pages your site should include:\n- **Home** — First impression, elevator pitch\n- **About** — Your story, background, personality\n- **Portfolio/Work** — Projects, case studies, or resume\n- **Blog** *(optional)* — Articles, thoughts, tutorials\n- **Contact** — How people can reach you",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:13.451Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226393452_13": {
+      "id": "n_1776226393452_13",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776226393451_12\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:13.452Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226393452_14": {
+      "id": "n_1776226393452_14",
+      "type": "response",
+      "content": "🎨 Design\nThe visual and UX layer:\n- **Color Palette** — 2–3 brand colors\n- **Typography** — Heading + body fonts\n- **Layout** — Grid, spacing, responsiveness\n- **Dark/Light Mode** *(optional)*\n- **Animations** — Subtle transitions for polish",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:13.452Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226393452_15": {
+      "id": "n_1776226393452_15",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776226393452_14\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:13.452Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226393452_16": {
+      "id": "n_1776226393452_16",
+      "type": "response",
+      "content": "✍️ Content\nWhat you actually put on the site:\n- **Bio / Headline** — Who you are in one line\n- **Skills & Tools** — Technologies or expertise\n- **Project Descriptions** — What you built & why it matters\n- **Profile Photo** — A clear, professional image\n- **Resume/CV** — Downloadable PDF link\n- **Social Links** — GitHub, LinkedIn, Twitter, etc.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:13.452Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226393452_17": {
+      "id": "n_1776226393452_17",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776226393452_16\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:13.452Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226393453_18": {
+      "id": "n_1776226393453_18",
+      "type": "response",
+      "content": "⚙️ Tech Stack\nHow you actually build and ship it:\n- **Frontend** — HTML/CSS/JS, React, Next.js, Astro, etc.\n- **Hosting** — Vercel, Netlify, GitHub Pages\n- **Domain** — Custom domain (e.g. yourname.com)\n- **CMS** *(optional)* — Contentful, Sanity for blog posts\n- **Analytics** *(optional)* — Plausible, Google Analytics",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:13.453Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226393453_19": {
+      "id": "n_1776226393453_19",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776226393453_18\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:13.453Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226394429_20": {
+      "id": "n_1776226394429_20",
+      "type": "response",
+      "content": "Now let me add a few deeper detail nodes and cross-link related concepts:",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:14.429Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226395315_21": {
+      "id": "n_1776226395315_21",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"🏠 Home Page — What it needs\\n- A strong **headline** (\\\"Hi, I'm Alex — I build things for the web\\\")\\n- A **CTA button** → View Work or Contact Me\\n- A **brief intro** (2–3 sentences)\\n- Navigation to other pages\", \"parent_id\": \"n_1776226393451_12\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:15.315Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226397268_22": {
+      "id": "n_1776226397268_22",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"🗂️ Portfolio Page — What it needs\\n- **Project cards** with thumbnail, title, description\\n- **Tags** for tech used (React, Python, etc.)\\n- **Links** to live demo & source code\\n- Case study detail pages *(optional but impressive)*\", \"parent_id\": \"n_1776226393451_12\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:17.268Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226398775_23": {
+      "id": "n_1776226398775_23",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"🚀 Launch Checklist\\n- [ ] Mobile responsive\\n- [ ] SEO meta tags (title, description, og:image)\\n- [ ] Fast load time (compress images)\\n- [ ] Custom domain connected\\n- [ ] Contact form working\\n- [ ] Links all tested\", \"parent_id\": \"n_1776226383056_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:18.775Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226400310_24": {
+      "id": "n_1776226400310_24",
+      "type": "thought",
+      "content": "🏠 Home Page — What it needs\n- A strong **headline** (\"Hi, I'm Alex — I build things for the web\")\n- A **CTA button** → View Work or Contact Me\n- A **brief intro** (2–3 sentences)\n- Navigation to other pages",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:20.310Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226400311_25": {
+      "id": "n_1776226400311_25",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776226400310_24\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:20.311Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226400311_26": {
+      "id": "n_1776226400311_26",
+      "type": "thought",
+      "content": "🗂️ Portfolio Page — What it needs\n- **Project cards** with thumbnail, title, description\n- **Tags** for tech used (React, Python, etc.)\n- **Links** to live demo & source code\n- Case study detail pages *(optional but impressive)*",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:20.311Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226400312_27": {
+      "id": "n_1776226400312_27",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776226400311_26\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:20.312Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226400313_28": {
+      "id": "n_1776226400313_28",
+      "type": "thought",
+      "content": "🚀 Launch Checklist\n- [ ] Mobile responsive\n- [ ] SEO meta tags (title, description, og:image)\n- [ ] Fast load time (compress images)\n- [ ] Custom domain connected\n- [ ] Contact form working\n- [ ] Links all tested",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:20.313Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226400313_29": {
+      "id": "n_1776226400313_29",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776226400313_28\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:20.313Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226401827_30": {
+      "id": "n_1776226401827_30",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776226393453_18\", \"to_id\": \"n_1776226400313_28\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:21.827Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226402581_31": {
+      "id": "n_1776226402581_31",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776226393452_16\", \"to_id\": \"n_1776226400311_26\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:22.581Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226403282_32": {
+      "id": "n_1776226403282_32",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776226393452_14\", \"to_id\": \"n_1776226400310_24\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:23.282Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226403600_33": {
+      "id": "n_1776226403600_33",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:23.600Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226403600_34": {
+      "id": "n_1776226403600_34",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:23.600Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226403600_35": {
+      "id": "n_1776226403600_35",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:23.600Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776226404518_36": {
+      "id": "n_1776226404518_36",
+      "type": "response",
+      "content": "Here's your diagram! Here's a quick walkthrough of what was built:\n\n- 🌐 **Overview node** at the top — the root of everything\n- **4 main branches** hanging off it:\n  - 📄 **Pages** — Home, About, Portfolio, Blog, Contact\n  - 🎨 **Design** — Colors, typography, layout, animations\n  - ✍️ **Content** — Bio, skills, projects, resume, social links\n  - ⚙️ **Tech Stack** — Frontend framework, hosting, domain, CMS\n- **Drill-down nodes** on Home Page and Portfolio Page with specifics\n- ✅ A **Launch Checklist** node cross-linked from the Tech Stack\n\nYou can click any node to explore it! Want me to go deeper on any branch — like scaffolding the actual code, or picking a tech stack?",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:13:24.518Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    }
+  },
+  "edges": [
+    {
+      "from": "n_1776226376812_1",
+      "to": "n_1776226379184_2",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226379184_2",
+      "to": "n_1776226381273_4",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226381273_3",
+      "to": "n_1776226382601_5",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226382601_5",
+      "to": "n_1776226383056_7",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226384410_8",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226386401_9",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226388343_10",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226390327_11",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226393451_12",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776226384410_8",
+      "to": "n_1776226393452_13",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226393452_14",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776226386401_9",
+      "to": "n_1776226393452_15",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226393452_16",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776226388343_10",
+      "to": "n_1776226393452_17",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226393453_18",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776226390327_11",
+      "to": "n_1776226393453_19",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226393453_18",
+      "to": "n_1776226394429_20",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776226394429_20",
+      "to": "n_1776226395315_21",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226394429_20",
+      "to": "n_1776226397268_22",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226394429_20",
+      "to": "n_1776226398775_23",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226393451_12",
+      "to": "n_1776226400310_24",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776226395315_21",
+      "to": "n_1776226400311_25",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226393451_12",
+      "to": "n_1776226400311_26",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776226397268_22",
+      "to": "n_1776226400312_27",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226383056_6",
+      "to": "n_1776226400313_28",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776226398775_23",
+      "to": "n_1776226400313_29",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226400313_28",
+      "to": "n_1776226401827_30",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226400313_28",
+      "to": "n_1776226402581_31",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226400313_28",
+      "to": "n_1776226403282_32",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776226393453_18",
+      "to": "n_1776226400313_28",
+      "type": "references"
+    },
+    {
+      "from": "n_1776226401827_30",
+      "to": "n_1776226403600_33",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226393452_16",
+      "to": "n_1776226400311_26",
+      "type": "references"
+    },
+    {
+      "from": "n_1776226402581_31",
+      "to": "n_1776226403600_34",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226393452_14",
+      "to": "n_1776226400310_24",
+      "type": "references"
+    },
+    {
+      "from": "n_1776226403282_32",
+      "to": "n_1776226403600_35",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776226403600_33",
+      "to": "n_1776226404518_36",
+      "type": "reply_to"
+    }
+  ]
+}

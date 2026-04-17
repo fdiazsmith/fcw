@@ -6,7 +6,7 @@ import {
   deleteNode as coreDeleteNode,
   createEdge as coreCreateEdge,
 } from '@fcw/graph-core';
-import type { GraphDocument, NodeType, EdgeType, NodeStatus } from '@fcw/graph-core';
+import type { GraphDocument, NodeType, EdgeType, NodeStatus, ExecutionStatus, PathStatus } from '@fcw/graph-core';
 
 type SaveHandler = (doc: GraphDocument) => Promise<void>;
 
@@ -21,7 +21,7 @@ export class StateManager extends EventEmitter {
     this.document = createDocument(title);
   }
 
-  createNode(type: NodeType, content: string, parentId?: string, options?: { status?: NodeStatus }): string {
+  createNode(type: NodeType, content: string, parentId?: string, options?: { status?: NodeStatus; executionStatus?: ExecutionStatus; pathStatus?: PathStatus }): string {
     const prevEdgeCount = this.document.edges.length;
     const id = coreCreateNode(this.document, type, content, parentId, options);
     const node = this.document.nodes[id];
@@ -65,6 +65,99 @@ export class StateManager extends EventEmitter {
     this.document.nodes[nodeId].status = status;
     this.emit('node_status_changed', { type: 'node_status_changed', nodeId, status });
     this.scheduleSave();
+  }
+
+  setExecutionStatus(nodeId: string, executionStatus: ExecutionStatus): void {
+    if (!this.document.nodes[nodeId]) {
+      throw new Error(`Node "${nodeId}" not found`);
+    }
+    this.document.nodes[nodeId].executionStatus = executionStatus;
+    this.emit('execution_status_changed', { type: 'execution_status_changed', nodeId, executionStatus });
+    this.checkAutoCollapse(nodeId);
+    this.scheduleSave();
+  }
+
+  setPathStatus(nodeId: string, pathStatus: PathStatus): void {
+    if (!this.document.nodes[nodeId]) {
+      throw new Error(`Node "${nodeId}" not found`);
+    }
+    this.document.nodes[nodeId].pathStatus = pathStatus;
+    this.emit('path_status_changed', { type: 'path_status_changed', nodeId, pathStatus });
+    this.checkAutoCollapse(nodeId);
+    this.scheduleSave();
+  }
+
+  private checkAutoCollapse(nodeId: string): void {
+    const node = this.document.nodes[nodeId];
+    if (node && node.executionStatus === 'completed' && node.pathStatus === 'archived') {
+      this.emit('node_auto_collapsed', { type: 'node_auto_collapsed', nodeId });
+    }
+  }
+
+  computeActivePath(tipNodeId: string): Set<string> {
+    const visited = new Set<string>();
+    let current = tipNodeId;
+    while (current) {
+      visited.add(current);
+      const parentEdge = this.document.edges.find(
+        (e) => e.to === current && (e.type === 'reply_to' || e.type === 'branches_from'),
+      );
+      if (!parentEdge) break;
+      current = parentEdge.from;
+    }
+    return visited;
+  }
+
+  getToolNodeChildren(nodeId: string): string[] {
+    const result: string[] = [];
+    const toolCallEdges = this.document.edges.filter(
+      (e) => e.from === nodeId && e.type === 'tool_call',
+    );
+    for (const tcEdge of toolCallEdges) {
+      result.push(tcEdge.to);
+      const toolResultEdges = this.document.edges.filter(
+        (e) => e.from === tcEdge.to && e.type === 'tool_result',
+      );
+      for (const trEdge of toolResultEdges) {
+        result.push(trEdge.to);
+      }
+    }
+    return result;
+  }
+
+  applyBranchPathUpdate(branchTipId: string): void {
+    const activePath = this.computeActivePath(branchTipId);
+
+    // Tool children of active-path nodes are also protected — compute once upfront
+    const protectedToolChildren = new Set<string>();
+    for (const nodeId of activePath) {
+      for (const toolChildId of this.getToolNodeChildren(nodeId)) {
+        protectedToolChildren.add(toolChildId);
+      }
+    }
+
+    for (const [nodeId, node] of Object.entries(this.document.nodes)) {
+      if (!activePath.has(nodeId) && !protectedToolChildren.has(nodeId) && node.pathStatus === 'active') {
+        this.setPathStatus(nodeId, 'archived');
+        for (const toolChildId of this.getToolNodeChildren(nodeId)) {
+          if (this.document.nodes[toolChildId]?.pathStatus === 'active') {
+            this.setPathStatus(toolChildId, 'archived');
+          }
+        }
+      }
+    }
+
+    for (const nodeId of activePath) {
+      const node = this.document.nodes[nodeId];
+      if (node && node.pathStatus === 'archived') {
+        this.setPathStatus(nodeId, 'active');
+        for (const toolChildId of this.getToolNodeChildren(nodeId)) {
+          if (this.document.nodes[toolChildId]?.pathStatus === 'archived') {
+            this.setPathStatus(toolChildId, 'active');
+          }
+        }
+      }
+    }
   }
 
   setSaveHandler(handler: SaveHandler): void {

@@ -30,7 +30,25 @@ describe('createNode', () => {
     expect(doc.nodes[nodeId]).toBeDefined();
     expect(doc.nodes[nodeId].type).toBe('user_prompt');
     expect(doc.nodes[nodeId].content).toBe('hello world');
-    expect(doc.nodes[nodeId].status).toBe('complete');
+    expect(doc.nodes[nodeId].status).toBe('completed');
+  });
+
+  it('sets default executionStatus and pathStatus when not provided', () => {
+    const doc = createDocument('Test');
+    const nodeId = createNode(doc, 'user_prompt', 'hello');
+    expect(doc.nodes[nodeId].executionStatus).toBe('completed');
+    expect(doc.nodes[nodeId].pathStatus).toBe('active');
+  });
+
+  it('accepts custom executionStatus and pathStatus in options', () => {
+    const doc = createDocument('Test');
+    const nodeId = createNode(doc, 'response', 'streaming', undefined, {
+      status: 'streaming',
+      executionStatus: 'in_progress',
+      pathStatus: 'active',
+    });
+    expect(doc.nodes[nodeId].executionStatus).toBe('in_progress');
+    expect(doc.nodes[nodeId].pathStatus).toBe('active');
   });
 
   it('creates node with streaming status when specified', () => {

@@ -34,7 +34,11 @@ export {
   handleCreateNode,
   handleUpdateNode,
   handleConnect,
-  handleBranch,
+  handleBranchFromNode,
+  handleCollapseSubtree,
+  handleAnnotateNode,
+  handleMarkArchived,
+  handleMarkActive,
   handleSetStatus,
   handleGetContext,
 } from './mcp-tools.js';

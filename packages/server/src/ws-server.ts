@@ -34,6 +34,9 @@ export function createWsServer(
   manager.on('node_deleted', (msg: ServerMessage) => broadcast(msg));
   manager.on('edge_created', (msg: ServerMessage) => { console.log('[ws] broadcasting edge_created'); broadcast(msg); });
   manager.on('node_status_changed', (msg: ServerMessage) => broadcast(msg));
+  manager.on('execution_status_changed', (msg: ServerMessage) => broadcast(msg));
+  manager.on('path_status_changed', (msg: ServerMessage) => broadcast(msg));
+  manager.on('node_auto_collapsed', (msg: ServerMessage) => broadcast(msg));
 
   wss.on('connection', (ws: WebSocket, _req: IncomingMessage) => {
     console.log('[ws] client connected');

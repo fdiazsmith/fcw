@@ -113,4 +113,54 @@ describe('WebSocket Server', () => {
     expect(edge).toBeDefined();
     ws.close();
   });
+
+  it('broadcasts execution_status_changed event to connected clients', async () => {
+    const nodeId = manager.createNode('response', 'A response');
+    const ws = await connectWs(port);
+    const msgPromise = nextMessage(ws);
+    manager.setExecutionStatus(nodeId, 'in_progress');
+    const msg = await msgPromise as { type: string; nodeId: string; executionStatus: string };
+    expect(msg.type).toBe('execution_status_changed');
+    expect(msg.nodeId).toBe(nodeId);
+    expect(msg.executionStatus).toBe('in_progress');
+    ws.close();
+  });
+
+  it('broadcasts path_status_changed event to connected clients', async () => {
+    const nodeId = manager.createNode('response', 'A response');
+    const ws = await connectWs(port);
+    const msgPromise = nextMessage(ws);
+    manager.setPathStatus(nodeId, 'archived');
+    const msg = await msgPromise as { type: string; nodeId: string; pathStatus: string };
+    expect(msg.type).toBe('path_status_changed');
+    expect(msg.nodeId).toBe(nodeId);
+    expect(msg.pathStatus).toBe('archived');
+    ws.close();
+  });
+
+  it('broadcasts node_auto_collapsed event with only nodeId', async () => {
+    const nodeId = manager.createNode('response', 'A response');
+    // Set executionStatus first (no auto-collapse yet since pathStatus is 'active')
+    manager.setExecutionStatus(nodeId, 'completed');
+    const ws = await connectWs(port);
+
+    // Collect exactly 2 messages before asserting
+    const twoMessages = new Promise<unknown[]>((resolve) => {
+      const msgs: unknown[] = [];
+      ws.on('message', (data) => {
+        msgs.push(JSON.parse(data.toString()));
+        if (msgs.length === 2) resolve(msgs);
+      });
+    });
+
+    // Setting pathStatus to 'archived' with executionStatus 'completed' triggers auto-collapse
+    // This emits path_status_changed then node_auto_collapsed synchronously
+    manager.setPathStatus(nodeId, 'archived');
+
+    const [firstMsg, secondMsg] = await twoMessages as [{ type: string }, { type: string; nodeId: string }];
+    expect(firstMsg.type).toBe('path_status_changed');
+    expect(secondMsg.type).toBe('node_auto_collapsed');
+    expect(secondMsg.nodeId).toBe(nodeId);
+    ws.close();
+  });
 });
