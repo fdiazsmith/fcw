@@ -58,7 +58,7 @@ export class PromptHandler {
       const assistantContent: Anthropic.ContentBlockParam[] = [];
       // Reconstruct text + tool_use content blocks
       const nodes = Object.values(this.manager.document.nodes);
-      const responseNodes = nodes.filter((n) => n.type === 'response' && n.status === 'complete');
+      const responseNodes = nodes.filter((n) => n.type === 'response' && n.status === 'completed');
       if (responseNodes.length > 0) {
         const lastResponse = responseNodes[responseNodes.length - 1];
         if (lastResponse.content) {

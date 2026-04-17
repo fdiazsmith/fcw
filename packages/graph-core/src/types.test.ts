@@ -3,6 +3,8 @@ import type {
   NodeType,
   EdgeType,
   NodeStatus,
+  ExecutionStatus,
+  PathStatus,
   GraphNode,
   GraphEdge,
   GraphDocument,
@@ -35,7 +37,7 @@ describe('Graph Schema Types', () => {
   });
 
   it('NodeStatus includes all required statuses', () => {
-    const statuses: NodeStatus[] = ['streaming', 'complete', 'error'];
+    const statuses: NodeStatus[] = ['streaming', 'completed', 'error'];
     expect(statuses).toHaveLength(3);
   });
 
@@ -46,12 +48,37 @@ describe('Graph Schema Types', () => {
       content: 'hello',
       position: { x: 0, y: 0 },
       created: '2026-03-17T00:00:00Z',
-      status: 'complete',
+      status: 'completed',
     };
     expect(node.id).toBe('n1');
     expect(node.type).toBe('user_prompt');
     expect(node.position.x).toBe(0);
-    expect(node.status).toBe('complete');
+    expect(node.status).toBe('completed');
+  });
+
+  it('ExecutionStatus includes all required values', () => {
+    const statuses: ExecutionStatus[] = ['pending', 'in_progress', 'completed'];
+    expect(statuses).toHaveLength(3);
+  });
+
+  it('PathStatus includes all required values', () => {
+    const statuses: PathStatus[] = ['active', 'archived'];
+    expect(statuses).toHaveLength(2);
+  });
+
+  it('GraphNode can have optional executionStatus and pathStatus', () => {
+    const node: GraphNode = {
+      id: 'n1',
+      type: 'user_prompt',
+      content: 'hello',
+      position: { x: 0, y: 0 },
+      created: '2026-03-17T00:00:00Z',
+      status: 'completed',
+      executionStatus: 'pending',
+      pathStatus: 'active',
+    };
+    expect(node.executionStatus).toBe('pending');
+    expect(node.pathStatus).toBe('active');
   });
 
   it('GraphEdge has required shape', () => {

@@ -1,0 +1,1465 @@
+{
+  "id": "doc_1776228002078_1",
+  "meta": {
+    "created": "2026-04-15T04:40:02.078Z",
+    "title": "Untitled",
+    "summary": "The canvas conversation explored LLM chat state management, focusing on how conversation history is handled since LLMs are stateless and require the full conversation history to be resent with each request. The discussion covered four main strategies for managing context windows when conversations grow too long: sliding window (keeping only recent messages), summarization (compressing old messages), RAG (retrieving relevant past messages), and hybrid approaches. Key decisions included creating visual representations of each strategy with code examples and highlighting that every message send presents an opportunity to modify, clear, or summarize the conversation history before it's sent to the LLM."
+  },
+  "nodes": {
+    "n_1776228098404_1": {
+      "id": "n_1776228098404_1",
+      "type": "user_prompt",
+      "content": "how does the state management of llm chats works, if all the history of conversation gets resend does that mean that on every send you have the oportunity clear and summarize it ?",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:38.404Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228099813_2": {
+      "id": "n_1776228099813_2",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"# LLM Chat State Management\\nHow conversation history is handled, sent, and optimized on every request.\", \"parent_id\": \"user_prompt_1\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:39.813Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228101130_3": {
+      "id": "n_1776228101130_3",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"## Key Insight\\nLLMs are **stateless** — they have no memory between calls. Every response is generated from scratch. The \\\"memory\\\" of a conversation is an illusion created by resending the full history on every request.\", \"parent_id\": \"user_prompt_1\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:41.130Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228102712_4": {
+      "id": "n_1776228102712_4",
+      "type": "summary",
+      "content": "# LLM Chat State Management\nHow conversation history is handled, sent, and optimized on every request.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:42.712Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228102713_5": {
+      "id": "n_1776228102713_5",
+      "type": "tool_result",
+      "content": "{\"error\":\"Node \\\"user_prompt_1\\\" not found\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:42.713Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228102713_6": {
+      "id": "n_1776228102713_6",
+      "type": "thought",
+      "content": "## Key Insight\nLLMs are **stateless** — they have no memory between calls. Every response is generated from scratch. The \"memory\" of a conversation is an illusion created by resending the full history on every request.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:42.713Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228102713_7": {
+      "id": "n_1776228102713_7",
+      "type": "tool_result",
+      "content": "{\"error\":\"Node \\\"user_prompt_1\\\" not found\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:42.713Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228104094_8": {
+      "id": "n_1776228104094_8",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"# LLM Chat State Management\\nHow conversation history is handled, sent, and optimized on every request.\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:44.094Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228104331_9": {
+      "id": "n_1776228104331_9",
+      "type": "summary",
+      "content": "# LLM Chat State Management\nHow conversation history is handled, sent, and optimized on every request.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:44.331Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228104332_10": {
+      "id": "n_1776228104332_10",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228104331_9\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:44.332Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228106322_11": {
+      "id": "n_1776228106322_11",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"## Core Insight: LLMs are Stateless\\nLLMs have **no memory** between API calls. Every response is generated from scratch. The \\\"memory\\\" of a conversation is an illusion — created entirely by resending the full message history on every single request.\", \"parent_id\": \"n_1776228104331_9\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:46.322Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228106961_12": {
+      "id": "n_1776228106961_12",
+      "type": "thought",
+      "content": "## Core Insight: LLMs are Stateless\nLLMs have **no memory** between API calls. Every response is generated from scratch. The \"memory\" of a conversation is an illusion — created entirely by resending the full message history on every single request.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:46.961Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228106962_13": {
+      "id": "n_1776228106962_13",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228106961_12\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:46.962Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228108319_14": {
+      "id": "n_1776228108319_14",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## How History Is Sent\\nOn every user message, the client sends a **messages array** to the LLM API that looks like this:\\n- `system` → instructions/persona\\n- `user` → first message\\n- `assistant` → first reply\\n- `user` → second message\\n- `assistant` → second reply\\n- `user` → ← NEW message\\n\\nThe model reads the entire array and generates the next `assistant` turn. Nothing is stored on the model's side.\", \"parent_id\": \"n_1776228104331_9\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:48.319Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228111085_15": {
+      "id": "n_1776228111085_15",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"// Simplified example of what gets sent on EVERY message\\nconst payload = {\\n  model: \\\"gpt-4o\\\",\\n  messages: [\\n    { role: \\\"system\\\",    content: \\\"You are a helpful assistant.\\\" },\\n    { role: \\\"user\\\",      content: \\\"What is React?\\\" },          // turn 1\\n    { role: \\\"assistant\\\", content: \\\"React is a UI library...\\\" }, // turn 1\\n    { role: \\\"user\\\",      content: \\\"How does useState work?\\\" }, // turn 2\\n    { role: \\\"assistant\\\", content: \\\"useState is a hook...\\\" },   // turn 2\\n    { role: \\\"user\\\",      content: \\\"Show me an example.\\\" }      // ← NEW\\n  ]\\n};\", \"parent_id\": \"n_1776228104331_9\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:51.085Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228113531_16": {
+      "id": "n_1776228113531_16",
+      "type": "response",
+      "content": "## How History Is Sent\nOn every user message, the client sends a **messages array** to the LLM API that looks like this:\n- `system` → instructions/persona\n- `user` → first message\n- `assistant` → first reply\n- `user` → second message\n- `assistant` → second reply\n- `user` → ← NEW message\n\nThe model reads the entire array and generates the next `assistant` turn. Nothing is stored on the model's side.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:53.531Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228113532_17": {
+      "id": "n_1776228113532_17",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228113531_16\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:53.532Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228113532_18": {
+      "id": "n_1776228113532_18",
+      "type": "code",
+      "content": "// Simplified example of what gets sent on EVERY message\nconst payload = {\n  model: \"gpt-4o\",\n  messages: [\n    { role: \"system\",    content: \"You are a helpful assistant.\" },\n    { role: \"user\",      content: \"What is React?\" },          // turn 1\n    { role: \"assistant\", content: \"React is a UI library...\" }, // turn 1\n    { role: \"user\",      content: \"How does useState work?\" }, // turn 2\n    { role: \"assistant\", content: \"useState is a hook...\" },   // turn 2\n    { role: \"user\",      content: \"Show me an example.\" }      // ← NEW\n  ]\n};",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:53.532Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228113532_19": {
+      "id": "n_1776228113532_19",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228113532_18\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:53.532Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228114581_20": {
+      "id": "n_1776228114581_20",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## The Context Window Problem\\nEvery model has a **context window limit** (measured in tokens). As the conversation grows, you eventually hit that limit. Common limits:\\n- GPT-3.5 → ~16K tokens\\n- GPT-4o → ~128K tokens\\n- Claude 3.5 → ~200K tokens\\n\\nOnce you exceed it, you **must** trim, summarize, or drop old messages — otherwise the API throws an error.\", \"parent_id\": \"n_1776228104331_9\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:54.581Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228116706_21": {
+      "id": "n_1776228116706_21",
+      "type": "response",
+      "content": "## The Context Window Problem\nEvery model has a **context window limit** (measured in tokens). As the conversation grows, you eventually hit that limit. Common limits:\n- GPT-3.5 → ~16K tokens\n- GPT-4o → ~128K tokens\n- Claude 3.5 → ~200K tokens\n\nOnce you exceed it, you **must** trim, summarize, or drop old messages — otherwise the API throws an error.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:56.706Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228116706_22": {
+      "id": "n_1776228116706_22",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228116706_21\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:56.706Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228118251_23": {
+      "id": "n_1776228118251_23",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"## ✅ YES — Every Send is an Opportunity\\nSince you control the messages array before sending it, **you can modify history on every request**. This is the exact moment where summarization, pruning, or compression strategies are applied.\", \"parent_id\": \"n_1776228104331_9\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:58.251Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228119960_24": {
+      "id": "n_1776228119960_24",
+      "type": "thought",
+      "content": "## ✅ YES — Every Send is an Opportunity\nSince you control the messages array before sending it, **you can modify history on every request**. This is the exact moment where summarization, pruning, or compression strategies are applied.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:59.960Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228119960_25": {
+      "id": "n_1776228119960_25",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228119960_24\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:41:59.960Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228122770_26": {
+      "id": "n_1776228122770_26",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## Strategy 1: Sliding Window\\nKeep only the **last N messages** (e.g., last 10 turns). Oldest messages are simply dropped. Simple but loses early context like the user's original goal.\", \"parent_id\": \"n_1776228119960_24\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:02.770Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228123811_27": {
+      "id": "n_1776228123811_27",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## Strategy 2: Summarization\\nWhen history gets too long, call the LLM to **summarize old messages** into a single compressed message, then replace those messages with the summary. This preserves meaning while drastically reducing tokens.\", \"parent_id\": \"n_1776228119960_24\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:03.811Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228125300_28": {
+      "id": "n_1776228125300_28",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## Strategy 3: Retrieval-Augmented (RAG)\\nStore all messages in a **vector database**. On each new message, retrieve only the *most semantically relevant* past messages and inject them into the context. Used in long-term memory systems like MemGPT.\", \"parent_id\": \"n_1776228119960_24\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:05.300Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228127037_29": {
+      "id": "n_1776228127037_29",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## Strategy 4: Hybrid (System Prompt Pinning)\\nKeep a **persistent system prompt** that gets updated with key facts (\\\"User's name is Alex, they prefer TypeScript\\\") extracted from the conversation. This \\\"facts layer\\\" survives even if chat history is pruned.\", \"parent_id\": \"n_1776228119960_24\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:07.037Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228128750_30": {
+      "id": "n_1776228128750_30",
+      "type": "response",
+      "content": "## Strategy 1: Sliding Window\nKeep only the **last N messages** (e.g., last 10 turns). Oldest messages are simply dropped. Simple but loses early context like the user's original goal.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:08.750Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228128751_31": {
+      "id": "n_1776228128751_31",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228128750_30\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:08.751Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228128751_32": {
+      "id": "n_1776228128751_32",
+      "type": "response",
+      "content": "## Strategy 2: Summarization\nWhen history gets too long, call the LLM to **summarize old messages** into a single compressed message, then replace those messages with the summary. This preserves meaning while drastically reducing tokens.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:08.751Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228128751_33": {
+      "id": "n_1776228128751_33",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228128751_32\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:08.751Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228128752_34": {
+      "id": "n_1776228128752_34",
+      "type": "response",
+      "content": "## Strategy 3: Retrieval-Augmented (RAG)\nStore all messages in a **vector database**. On each new message, retrieve only the *most semantically relevant* past messages and inject them into the context. Used in long-term memory systems like MemGPT.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:08.752Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228128752_35": {
+      "id": "n_1776228128752_35",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228128752_34\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:08.752Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228128752_36": {
+      "id": "n_1776228128752_36",
+      "type": "response",
+      "content": "## Strategy 4: Hybrid (System Prompt Pinning)\nKeep a **persistent system prompt** that gets updated with key facts (\"User's name is Alex, they prefer TypeScript\") extracted from the conversation. This \"facts layer\" survives even if chat history is pruned.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:08.752Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228128753_37": {
+      "id": "n_1776228128753_37",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228128752_36\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:08.753Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228130312_38": {
+      "id": "n_1776228130312_38",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"// Summarization Strategy — pseudocode\\nasync function buildMessages(history, newUserMessage) {\\n  const TOKEN_LIMIT = 6000;\\n\\n  if (countTokens(history) > TOKEN_LIMIT) {\\n    const oldMessages = history.slice(0, -6); // keep last 3 turns safe\\n    const recentMessages = history.slice(-6);\\n\\n    // Ask the LLM to summarize the old part\\n    const summary = await llm.complete([\\n      { role: \\\"user\\\", content: `Summarize this conversation:\\\\n${JSON.stringify(oldMessages)}` }\\n    ]);\\n\\n    // Replace old messages with a single summary message\\n    history = [\\n      { role: \\\"system\\\", content: `Conversation so far: ${summary}` },\\n      ...recentMessages\\n    ];\\n  }\\n\\n  return [...history, { role: \\\"user\\\", content: newUserMessage }];\\n}\", \"parent_id\": \"n_1776228128751_32\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:10.312Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228133844_39": {
+      "id": "n_1776228133844_39",
+      "type": "code",
+      "content": "// Summarization Strategy — pseudocode\nasync function buildMessages(history, newUserMessage) {\n  const TOKEN_LIMIT = 6000;\n\n  if (countTokens(history) > TOKEN_LIMIT) {\n    const oldMessages = history.slice(0, -6); // keep last 3 turns safe\n    const recentMessages = history.slice(-6);\n\n    // Ask the LLM to summarize the old part\n    const summary = await llm.complete([\n      { role: \"user\", content: `Summarize this conversation:\\n${JSON.stringify(oldMessages)}` }\n    ]);\n\n    // Replace old messages with a single summary message\n    history = [\n      { role: \"system\", content: `Conversation so far: ${summary}` },\n      ...recentMessages\n    ];\n  }\n\n  return [...history, { role: \"user\", content: newUserMessage }];\n}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:13.844Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228133844_40": {
+      "id": "n_1776228133844_40",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228133844_39\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:13.844Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228135325_41": {
+      "id": "n_1776228135325_41",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"## Full Flow on Every Message Send\\n1. User types a message\\n2. App appends it to local history array\\n3. **Pre-send hook**: check token count → apply pruning/summarization if needed\\n4. Send modified messages array to LLM API\\n5. Receive response → append to local history\\n6. Repeat next turn\\n\\nThe history array is the **only source of truth** — whoever controls it controls the model's \\\"memory\\\".\", \"parent_id\": \"n_1776228104331_9\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:15.325Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228137550_42": {
+      "id": "n_1776228137550_42",
+      "type": "summary",
+      "content": "## Full Flow on Every Message Send\n1. User types a message\n2. App appends it to local history array\n3. **Pre-send hook**: check token count → apply pruning/summarization if needed\n4. Send modified messages array to LLM API\n5. Receive response → append to local history\n6. Repeat next turn\n\nThe history array is the **only source of truth** — whoever controls it controls the model's \"memory\".",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:17.550Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228137551_43": {
+      "id": "n_1776228137551_43",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228137550_42\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:17.551Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228138995_44": {
+      "id": "n_1776228138995_44",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776228106961_12\", \"to_id\": \"n_1776228113531_16\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:18.995Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228139794_45": {
+      "id": "n_1776228139794_45",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776228113531_16\", \"to_id\": \"n_1776228116706_21\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:19.794Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228140551_46": {
+      "id": "n_1776228140551_46",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776228116706_21\", \"to_id\": \"n_1776228119960_24\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:20.551Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228141959_47": {
+      "id": "n_1776228141959_47",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776228113532_18\", \"to_id\": \"n_1776228116706_21\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:21.959Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228142184_48": {
+      "id": "n_1776228142184_48",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776228119960_24\", \"to_id\": \"n_1776228137550_42\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:22.184Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228142374_49": {
+      "id": "n_1776228142374_49",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:22.374Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228142375_50": {
+      "id": "n_1776228142375_50",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:22.375Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228142375_51": {
+      "id": "n_1776228142375_51",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:22.375Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228142375_52": {
+      "id": "n_1776228142375_52",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:22.375Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228142376_53": {
+      "id": "n_1776228142376_53",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:42:22.376Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228438569_54": {
+      "id": "n_1776228438569_54",
+      "type": "user_prompt",
+      "content": "how might we use branches in a tree structure",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:47:18.570Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228482289_55": {
+      "id": "n_1776228482289_55",
+      "type": "user_prompt",
+      "content": "expand a bit more on this idea",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:02.289Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228484031_56": {
+      "id": "n_1776228484031_56",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"## Expanding: LLM Chat State Management\\nA deeper look at the core ideas — statelessness, history strategies, and practical tradeoffs. Each branch below explores a key concept in more depth.\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:04.031Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228485094_57": {
+      "id": "n_1776228485094_57",
+      "type": "summary",
+      "content": "## Expanding: LLM Chat State Management\nA deeper look at the core ideas — statelessness, history strategies, and practical tradeoffs. Each branch below explores a key concept in more depth.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:05.094Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228485095_58": {
+      "id": "n_1776228485095_58",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228485094_57\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:05.095Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228486528_59": {
+      "id": "n_1776228486528_59",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"## Why Statelessness Matters\\nEvery LLM API call is completely independent. The model has **no memory** between requests — it only \\\"knows\\\" what's in the current context window.\\n\\nThis means:\\n- The **app** is responsible for all memory\\n- Token limits create a hard ceiling (~4K–200K tokens depending on model)\\n- More history = more cost per request\\n- The challenge is: *what to keep, what to drop, what to compress?*\", \"parent_id\": \"n_1776228485094_57\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:06.528Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228489558_60": {
+      "id": "n_1776228489558_60",
+      "type": "thought",
+      "content": "## Why Statelessness Matters\nEvery LLM API call is completely independent. The model has **no memory** between requests — it only \"knows\" what's in the current context window.\n\nThis means:\n- The **app** is responsible for all memory\n- Token limits create a hard ceiling (~4K–200K tokens depending on model)\n- More history = more cost per request\n- The challenge is: *what to keep, what to drop, what to compress?*",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:09.558Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228489558_61": {
+      "id": "n_1776228489558_61",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228489558_60\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:09.558Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228490856_62": {
+      "id": "n_1776228490856_62",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"## The 4 Core History Strategies\\nEach approach handles the token-limit problem differently. Explore each branch for tradeoffs and implementation details.\", \"parent_id\": \"n_1776228485094_57\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:10.856Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228491954_63": {
+      "id": "n_1776228491954_63",
+      "type": "summary",
+      "content": "## The 4 Core History Strategies\nEach approach handles the token-limit problem differently. Explore each branch for tradeoffs and implementation details.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:11.954Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228491955_64": {
+      "id": "n_1776228491955_64",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228491954_63\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:11.955Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228493357_65": {
+      "id": "n_1776228493357_65",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## Strategy 1: Sliding Window\\n**Keep only the last N messages.** Simple and predictable.\\n\\n✅ Easy to implement\\n✅ Token cost stays flat\\n❌ Loses early context (e.g., the original task or user preferences stated upfront)\\n❌ Can cause the model to \\\"forget\\\" things it once knew\\n\\n**Best for:** Short-lived, task-focused chats (e.g., a customer support widget)\", \"parent_id\": \"n_1776228491954_63\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:13.357Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228495785_66": {
+      "id": "n_1776228495785_66",
+      "type": "response",
+      "content": "## Strategy 1: Sliding Window\n**Keep only the last N messages.** Simple and predictable.\n\n✅ Easy to implement\n✅ Token cost stays flat\n❌ Loses early context (e.g., the original task or user preferences stated upfront)\n❌ Can cause the model to \"forget\" things it once knew\n\n**Best for:** Short-lived, task-focused chats (e.g., a customer support widget)",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:15.785Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228495785_67": {
+      "id": "n_1776228495785_67",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228495785_66\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:15.785Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228498682_68": {
+      "id": "n_1776228498682_68",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"// Sliding Window — keep last N messages\\nconst WINDOW_SIZE = 10;\\n\\nfunction buildMessages(history, newUserMessage) {\\n  const window = history.slice(-WINDOW_SIZE);\\n  return [\\n    { role: \\\"system\\\", content: \\\"You are a helpful assistant.\\\" },\\n    ...window,\\n    { role: \\\"user\\\", content: newUserMessage }\\n  ];\\n}\", \"parent_id\": \"n_1776228495785_66\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:18.682Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228500470_69": {
+      "id": "n_1776228500470_69",
+      "type": "code",
+      "content": "// Sliding Window — keep last N messages\nconst WINDOW_SIZE = 10;\n\nfunction buildMessages(history, newUserMessage) {\n  const window = history.slice(-WINDOW_SIZE);\n  return [\n    { role: \"system\", content: \"You are a helpful assistant.\" },\n    ...window,\n    { role: \"user\", content: newUserMessage }\n  ];\n}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:20.470Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228500470_70": {
+      "id": "n_1776228500470_70",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228500470_69\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:20.470Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228502039_71": {
+      "id": "n_1776228502039_71",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## Strategy 2: Summarization\\n**Periodically compress older messages into a running summary**, then discard the originals.\\n\\n✅ Preserves semantic meaning of old context\\n✅ Much lower token cost than full history\\n❌ Summaries lose nuance and exact wording\\n❌ Requires an extra LLM call to generate the summary\\n❌ Summarization errors can silently corrupt context\\n\\n**Best for:** Long-running conversations (e.g., a coding assistant used across a whole session)\", \"parent_id\": \"n_1776228491954_63\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:22.039Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228504483_72": {
+      "id": "n_1776228504483_72",
+      "type": "response",
+      "content": "## Strategy 2: Summarization\n**Periodically compress older messages into a running summary**, then discard the originals.\n\n✅ Preserves semantic meaning of old context\n✅ Much lower token cost than full history\n❌ Summaries lose nuance and exact wording\n❌ Requires an extra LLM call to generate the summary\n❌ Summarization errors can silently corrupt context\n\n**Best for:** Long-running conversations (e.g., a coding assistant used across a whole session)",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:24.483Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228504483_73": {
+      "id": "n_1776228504483_73",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228504483_72\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:24.483Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228517867_74": {
+      "id": "n_1776228517867_74",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"code\", \"content\": \"// Summarization Strategy\\nasync function summarizeOldMessages(oldMessages, llmClient) {\\n  const transcript = oldMessages\\n    .map(m => `${m.role}: ${m.content}`)\\n    .join(\\\"\\\\n\\\");\\n\\n  const summary = await llmClient.complete({\\n    messages: [\\n      { role: \\\"system\\\", content: \\\"Summarize this conversation concisely, preserving key facts and decisions.\\\" },\\n      { role: \\\"user\\\", content: transcript }\\n    ]\\n  });\\n\\n  return { role: \\\"system\\\", content: `[Conversation so far]: ${summary}` };\\n}\\n\\n// Usage: When history exceeds token threshold,\\n// replace older messages with a single summary message\", \"parent_id\": \"n_1776228504483_72\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:37.867Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228520016_75": {
+      "id": "n_1776228520016_75",
+      "type": "code",
+      "content": "// Summarization Strategy\nasync function summarizeOldMessages(oldMessages, llmClient) {\n  const transcript = oldMessages\n    .map(m => `${m.role}: ${m.content}`)\n    .join(\"\\n\");\n\n  const summary = await llmClient.complete({\n    messages: [\n      { role: \"system\", content: \"Summarize this conversation concisely, preserving key facts and decisions.\" },\n      { role: \"user\", content: transcript }\n    ]\n  });\n\n  return { role: \"system\", content: `[Conversation so far]: ${summary}` };\n}\n\n// Usage: When history exceeds token threshold,\n// replace older messages with a single summary message",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:40.016Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228520016_76": {
+      "id": "n_1776228520016_76",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228520016_75\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:40.016Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228528427_77": {
+      "id": "n_1776228528427_77",
+      "type": "response",
+      "content": "## Strategy 2: Summarization\n**Periodically compress older messages into a running summary**, then discard the originals.\n\n✅ Preserves semantic meaning of old context\n✅ Much lower token cost than full history\n❌ Summaries lose nuance and exact wording\n❌ Requires an extra LLM call to generate the summary\n❌ Summarization errors can silently corrupt context\n\n**Best for:** Long-running conversations (e.g., a coding assistant used across a whole session)",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:48.427Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228529723_78": {
+      "id": "n_1776228529723_78",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"## Strategy 3: RAG (Retrieval-Augmented Generation)\\n**Store all messages in a vector database. At query time, fetch only the most *relevant* past messages** and inject them into context.\\n\\n✅ Scales to arbitrarily long conversation histories\\n✅ Only injects what's actually relevant to the current query\\n❌ Requires embedding infrastructure (e.g., Pinecone, pgvector, Chroma)\\n❌ Retrieval can miss relevant context if the query doesn't semantically match\\n❌ More complex to build and maintain\\n\\n**Best for:** Very long or multi-session memory (e.g., a personal AI assistant that remembers across days/weeks)\", \"parent_id\": \"n_1776228491954_63\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:49.723Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228533890_79": {
+      "id": "n_1776228533890_79",
+      "type": "response",
+      "content": "## Strategy 3: RAG (Retrieval-Augmented Generation)\n**Store all messages in a vector database. At query time, fetch only the most *relevant* past messages** and inject them into context.\n\n✅ Scales to arbitrarily long conversation histories\n✅ Only injects what's actually relevant to the current query\n❌ Requires embedding infrastructure (e.g., Pinecone, pgvector, Chroma)\n❌ Retrieval can miss relevant context if the query doesn't semantically match\n❌ More complex to build and maintain\n\n**Best for:** Very long or multi-session memory (e.g., a personal AI assistant that remembers across days/weeks)",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:53.890Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228533890_80": {
+      "id": "n_1776228533890_80",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776228533890_79\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:48:53.890Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776228548557_81": {
+      "id": "n_1776228548557_81",
+      "type": "response",
+      "content": "Error: This request would exceed your organization's rate limit of 30,000 input tokens per minute (org: 1fc08cf9-9b15-4528-bca2-0c24ac5d8331, model: claude-sonnet-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase.\nStatus: 429\nType: rate_limit_error\nRequest ID: req_011Ca4xED5q3xVV8QiXWij3r",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:49:08.557Z",
+      "status": "error",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    }
+  },
+  "edges": [
+    {
+      "from": "n_1776228098404_1",
+      "to": "n_1776228099813_2",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228098404_1",
+      "to": "n_1776228101130_3",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228099813_2",
+      "to": "n_1776228102713_5",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228101130_3",
+      "to": "n_1776228102713_7",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228102713_5",
+      "to": "n_1776228104094_8",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228104094_8",
+      "to": "n_1776228104332_10",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228104332_10",
+      "to": "n_1776228106322_11",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228104331_9",
+      "to": "n_1776228106961_12",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228106322_11",
+      "to": "n_1776228106962_13",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228106962_13",
+      "to": "n_1776228108319_14",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228106962_13",
+      "to": "n_1776228111085_15",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228104331_9",
+      "to": "n_1776228113531_16",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228108319_14",
+      "to": "n_1776228113532_17",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228104331_9",
+      "to": "n_1776228113532_18",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228111085_15",
+      "to": "n_1776228113532_19",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228113532_17",
+      "to": "n_1776228114581_20",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228104331_9",
+      "to": "n_1776228116706_21",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228114581_20",
+      "to": "n_1776228116706_22",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228116706_21",
+      "to": "n_1776228118251_23",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228104331_9",
+      "to": "n_1776228119960_24",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228118251_23",
+      "to": "n_1776228119960_25",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228122770_26",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228123811_27",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228125300_28",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228127037_29",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228128750_30",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228122770_26",
+      "to": "n_1776228128751_31",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228128751_32",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228123811_27",
+      "to": "n_1776228128751_33",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228128752_34",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228125300_28",
+      "to": "n_1776228128752_35",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228128752_36",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228127037_29",
+      "to": "n_1776228128753_37",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228128753_37",
+      "to": "n_1776228130312_38",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228128751_32",
+      "to": "n_1776228133844_39",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228130312_38",
+      "to": "n_1776228133844_40",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228133844_39",
+      "to": "n_1776228135325_41",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228104331_9",
+      "to": "n_1776228137550_42",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228135325_41",
+      "to": "n_1776228137551_43",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228137551_43",
+      "to": "n_1776228138995_44",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228137551_43",
+      "to": "n_1776228139794_45",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228137551_43",
+      "to": "n_1776228140551_46",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228137551_43",
+      "to": "n_1776228141959_47",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228137551_43",
+      "to": "n_1776228142184_48",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228106961_12",
+      "to": "n_1776228113531_16",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228138995_44",
+      "to": "n_1776228142374_49",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228113531_16",
+      "to": "n_1776228116706_21",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228139794_45",
+      "to": "n_1776228142375_50",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228116706_21",
+      "to": "n_1776228119960_24",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228140551_46",
+      "to": "n_1776228142375_51",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228113532_18",
+      "to": "n_1776228116706_21",
+      "type": "references"
+    },
+    {
+      "from": "n_1776228141959_47",
+      "to": "n_1776228142375_52",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228119960_24",
+      "to": "n_1776228137550_42",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228142184_48",
+      "to": "n_1776228142376_53",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228128752_36",
+      "to": "n_1776228482289_55",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228482289_55",
+      "to": "n_1776228484031_56",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228484031_56",
+      "to": "n_1776228485095_58",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228485095_58",
+      "to": "n_1776228486528_59",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228485094_57",
+      "to": "n_1776228489558_60",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228486528_59",
+      "to": "n_1776228489558_61",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228489558_60",
+      "to": "n_1776228490856_62",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228485094_57",
+      "to": "n_1776228491954_63",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228490856_62",
+      "to": "n_1776228491955_64",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228491955_64",
+      "to": "n_1776228493357_65",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228491954_63",
+      "to": "n_1776228495785_66",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228493357_65",
+      "to": "n_1776228495785_67",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228495785_66",
+      "to": "n_1776228498682_68",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228495785_66",
+      "to": "n_1776228500470_69",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228498682_68",
+      "to": "n_1776228500470_70",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228500470_69",
+      "to": "n_1776228502039_71",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228491954_63",
+      "to": "n_1776228504483_72",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228502039_71",
+      "to": "n_1776228504483_73",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228504483_72",
+      "to": "n_1776228517867_74",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228504483_72",
+      "to": "n_1776228520016_75",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228517867_74",
+      "to": "n_1776228520016_76",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228520016_75",
+      "to": "n_1776228528427_77",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228528427_77",
+      "to": "n_1776228529723_78",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776228491954_63",
+      "to": "n_1776228533890_79",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776228529723_78",
+      "to": "n_1776228533890_80",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776228533890_79",
+      "to": "n_1776228548557_81",
+      "type": "reply_to"
+    }
+  ]
+}

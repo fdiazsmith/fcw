@@ -10,8 +10,9 @@ import { createWsClient, WsClient } from './ws-client';
 import { computeLayout } from './layout';
 import { createDemoGraph } from './demo-data';
 import { getEdgeStyle } from './edge-styles';
-import { getVisibleNodes, getVisibleEdges, CollapsedState, collapseSubtree, expandSubtree } from './collapse';
+import { getVisibleNodes, getVisibleEdges, getAutoHiddenNodes, CollapsedState, collapseSubtree, expandSubtree } from './collapse';
 import { InputBar } from './components/InputBar';
+import { MultiNodeActions } from './components/MultiNodeActions';
 import { SearchBar } from './components/SearchBar';
 import { BranchInput } from './components/BranchInput';
 import { NodeActions } from './components/NodeActions';
@@ -80,6 +81,7 @@ export default function App() {
   const [branchTarget, setBranchTarget] = useState<{ nodeId: string; screenPos: { x: number; y: number } } | null>(null);
   const [logVisible, setLogVisible] = useState(false);
   const [activeLogNode, setActiveLogNode] = useState<string | null>(null);
+  const [multiSelect, setMultiSelect] = useState<{ nodeIds: string[]; screenPos: { x: number; y: number } } | null>(null);
   const [, forceUpdate] = useState(0);
 
   const syncToCanvas = useCallback((doc: GraphDocument) => {
@@ -90,8 +92,9 @@ export default function App() {
     }
 
     const collapsed = collapsedRef.current;
-    const visibleNodes = getVisibleNodes(doc, collapsed);
-    const visibleEdges = getVisibleEdges(doc, collapsed);
+    const autoHidden = getAutoHiddenNodes(doc);
+    const visibleNodes = getVisibleNodes(doc, collapsed, autoHidden);
+    const visibleEdges = getVisibleEdges(doc, collapsed, autoHidden);
     console.log('[sync] nodes:', Object.keys(visibleNodes).length, 'edges:', visibleEdges.length);
 
     // Build a filtered doc for layout
@@ -326,10 +329,31 @@ export default function App() {
             setSelectedNode(null);
             setBranchTarget(null);
           }
+        } else if (selectedIds.length > 1) {
+          // Multi-select: show summarize action
+          const graphNodeIds: string[] = [];
+          let avgX = 0, avgY = 0;
+          for (const sid of selectedIds) {
+            const s = editor.getShape(sid);
+            if (s && s.type === 'graph-node') {
+              graphNodeIds.push((sid as string).replace('shape:', ''));
+              avgX += s.x;
+              avgY += s.y;
+            }
+          }
+          if (graphNodeIds.length > 1) {
+            avgX /= graphNodeIds.length;
+            avgY /= graphNodeIds.length;
+            const screenPt = editor.pageToScreen({ x: avgX + 280, y: avgY });
+            setMultiSelect({ nodeIds: graphNodeIds, screenPos: { x: screenPt.x + 8, y: screenPt.y } });
+          }
+          setSelectedNode(null);
+          setBranchTarget(null);
         } else {
           editor.setEditingShape(null);
           setSelectedNode(null);
           setBranchTarget(null);
+          setMultiSelect(null);
         }
       }
     });
@@ -368,7 +392,7 @@ export default function App() {
       content: 'New annotation',
       position: point,
       created: new Date().toISOString(),
-      status: 'complete',
+      status: 'completed',
     };
     doc.nodes[id] = node;
     syncToCanvas(doc);
@@ -402,6 +426,98 @@ export default function App() {
     syncToCanvas(doc);
     forceUpdate((n) => n + 1);
   }, [selectedNode, syncToCanvas]);
+
+  const handleSummarize = useCallback(async () => {
+    if (!multiSelect || multiSelect.nodeIds.length < 2) return;
+    const doc = docRef.current;
+    const collapsed = collapsedRef.current;
+    const selectedNodeIds = [...multiSelect.nodeIds];
+
+    // Find position: average of selected nodes
+    let avgX = 0, avgY = 0;
+    for (const nid of selectedNodeIds) {
+      const node = doc.nodes[nid];
+      if (node) { avgX += node.position.x; avgY += node.position.y; }
+    }
+    avgX /= selectedNodeIds.length;
+    avgY /= selectedNodeIds.length;
+
+    // Create a placeholder summary node immediately (shows loading state)
+    const summaryId = `summary-${Date.now()}`;
+    const summaryNode: GraphNode = {
+      id: summaryId,
+      type: 'summary',
+      content: 'Summarizing...',
+      position: { x: avgX, y: avgY },
+      created: new Date().toISOString(),
+      status: 'streaming',
+      executionStatus: 'in_progress',
+      pathStatus: 'active',
+    };
+    doc.nodes[summaryId] = summaryNode;
+
+    // Connect summary to the first selected node's parent (if any)
+    const firstNode = doc.nodes[selectedNodeIds[0]];
+    if (firstNode) {
+      const parentEdge = doc.edges.find(e => e.to === firstNode.id && (e.type === 'reply_to' || e.type === 'branches_from'));
+      if (parentEdge) {
+        doc.edges.push({ from: parentEdge.from, to: summaryId, type: 'references' });
+      }
+    }
+
+    // Collapse the selected nodes
+    for (const nid of selectedNodeIds) {
+      collapsed.add(nid);
+    }
+
+    setMultiSelect(null);
+    syncToCanvas(doc);
+    forceUpdate((n) => n + 1);
+
+    // Call the server for AI summary
+    const nodeContents = selectedNodeIds
+      .map(nid => doc.nodes[nid])
+      .filter(Boolean)
+      .map(n => ({ type: n.type, content: n.content }));
+
+    try {
+      const resp = await fetch(`${API_URL}/summarize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodes: nodeContents }),
+      });
+      const data = await resp.json();
+      if (data.summary) {
+        doc.nodes[summaryId].content = data.summary;
+      } else {
+        doc.nodes[summaryId].content = `Error: ${data.error || 'Unknown error'}`;
+      }
+    } catch (err) {
+      // Fallback: mechanical summary
+      const lines = nodeContents.map(n => {
+        const preview = n.content.length > 120 ? n.content.slice(0, 120) + '...' : n.content;
+        return `- **${n.type.replace('_', ' ')}**: ${preview}`;
+      });
+      doc.nodes[summaryId].content = `Summary of ${nodeContents.length} nodes:\n\n${lines.join('\n')}`;
+    }
+
+    doc.nodes[summaryId].status = 'completed';
+    doc.nodes[summaryId].executionStatus = 'completed';
+    syncToCanvas(doc);
+    forceUpdate((n) => n + 1);
+  }, [multiSelect, syncToCanvas]);
+
+  const handleCollapseAll = useCallback(() => {
+    if (!multiSelect) return;
+    const doc = docRef.current;
+    const collapsed = collapsedRef.current;
+    for (const nid of multiSelect.nodeIds) {
+      collapsed.add(nid);
+    }
+    setMultiSelect(null);
+    syncToCanvas(doc);
+    forceUpdate((n) => n + 1);
+  }, [multiSelect, syncToCanvas]);
 
   const handleLoadDoc = useCallback((doc: GraphDocument) => {
     docRef.current = doc;
@@ -488,6 +604,14 @@ export default function App() {
           onBranch={handleBranch}
           onCollapse={handleCollapse}
           isCollapsed={collapsedRef.current.has(selectedNode.id)}
+        />
+      )}
+      {multiSelect && (
+        <MultiNodeActions
+          nodeIds={multiSelect.nodeIds}
+          position={multiSelect.screenPos}
+          onSummarize={handleSummarize}
+          onCollapseAll={handleCollapseAll}
         />
       )}
       {branchTarget && (

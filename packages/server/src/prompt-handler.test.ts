@@ -57,7 +57,7 @@ describe('PromptHandler', () => {
     expect(userNode!.content).toBe('Hello');
     expect(responseNode).toBeDefined();
     expect(responseNode!.content).toBe('Hi there!');
-    expect(responseNode!.status).toBe('complete');
+    expect(responseNode!.status).toBe('completed');
   });
 
   it('passes graph summary in system prompt', async () => {

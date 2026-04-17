@@ -19,6 +19,68 @@ describe('StreamMapper', () => {
     manager.destroy();
   });
 
+  describe('executionStatus alignment', () => {
+    it('streaming text node gets executionStatus in_progress', () => {
+      mapper.handleEvent({
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: '' },
+      });
+
+      const nodes = Object.values(manager.document.nodes);
+      const responseNode = nodes.find((n) => n.type === 'response');
+      expect(responseNode!.executionStatus).toBe('in_progress');
+    });
+
+    it('streaming tool_use node gets executionStatus in_progress', () => {
+      mapper.handleEvent({
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'tool_use', id: 'toolu_1', name: 'test_tool', input: {} },
+      });
+
+      const nodes = Object.values(manager.document.nodes);
+      const toolNode = nodes.find((n) => n.type === 'tool_call');
+      expect(toolNode!.executionStatus).toBe('in_progress');
+    });
+
+    it('handleEnd sets executionStatus to completed on all nodes', () => {
+      mapper.handleEvent({
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: '' },
+      });
+      mapper.handleEvent({
+        type: 'content_block_start',
+        index: 1,
+        content_block: { type: 'tool_use', id: 'toolu_1', name: 'test_tool', input: {} },
+      });
+
+      mapper.handleEnd('end_turn');
+
+      const nodes = Object.values(manager.document.nodes);
+      const responseNode = nodes.find((n) => n.type === 'response');
+      const toolNode = nodes.find((n) => n.type === 'tool_call');
+      expect(responseNode!.executionStatus).toBe('completed');
+      expect(toolNode!.executionStatus).toBe('completed');
+    });
+
+    it('addToolResult creates tool_result node with executionStatus completed', () => {
+      mapper.handleEvent({
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'tool_use', id: 'toolu_1', name: 'test_tool', input: {} },
+      });
+      mapper.handleEvent({ type: 'content_block_stop', index: 0 });
+
+      mapper.addToolResult('toolu_1', 'result content');
+
+      const nodes = Object.values(manager.document.nodes);
+      const resultNode = nodes.find((n) => n.type === 'tool_result');
+      expect(resultNode!.executionStatus).toBe('completed');
+    });
+  });
+
   describe('text streaming', () => {
     it('creates response node on first text content_block_start', () => {
       mapper.handleEvent({
@@ -165,7 +227,7 @@ describe('StreamMapper', () => {
       const resultNode = updatedNodes.find((n) => n.type === 'tool_result');
       expect(resultNode).toBeDefined();
       expect(resultNode!.content).toBe('Node created successfully');
-      expect(resultNode!.status).toBe('complete');
+      expect(resultNode!.status).toBe('completed');
 
       const edge = manager.document.edges.find(
         (e) => e.from === toolNode.id && e.to === resultNode!.id && e.type === 'tool_result',
@@ -232,7 +294,7 @@ describe('StreamMapper', () => {
 
       const nodes = Object.values(manager.document.nodes);
       const responseNode = nodes.find((n) => n.type === 'response');
-      expect(responseNode!.status).toBe('complete');
+      expect(responseNode!.status).toBe('completed');
     });
 
     it('handleEnd with max_tokens sets status to complete', () => {
@@ -246,7 +308,7 @@ describe('StreamMapper', () => {
 
       const nodes = Object.values(manager.document.nodes);
       const responseNode = nodes.find((n) => n.type === 'response');
-      expect(responseNode!.status).toBe('complete');
+      expect(responseNode!.status).toBe('completed');
     });
 
     it('handleEnd with tool_use sets streaming tool nodes to complete', () => {
@@ -260,7 +322,7 @@ describe('StreamMapper', () => {
 
       const nodes = Object.values(manager.document.nodes);
       const toolNode = nodes.find((n) => n.type === 'tool_call');
-      expect(toolNode!.status).toBe('complete');
+      expect(toolNode!.status).toBe('completed');
     });
   });
 
@@ -296,6 +358,20 @@ describe('StreamMapper', () => {
       const nodes = Object.values(manager.document.nodes);
       const responseNode = nodes.find((n) => n.type === 'response');
       expect(responseNode!.content).toContain('Connection lost');
+    });
+
+    it('handleError sets executionStatus to completed on errored nodes', () => {
+      mapper.handleEvent({
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: '' },
+      });
+
+      mapper.handleError(new Error('Stream failed'));
+
+      const nodes = Object.values(manager.document.nodes);
+      const responseNode = nodes.find((n) => n.type === 'response');
+      expect(responseNode!.executionStatus).toBe('completed');
     });
   });
 

@@ -5,6 +5,8 @@ export type {
   NodeType,
   EdgeType,
   NodeStatus,
+  ExecutionStatus,
+  PathStatus,
   Position,
   GraphNode,
   GraphEdge,

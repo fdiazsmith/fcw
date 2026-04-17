@@ -34,8 +34,7 @@
   align-items: flex-start !important;
 }
 
-/* Style panel stays in its default position */
-.tlui-style-panel__wrapper {
-  left: 56px !important;
-  right: unset !important;
+/* Prevent style panel from being clipped at the viewport edge */
+.tlui-layout__top__right {
+  margin-right: 8px !important;
 }

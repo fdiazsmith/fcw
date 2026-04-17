@@ -1,4 +1,4 @@
-import type { GraphDocument, EdgeType } from './types.js';
+import type { GraphDocument, EdgeType, ExecutionStatus, PathStatus } from './types.js';
 
 const VALID_EDGE_TYPES: EdgeType[] = [
   'reply_to',
@@ -8,6 +8,14 @@ const VALID_EDGE_TYPES: EdgeType[] = [
   'tool_result',
 ];
 
+const VALID_EXECUTION_STATUSES: ExecutionStatus[] = [
+  'pending',
+  'in_progress',
+  'completed',
+];
+
+const VALID_PATH_STATUSES: PathStatus[] = ['active', 'archived'];
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -15,6 +23,25 @@ export interface ValidationResult {
 
 export function validateDocument(doc: GraphDocument): ValidationResult {
   const errors: string[] = [];
+
+  for (const node of Object.values(doc.nodes)) {
+    if (
+      node.executionStatus !== undefined &&
+      !VALID_EXECUTION_STATUSES.includes(node.executionStatus)
+    ) {
+      errors.push(
+        `Node "${node.id}" has invalid executionStatus "${node.executionStatus}"`,
+      );
+    }
+    if (
+      node.pathStatus !== undefined &&
+      !VALID_PATH_STATUSES.includes(node.pathStatus)
+    ) {
+      errors.push(
+        `Node "${node.id}" has invalid pathStatus "${node.pathStatus}"`,
+      );
+    }
+  }
 
   for (const edge of doc.edges) {
     if (!doc.nodes[edge.from]) {

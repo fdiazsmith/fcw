@@ -1,4 +1,4 @@
-import type { GraphNode, GraphEdge, NodeStatus } from './types.js';
+import type { GraphNode, GraphEdge, NodeStatus, ExecutionStatus, PathStatus } from './types.js';
 
 // Server -> Client messages
 export type ServerMessage =
@@ -8,6 +8,9 @@ export type ServerMessage =
   | { type: 'edge_created'; edge: GraphEdge }
   | { type: 'node_deleted'; nodeId: string }
   | { type: 'document_loaded'; documentId: string }
+  | { type: 'execution_status_changed'; nodeId: string; executionStatus: ExecutionStatus }
+  | { type: 'path_status_changed'; nodeId: string; pathStatus: PathStatus }
+  | { type: 'node_auto_collapsed'; nodeId: string }
   | { type: 'error'; message: string };
 
 // Client -> Server messages

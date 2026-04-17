@@ -1,5 +1,5 @@
 import { getSubgraph } from '@fcw/graph-core';
-import type { NodeType, EdgeType, NodeStatus, GraphNode } from '@fcw/graph-core';
+import type { NodeType, EdgeType, NodeStatus, ExecutionStatus, PathStatus, GraphNode } from '@fcw/graph-core';
 import type { StateManager } from './state-manager.js';
 
 // --- Param types ---
@@ -22,8 +22,25 @@ export interface ConnectParams {
   edge_type: EdgeType;
 }
 
-export interface BranchParams {
-  from_id: string;
+export interface BranchFromNodeParams {
+  node_id: string;
+}
+
+export interface CollapseSubtreeParams {
+  node_id: string;
+}
+
+export interface AnnotateNodeParams {
+  node_id: string;
+  text: string;
+}
+
+export interface MarkArchivedParams {
+  node_id: string;
+}
+
+export interface MarkActiveParams {
+  node_id: string;
 }
 
 export interface SetStatusParams {
@@ -47,14 +64,22 @@ export interface SuccessResult {
   success: true;
 }
 
-export interface BranchResult {
+export interface BranchFromNodeResult {
   branch_id: string;
+  position: { x: number; y: number };
+}
+
+export interface AnnotateNodeResult {
+  annotation_id: string;
+  position: { x: number; y: number };
 }
 
 export interface ContextNodeSummary {
   type: NodeType;
   content_preview: string;
   status: NodeStatus;
+  executionStatus?: ExecutionStatus;
+  pathStatus?: PathStatus;
 }
 
 export interface GetContextResult {
@@ -92,13 +117,71 @@ export function handleConnect(params: ConnectParams, sm: StateManager): SuccessR
   return { success: true };
 }
 
-export function handleBranch(params: BranchParams, sm: StateManager): BranchResult {
-  if (!sm.document.nodes[params.from_id]) {
-    throw new Error(`Node "${params.from_id}" not found`);
+export function handleBranchFromNode(params: BranchFromNodeParams, sm: StateManager): BranchFromNodeResult {
+  if (!sm.document.nodes[params.node_id]) {
+    throw new Error(`Node "${params.node_id}" not found`);
   }
   const branchId = sm.createNode('annotation', '[branch]');
-  sm.createEdge(params.from_id, branchId, 'branches_from');
-  return { branch_id: branchId };
+  sm.createEdge(params.node_id, branchId, 'branches_from');
+  sm.applyBranchPathUpdate(branchId);
+  const node = sm.document.nodes[branchId];
+  return { branch_id: branchId, position: node.position };
+}
+
+export function handleCollapseSubtree(params: CollapseSubtreeParams, sm: StateManager): SuccessResult {
+  if (!sm.document.nodes[params.node_id]) {
+    throw new Error(`Node "${params.node_id}" not found`);
+  }
+  // Collect all nodes in the subtree rooted at node_id using BFS
+  const visited = new Set<string>();
+  const queue: string[] = [params.node_id];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (visited.has(current)) continue;
+    visited.add(current);
+    // Find all children connected via reply_to or branches_from (outgoing)
+    for (const edge of sm.document.edges) {
+      if (edge.from === current && !visited.has(edge.to)) {
+        queue.push(edge.to);
+      }
+    }
+  }
+  for (const nodeId of visited) {
+    sm.setPathStatus(nodeId, 'archived');
+  }
+  return { success: true };
+}
+
+export function handleAnnotateNode(params: AnnotateNodeParams, sm: StateManager): AnnotateNodeResult {
+  if (!sm.document.nodes[params.node_id]) {
+    throw new Error(`Node "${params.node_id}" not found`);
+  }
+  const annotationId = sm.createNode('annotation', params.text);
+  sm.createEdge(params.node_id, annotationId, 'references');
+  const node = sm.document.nodes[annotationId];
+  return { annotation_id: annotationId, position: node.position };
+}
+
+export function handleMarkArchived(params: MarkArchivedParams, sm: StateManager): SuccessResult {
+  if (!sm.document.nodes[params.node_id]) {
+    throw new Error(`Node "${params.node_id}" not found`);
+  }
+  sm.setPathStatus(params.node_id, 'archived');
+  for (const childId of sm.getToolNodeChildren(params.node_id)) {
+    sm.setPathStatus(childId, 'archived');
+  }
+  return { success: true };
+}
+
+export function handleMarkActive(params: MarkActiveParams, sm: StateManager): SuccessResult {
+  if (!sm.document.nodes[params.node_id]) {
+    throw new Error(`Node "${params.node_id}" not found`);
+  }
+  sm.setPathStatus(params.node_id, 'active');
+  for (const childId of sm.getToolNodeChildren(params.node_id)) {
+    sm.setPathStatus(childId, 'active');
+  }
+  return { success: true };
 }
 
 export function handleSetStatus(params: SetStatusParams, sm: StateManager): SuccessResult {
@@ -129,6 +212,8 @@ export function handleGetContext(params: GetContextParams, sm: StateManager): Ge
         ? node.content.slice(0, PREVIEW_LENGTH) + '...'
         : node.content,
       status: node.status,
+      executionStatus: node.executionStatus,
+      pathStatus: node.pathStatus,
     };
   }
 

@@ -15,7 +15,11 @@ export type EdgeType =
   | 'tool_call'
   | 'tool_result';
 
-export type NodeStatus = 'streaming' | 'complete' | 'error';
+export type NodeStatus = 'streaming' | 'completed' | 'error';
+
+export type ExecutionStatus = 'pending' | 'in_progress' | 'completed';
+
+export type PathStatus = 'active' | 'archived';
 
 export interface Position {
   x: number;
@@ -29,6 +33,8 @@ export interface GraphNode {
   position: Position;
   created: string;
   status: NodeStatus;
+  executionStatus?: ExecutionStatus;
+  pathStatus?: PathStatus;
 }
 
 export interface GraphEdge {

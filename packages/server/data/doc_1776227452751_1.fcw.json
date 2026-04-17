@@ -1,0 +1,750 @@
+{
+  "id": "doc_1776227452751_1",
+  "meta": {
+    "created": "2026-04-15T04:30:52.751Z",
+    "title": "Untitled",
+    "summary": "This canvas conversation explored whether chatbot and AI agent conversations are stateless, breaking down the concept into technical layers. The discussion clarified that while LLM models themselves are always stateless, chat interfaces simulate memory by sending entire conversation histories with each request, and AI agents can achieve true statefulness through external memory systems and persistent state management. The conversation concluded with a comprehensive table showing the spectrum of statefulness across different system layers, from the stateless model core to potentially stateful cross-session agent implementations."
+  },
+  "nodes": {
+    "n_1776227494880_1": {
+      "id": "n_1776227494880_1",
+      "type": "user_prompt",
+      "content": "is every converstaino with a chat bot and agents such as as claude stateless?",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:34.881Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227496672_2": {
+      "id": "n_1776227496672_2",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"Are Chatbot & Agent Conversations Stateless?\\nShort answer: By default, YES — but it depends on how the system is built. Let's break it down.\", \"parent_id\": \"user_prompt\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:36.673Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227498011_3": {
+      "id": "n_1776227498011_3",
+      "type": "summary",
+      "content": "Are Chatbot & Agent Conversations Stateless?\nShort answer: By default, YES — but it depends on how the system is built. Let's break it down.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:38.011Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227498012_4": {
+      "id": "n_1776227498012_4",
+      "type": "tool_result",
+      "content": "{\"error\":\"Node \\\"user_prompt\\\" not found\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:38.012Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227499689_5": {
+      "id": "n_1776227499689_5",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"Are Chatbot & Agent Conversations Stateless?\\nShort answer: By default, YES — but it depends on how the system is built. Let's break it down.\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:39.689Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227500008_6": {
+      "id": "n_1776227500008_6",
+      "type": "summary",
+      "content": "Are Chatbot & Agent Conversations Stateless?\nShort answer: By default, YES — but it depends on how the system is built. Let's break it down.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:40.008Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227500008_7": {
+      "id": "n_1776227500008_7",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227500008_6\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:40.008Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227501833_8": {
+      "id": "n_1776227501833_8",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🧠 What \\\"Stateless\\\" Means\\nA stateless system has NO memory of past interactions. Each request is treated as completely fresh — the model has no idea what was said before unless that context is explicitly provided.\", \"parent_id\": \"n_1776227500008_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:41.833Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227503424_9": {
+      "id": "n_1776227503424_9",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"thought\", \"content\": \"The Core Reality: LLMs themselves (like Claude, GPT-4, Gemini) are stateless at the model level. They are just a function:\\n  Input (tokens) → Output (tokens)\\nThey do not \\\"remember\\\" anything between API calls on their own.\", \"parent_id\": \"n_1776227500008_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:43.424Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227505244_10": {
+      "id": "n_1776227505244_10",
+      "type": "response",
+      "content": "🧠 What \"Stateless\" Means\nA stateless system has NO memory of past interactions. Each request is treated as completely fresh — the model has no idea what was said before unless that context is explicitly provided.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:45.244Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227505244_11": {
+      "id": "n_1776227505244_11",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227505244_10\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:45.244Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227505244_12": {
+      "id": "n_1776227505244_12",
+      "type": "thought",
+      "content": "The Core Reality: LLMs themselves (like Claude, GPT-4, Gemini) are stateless at the model level. They are just a function:\n  Input (tokens) → Output (tokens)\nThey do not \"remember\" anything between API calls on their own.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:45.244Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227505244_13": {
+      "id": "n_1776227505244_13",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227505244_12\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:45.244Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227507102_14": {
+      "id": "n_1776227507102_14",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"📜 How \\\"Memory\\\" is Simulated in Chat\\nMost chat interfaces (like Claude.ai, ChatGPT) fake statefulness by sending the ENTIRE conversation history as part of every new request.\\n\\nExample of what the model actually receives each time:\\n  [User]: Hi, my name is Alex.\\n  [Assistant]: Hello Alex!\\n  [User]: What's my name?   ← new message\\n\\nThe full thread is re-sent every turn. The model isn't \\\"remembering\\\" — it's re-reading.\", \"parent_id\": \"n_1776227505244_10\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:47.102Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227510098_15": {
+      "id": "n_1776227510098_15",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"⚠️ The Limit: Context Window\\nSince the whole conversation is re-sent every turn, there's a hard limit — the context window (e.g., 200k tokens for Claude). Once the conversation exceeds this, older messages get truncated or summarized and are effectively \\\"forgotten.\\\"\", \"parent_id\": \"n_1776227505244_10\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:50.098Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227512241_16": {
+      "id": "n_1776227512241_16",
+      "type": "response",
+      "content": "📜 How \"Memory\" is Simulated in Chat\nMost chat interfaces (like Claude.ai, ChatGPT) fake statefulness by sending the ENTIRE conversation history as part of every new request.\n\nExample of what the model actually receives each time:\n  [User]: Hi, my name is Alex.\n  [Assistant]: Hello Alex!\n  [User]: What's my name?   ← new message\n\nThe full thread is re-sent every turn. The model isn't \"remembering\" — it's re-reading.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:52.241Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227512242_17": {
+      "id": "n_1776227512242_17",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227512241_16\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:52.242Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227512242_18": {
+      "id": "n_1776227512242_18",
+      "type": "response",
+      "content": "⚠️ The Limit: Context Window\nSince the whole conversation is re-sent every turn, there's a hard limit — the context window (e.g., 200k tokens for Claude). Once the conversation exceeds this, older messages get truncated or summarized and are effectively \"forgotten.\"",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:52.242Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227512242_19": {
+      "id": "n_1776227512242_19",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227512242_18\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:52.242Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227513983_20": {
+      "id": "n_1776227513983_20",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"🤖 What About AI Agents?\\nAgents are more complex. They CAN have true statefulness through external systems bolted on top of the LLM.\", \"parent_id\": \"n_1776227500008_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:53.983Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227514914_21": {
+      "id": "n_1776227514914_21",
+      "type": "summary",
+      "content": "🤖 What About AI Agents?\nAgents are more complex. They CAN have true statefulness through external systems bolted on top of the LLM.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:54.914Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227514914_22": {
+      "id": "n_1776227514914_22",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227514914_21\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:54.914Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227516201_23": {
+      "id": "n_1776227516201_23",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🗃️ External Memory (Vector DBs / Databases)\\nAgents can store facts, summaries, or past interactions in external memory (e.g., Pinecone, Weaviate, Redis). Before each call, relevant memories are retrieved and injected into the prompt. This enables long-term memory across sessions.\", \"parent_id\": \"n_1776227514914_21\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:56.202Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227518120_24": {
+      "id": "n_1776227518120_24",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"📋 Agent State / Scratchpads\\nAgentic frameworks (LangChain, AutoGen, CrewAI) maintain a \\\"state\\\" object — a structured record of goals, sub-tasks completed, tool outputs, and plans. This is passed between agent steps, giving the illusion of persistent reasoning.\", \"parent_id\": \"n_1776227514914_21\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:31:58.120Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227520105_25": {
+      "id": "n_1776227520105_25",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"response\", \"content\": \"🔄 Session vs. Cross-Session Memory\\n• Within a session: Statefulness via conversation history in context window.\\n• Across sessions: Stateless by default — unless the app explicitly saves and reloads memory (e.g., Claude's \\\"Projects\\\" feature, ChatGPT's \\\"Memory\\\" feature).\", \"parent_id\": \"n_1776227514914_21\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:00.105Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227522203_26": {
+      "id": "n_1776227522203_26",
+      "type": "response",
+      "content": "🗃️ External Memory (Vector DBs / Databases)\nAgents can store facts, summaries, or past interactions in external memory (e.g., Pinecone, Weaviate, Redis). Before each call, relevant memories are retrieved and injected into the prompt. This enables long-term memory across sessions.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:02.203Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227522203_27": {
+      "id": "n_1776227522203_27",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227522203_26\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:02.203Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227522203_28": {
+      "id": "n_1776227522203_28",
+      "type": "response",
+      "content": "📋 Agent State / Scratchpads\nAgentic frameworks (LangChain, AutoGen, CrewAI) maintain a \"state\" object — a structured record of goals, sub-tasks completed, tool outputs, and plans. This is passed between agent steps, giving the illusion of persistent reasoning.",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:02.203Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227522203_29": {
+      "id": "n_1776227522203_29",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227522203_28\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:02.203Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227522203_30": {
+      "id": "n_1776227522203_30",
+      "type": "response",
+      "content": "🔄 Session vs. Cross-Session Memory\n• Within a session: Statefulness via conversation history in context window.\n• Across sessions: Stateless by default — unless the app explicitly saves and reloads memory (e.g., Claude's \"Projects\" feature, ChatGPT's \"Memory\" feature).",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:02.203Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227522204_31": {
+      "id": "n_1776227522204_31",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227522203_30\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:02.204Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227524079_32": {
+      "id": "n_1776227524079_32",
+      "type": "tool_call",
+      "content": "tool: canvas_create_node\n{\"type\": \"summary\", \"content\": \"✅ TL;DR — The Spectrum of Statefulness\\n\\n| Layer | Stateless? |\\n|---|---|\\n| LLM model itself | ✅ Always stateless |\\n| Single chat session | ❌ Simulated via context window |\\n| Across sessions (default) | ✅ Stateless unless memory is built in |\\n| AI Agents with memory tools | ❌ Can be truly stateful |\", \"parent_id\": \"n_1776227500008_6\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:04.079Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227526334_33": {
+      "id": "n_1776227526334_33",
+      "type": "summary",
+      "content": "✅ TL;DR — The Spectrum of Statefulness\n\n| Layer | Stateless? |\n|---|---|\n| LLM model itself | ✅ Always stateless |\n| Single chat session | ❌ Simulated via context window |\n| Across sessions (default) | ✅ Stateless unless memory is built in |\n| AI Agents with memory tools | ❌ Can be truly stateful |",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:06.334Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227526335_34": {
+      "id": "n_1776227526335_34",
+      "type": "tool_result",
+      "content": "{\"node_id\":\"n_1776227526334_33\",\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:06.335Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227527593_35": {
+      "id": "n_1776227527593_35",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776227505244_12\", \"to_id\": \"n_1776227505244_10\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:07.593Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227528594_36": {
+      "id": "n_1776227528594_36",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776227512242_18\", \"to_id\": \"n_1776227512241_16\", \"edge_type\": \"reply_to\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:08.594Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227529465_37": {
+      "id": "n_1776227529465_37",
+      "type": "tool_call",
+      "content": "tool: canvas_connect\n{\"from_id\": \"n_1776227526334_33\", \"to_id\": \"n_1776227514914_21\", \"edge_type\": \"references\"}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:09.465Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227530092_38": {
+      "id": "n_1776227530092_38",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:10.092Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227530092_39": {
+      "id": "n_1776227530092_39",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:10.092Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227530093_40": {
+      "id": "n_1776227530093_40",
+      "type": "tool_result",
+      "content": "{\"success\":true}",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:10.093Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    },
+    "n_1776227530731_41": {
+      "id": "n_1776227530731_41",
+      "type": "response",
+      "content": "Here's the full breakdown on your canvas! The key takeaways are:\n\n1. **The LLM model itself is always stateless** — it's just a function that takes tokens in and spits tokens out.\n2. **Within a single chat session**, statefulness is *simulated* by resending the full conversation history every turn.\n3. **Across sessions**, it's stateless by default — a new conversation starts completely fresh unless the app has built memory features (like Claude's Projects or ChatGPT's Memory).\n4. **AI Agents** can achieve true statefulness by connecting to external memory systems (databases, vector stores) and maintaining structured state objects between steps.\n\nSo the short answer: **the model is always stateless, but the *system* around it can be stateful.** 🧠",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "created": "2026-04-15T04:32:10.731Z",
+      "status": "completed",
+      "executionStatus": "completed",
+      "pathStatus": "active"
+    }
+  },
+  "edges": [
+    {
+      "from": "n_1776227494880_1",
+      "to": "n_1776227496672_2",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227496672_2",
+      "to": "n_1776227498012_4",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227498012_4",
+      "to": "n_1776227499689_5",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227499689_5",
+      "to": "n_1776227500008_7",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227500008_6",
+      "to": "n_1776227501833_8",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227500008_6",
+      "to": "n_1776227503424_9",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227500008_6",
+      "to": "n_1776227505244_10",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227501833_8",
+      "to": "n_1776227505244_11",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227500008_6",
+      "to": "n_1776227505244_12",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227503424_9",
+      "to": "n_1776227505244_13",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227505244_10",
+      "to": "n_1776227507102_14",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227505244_10",
+      "to": "n_1776227510098_15",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227505244_10",
+      "to": "n_1776227512241_16",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227507102_14",
+      "to": "n_1776227512242_17",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227505244_10",
+      "to": "n_1776227512242_18",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227510098_15",
+      "to": "n_1776227512242_19",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227512242_17",
+      "to": "n_1776227513983_20",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227500008_6",
+      "to": "n_1776227514914_21",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227513983_20",
+      "to": "n_1776227514914_22",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227514914_21",
+      "to": "n_1776227516201_23",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227514914_21",
+      "to": "n_1776227518120_24",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227514914_21",
+      "to": "n_1776227520105_25",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227514914_21",
+      "to": "n_1776227522203_26",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227516201_23",
+      "to": "n_1776227522203_27",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227514914_21",
+      "to": "n_1776227522203_28",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227518120_24",
+      "to": "n_1776227522203_29",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227514914_21",
+      "to": "n_1776227522203_30",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227520105_25",
+      "to": "n_1776227522204_31",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227522204_31",
+      "to": "n_1776227524079_32",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227500008_6",
+      "to": "n_1776227526334_33",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227524079_32",
+      "to": "n_1776227526335_34",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227526335_34",
+      "to": "n_1776227527593_35",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227526335_34",
+      "to": "n_1776227528594_36",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227526335_34",
+      "to": "n_1776227529465_37",
+      "type": "tool_call"
+    },
+    {
+      "from": "n_1776227505244_12",
+      "to": "n_1776227505244_10",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227527593_35",
+      "to": "n_1776227530092_38",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227512242_18",
+      "to": "n_1776227512241_16",
+      "type": "reply_to"
+    },
+    {
+      "from": "n_1776227528594_36",
+      "to": "n_1776227530092_39",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227526334_33",
+      "to": "n_1776227514914_21",
+      "type": "references"
+    },
+    {
+      "from": "n_1776227529465_37",
+      "to": "n_1776227530093_40",
+      "type": "tool_result"
+    },
+    {
+      "from": "n_1776227530093_40",
+      "to": "n_1776227530731_41",
+      "type": "reply_to"
+    }
+  ]
+}

@@ -7,8 +7,8 @@ function makeDoc(overrides?: Partial<GraphDocument>): GraphDocument {
     id: 'doc1',
     meta: { created: '2024-01-01', title: 'Test' },
     nodes: {
-      n1: { id: 'n1', type: 'user_prompt', content: 'hello', position: { x: 0, y: 0 }, created: '2024-01-01', status: 'complete' },
-      n2: { id: 'n2', type: 'response', content: 'world', position: { x: 0, y: 0 }, created: '2024-01-01', status: 'complete' },
+      n1: { id: 'n1', type: 'user_prompt', content: 'hello', position: { x: 0, y: 0 }, created: '2024-01-01', status: 'completed' },
+      n2: { id: 'n2', type: 'response', content: 'world', position: { x: 0, y: 0 }, created: '2024-01-01', status: 'completed' },
     },
     edges: [{ from: 'n1', to: 'n2', type: 'reply_to' }],
     ...overrides,
@@ -40,9 +40,9 @@ describe('computeLayout', () => {
   it('returns positions for all nodes in doc', () => {
     const doc = makeDoc({
       nodes: {
-        a: { id: 'a', type: 'user_prompt', content: '', position: { x: 0, y: 0 }, created: '', status: 'complete' },
-        b: { id: 'b', type: 'response', content: '', position: { x: 0, y: 0 }, created: '', status: 'complete' },
-        c: { id: 'c', type: 'thought', content: '', position: { x: 0, y: 0 }, created: '', status: 'complete' },
+        a: { id: 'a', type: 'user_prompt', content: '', position: { x: 0, y: 0 }, created: '', status: 'completed' },
+        b: { id: 'b', type: 'response', content: '', position: { x: 0, y: 0 }, created: '', status: 'completed' },
+        c: { id: 'c', type: 'thought', content: '', position: { x: 0, y: 0 }, created: '', status: 'completed' },
       },
       edges: [],
     });

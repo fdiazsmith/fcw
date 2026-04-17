@@ -1,4 +1,4 @@
-import type { GraphDocument, NodeType, NodeStatus } from './types.js';
+import type { GraphDocument, NodeType, NodeStatus, ExecutionStatus, PathStatus } from './types.js';
 import { createEdge } from './edges.js';
 
 let docCounter = 0;
@@ -29,7 +29,7 @@ export function createNode(
   type: NodeType,
   content: string,
   parentId?: string,
-  options?: { status?: NodeStatus },
+  options?: { status?: NodeStatus; executionStatus?: ExecutionStatus; pathStatus?: PathStatus },
 ): string {
   const id = generateNodeId();
   doc.nodes[id] = {
@@ -38,7 +38,9 @@ export function createNode(
     content,
     position: { x: 0, y: 0 },
     created: new Date().toISOString(),
-    status: options?.status ?? 'complete',
+    status: options?.status ?? 'completed',
+    executionStatus: options?.executionStatus ?? 'completed',
+    pathStatus: options?.pathStatus ?? 'active',
   };
 
   if (parentId) {

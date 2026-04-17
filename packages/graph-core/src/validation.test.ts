@@ -57,4 +57,42 @@ describe('validateDocument', () => {
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('accepts valid executionStatus values', () => {
+    const doc = createDocument('Test');
+    const nodeId = createNode(doc, 'user_prompt', 'q');
+    doc.nodes[nodeId].executionStatus = 'pending';
+    expect(validateDocument(doc).valid).toBe(true);
+    doc.nodes[nodeId].executionStatus = 'in_progress';
+    expect(validateDocument(doc).valid).toBe(true);
+    doc.nodes[nodeId].executionStatus = 'completed';
+    expect(validateDocument(doc).valid).toBe(true);
+  });
+
+  it('rejects invalid executionStatus value', () => {
+    const doc = createDocument('Test');
+    const nodeId = createNode(doc, 'user_prompt', 'q');
+    (doc.nodes[nodeId] as any).executionStatus = 'bad_status';
+    const result = validateDocument(doc);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes('executionStatus'))).toBe(true);
+  });
+
+  it('accepts valid pathStatus values', () => {
+    const doc = createDocument('Test');
+    const nodeId = createNode(doc, 'user_prompt', 'q');
+    doc.nodes[nodeId].pathStatus = 'active';
+    expect(validateDocument(doc).valid).toBe(true);
+    doc.nodes[nodeId].pathStatus = 'archived';
+    expect(validateDocument(doc).valid).toBe(true);
+  });
+
+  it('rejects invalid pathStatus value', () => {
+    const doc = createDocument('Test');
+    const nodeId = createNode(doc, 'user_prompt', 'q');
+    (doc.nodes[nodeId] as any).pathStatus = 'gone';
+    const result = validateDocument(doc);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes('pathStatus'))).toBe(true);
+  });
 });

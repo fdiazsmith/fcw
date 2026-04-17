@@ -4,7 +4,11 @@ import {
   handleCreateNode,
   handleUpdateNode,
   handleConnect,
-  handleBranch,
+  handleBranchFromNode,
+  handleCollapseSubtree,
+  handleAnnotateNode,
+  handleMarkArchived,
+  handleMarkActive,
   handleSetStatus,
   handleGetContext,
 } from './mcp-tools.js';
@@ -98,37 +102,154 @@ describe('MCP Tool Handlers', () => {
     });
   });
 
-  describe('handleBranch', () => {
-    it('creates branch marker node and returns branch_id', () => {
+  describe('handleBranchFromNode', () => {
+    it('creates annotation branch node and returns branch_id + position', () => {
       const fromId = manager.createNode('user_prompt', 'Origin');
-      const result = handleBranch({ from_id: fromId }, manager);
+      const result = handleBranchFromNode({ node_id: fromId }, manager);
       expect(result.branch_id).toBeDefined();
+      expect(result.position).toBeDefined();
       const branchNode = manager.document.nodes[result.branch_id];
       expect(branchNode).toBeDefined();
       expect(branchNode.type).toBe('annotation');
-      // Branch should be connected to origin via branches_from edge
+    });
+
+    it('connects branch via branches_from edge', () => {
+      const fromId = manager.createNode('user_prompt', 'Origin');
+      const result = handleBranchFromNode({ node_id: fromId }, manager);
       const edge = manager.document.edges.find(
         (e) => e.from === fromId && e.to === result.branch_id && e.type === 'branches_from',
       );
       expect(edge).toBeDefined();
     });
 
-    it('throws on non-existent from_id', () => {
-      expect(() => handleBranch({ from_id: 'nonexistent' }, manager)).toThrow();
+    it('calls applyBranchPathUpdate with branchId', () => {
+      const fromId = manager.createNode('user_prompt', 'Origin');
+      let capturedId: string | undefined;
+      const origApply = manager.applyBranchPathUpdate.bind(manager);
+      manager.applyBranchPathUpdate = (id: string) => {
+        capturedId = id;
+        origApply(id);
+      };
+      const result = handleBranchFromNode({ node_id: fromId }, manager);
+      expect(capturedId).toBe(result.branch_id);
+    });
+
+    it('throws on non-existent node_id', () => {
+      expect(() => handleBranchFromNode({ node_id: 'nonexistent' }, manager)).toThrow();
+    });
+  });
+
+  describe('handleCollapseSubtree', () => {
+    it('sets pathStatus archived on node and all descendants', () => {
+      const n1 = manager.createNode('user_prompt', 'Root');
+      const n2 = manager.createNode('response', 'Child', n1);
+      const n3 = manager.createNode('response', 'Grandchild', n2);
+      const result = handleCollapseSubtree({ node_id: n1 }, manager);
+      expect(result.success).toBe(true);
+      expect(manager.document.nodes[n1].pathStatus).toBe('archived');
+      expect(manager.document.nodes[n2].pathStatus).toBe('archived');
+      expect(manager.document.nodes[n3].pathStatus).toBe('archived');
+    });
+
+    it('only archives the subtree, not unrelated nodes', () => {
+      const n1 = manager.createNode('user_prompt', 'Root');
+      const n2 = manager.createNode('response', 'Child', n1);
+      const unrelated = manager.createNode('thought', 'Unrelated');
+      handleCollapseSubtree({ node_id: n1 }, manager);
+      // unrelated node defaults to 'active' and must stay 'active' — not touched by collapse
+      expect(manager.document.nodes[unrelated].pathStatus).toBe('active');
+    });
+
+    it('throws on non-existent node_id', () => {
+      expect(() => handleCollapseSubtree({ node_id: 'nonexistent' }, manager)).toThrow();
+    });
+  });
+
+  describe('handleAnnotateNode', () => {
+    it('creates annotation node connected via references edge', () => {
+      const targetId = manager.createNode('response', 'Target');
+      const result = handleAnnotateNode({ node_id: targetId, text: 'My note' }, manager);
+      expect(result.annotation_id).toBeDefined();
+      expect(result.position).toBeDefined();
+      const annNode = manager.document.nodes[result.annotation_id];
+      expect(annNode).toBeDefined();
+      expect(annNode.type).toBe('annotation');
+      expect(annNode.content).toBe('My note');
+    });
+
+    it('connects annotation via references edge from target', () => {
+      const targetId = manager.createNode('response', 'Target');
+      const result = handleAnnotateNode({ node_id: targetId, text: 'My note' }, manager);
+      const edge = manager.document.edges.find(
+        (e) => e.from === targetId && e.to === result.annotation_id && e.type === 'references',
+      );
+      expect(edge).toBeDefined();
+    });
+
+    it('throws on non-existent node_id', () => {
+      expect(() => handleAnnotateNode({ node_id: 'nonexistent', text: 'note' }, manager)).toThrow();
+    });
+  });
+
+  describe('handleMarkArchived', () => {
+    it('sets pathStatus archived on node and its tool-node children', () => {
+      const nodeId = manager.createNode('response', 'Main');
+      const toolCallId = manager.createNode('tool_call', 'tc');
+      const toolResultId = manager.createNode('tool_result', 'tr');
+      manager.createEdge(nodeId, toolCallId, 'tool_call');
+      manager.createEdge(toolCallId, toolResultId, 'tool_result');
+      // Set them active first
+      manager.setPathStatus(nodeId, 'active');
+      manager.setPathStatus(toolCallId, 'active');
+      manager.setPathStatus(toolResultId, 'active');
+
+      const result = handleMarkArchived({ node_id: nodeId }, manager);
+      expect(result.success).toBe(true);
+      expect(manager.document.nodes[nodeId].pathStatus).toBe('archived');
+      expect(manager.document.nodes[toolCallId].pathStatus).toBe('archived');
+      expect(manager.document.nodes[toolResultId].pathStatus).toBe('archived');
+    });
+
+    it('throws on non-existent node_id', () => {
+      expect(() => handleMarkArchived({ node_id: 'nonexistent' }, manager)).toThrow();
+    });
+  });
+
+  describe('handleMarkActive', () => {
+    it('sets pathStatus active on node and its tool-node children', () => {
+      const nodeId = manager.createNode('response', 'Main');
+      const toolCallId = manager.createNode('tool_call', 'tc');
+      const toolResultId = manager.createNode('tool_result', 'tr');
+      manager.createEdge(nodeId, toolCallId, 'tool_call');
+      manager.createEdge(toolCallId, toolResultId, 'tool_result');
+      // Set them archived first
+      manager.setPathStatus(nodeId, 'archived');
+      manager.setPathStatus(toolCallId, 'archived');
+      manager.setPathStatus(toolResultId, 'archived');
+
+      const result = handleMarkActive({ node_id: nodeId }, manager);
+      expect(result.success).toBe(true);
+      expect(manager.document.nodes[nodeId].pathStatus).toBe('active');
+      expect(manager.document.nodes[toolCallId].pathStatus).toBe('active');
+      expect(manager.document.nodes[toolResultId].pathStatus).toBe('active');
+    });
+
+    it('throws on non-existent node_id', () => {
+      expect(() => handleMarkActive({ node_id: 'nonexistent' }, manager)).toThrow();
     });
   });
 
   describe('handleSetStatus', () => {
     it('sets node status and returns success', () => {
       const nodeId = manager.createNode('response', 'Hello');
-      const result = handleSetStatus({ node_id: nodeId, status: 'complete' }, manager);
+      const result = handleSetStatus({ node_id: nodeId, status: 'completed' }, manager);
       expect(result.success).toBe(true);
-      expect(manager.document.nodes[nodeId].status).toBe('complete');
+      expect(manager.document.nodes[nodeId].status).toBe('completed');
     });
 
     it('throws on non-existent node', () => {
       expect(() =>
-        handleSetStatus({ node_id: 'bad', status: 'complete' }, manager),
+        handleSetStatus({ node_id: 'bad', status: 'completed' }, manager),
       ).toThrow();
     });
   });
@@ -173,6 +294,27 @@ describe('MCP Tool Handlers', () => {
       const nodeId = manager.createNode('user_prompt', longContent);
       const result = handleGetContext({}, manager);
       expect(result.nodes[nodeId].content_preview.length).toBeLessThan(300);
+    });
+
+    it('includes executionStatus in result nodes', () => {
+      const nodeId = manager.createNode('response', 'Hello');
+      manager.setExecutionStatus(nodeId, 'completed');
+      const result = handleGetContext({}, manager);
+      expect(result.nodes[nodeId].executionStatus).toBe('completed');
+    });
+
+    it('includes pathStatus in result nodes', () => {
+      const nodeId = manager.createNode('response', 'Hello');
+      manager.setPathStatus(nodeId, 'archived');
+      const result = handleGetContext({}, manager);
+      expect(result.nodes[nodeId].pathStatus).toBe('archived');
+    });
+
+    it('includes executionStatus and pathStatus with defaults for new nodes', () => {
+      const nodeId = manager.createNode('user_prompt', 'Test');
+      const result = handleGetContext({}, manager);
+      expect(result.nodes[nodeId].executionStatus).toBe('completed');
+      expect(result.nodes[nodeId].pathStatus).toBe('active');
     });
   });
 });

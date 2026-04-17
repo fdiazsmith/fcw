@@ -51,7 +51,7 @@ export class GraphNodeShapeUtil extends BaseBoxShapeUtil<GraphNodeShape> {
       h: 200,
       nodeType: 'user_prompt',
       content: '',
-      status: 'complete',
+      status: 'completed',
       label: '',
     };
   }

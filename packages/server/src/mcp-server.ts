@@ -5,7 +5,11 @@ import {
   handleCreateNode,
   handleUpdateNode,
   handleConnect,
-  handleBranch,
+  handleBranchFromNode,
+  handleCollapseSubtree,
+  handleAnnotateNode,
+  handleMarkArchived,
+  handleMarkActive,
   handleSetStatus,
   handleGetContext,
 } from './mcp-tools.js';
@@ -25,7 +29,7 @@ export function createMcpServer(stateManager: StateManager): McpServer {
       type: z.enum(['user_prompt', 'response', 'code', 'tool_call', 'tool_result', 'thought', 'summary', 'annotation']),
       content: z.string(),
       parent_id: z.string().optional(),
-      metadata: z.object({ status: z.enum(['streaming', 'complete', 'error']) }).optional(),
+      metadata: z.object({ status: z.enum(['streaming', 'completed', 'error']) }).optional(),
     },
   }, async (args) => {
     const result = handleCreateNode(args as any, stateManager);
@@ -58,25 +62,75 @@ export function createMcpServer(stateManager: StateManager): McpServer {
     return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
   });
 
-  mcp.registerTool('canvas_branch', {
+  mcp.registerTool('branch_from_node', {
     description:
       'Create a branch point from an existing node. Use when the user asks to explore an alternative approach. ' +
-      'Returns branch_id — use it as parent_id for the first node of the new branch.',
+      'Returns branch_id and position — use branch_id as parent_id for the first node of the new branch. ' +
+      'Automatically updates path statuses so the new branch becomes active.',
     inputSchema: {
-      from_id: z.string(),
+      node_id: z.string(),
     },
   }, async (args) => {
-    const result = handleBranch(args as any, stateManager);
+    const result = handleBranchFromNode(args as any, stateManager);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+  });
+
+  mcp.registerTool('collapse_subtree', {
+    description:
+      'Archive a node and all its descendants by setting their pathStatus to "archived". ' +
+      'Use to collapse a branch of the conversation that is no longer relevant.',
+    inputSchema: {
+      node_id: z.string(),
+    },
+  }, async (args) => {
+    const result = handleCollapseSubtree(args as any, stateManager);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+  });
+
+  mcp.registerTool('annotate_node', {
+    description:
+      'Create an annotation node attached to an existing node via a references edge. ' +
+      'Use to add notes, observations, or commentary to a specific node without altering its content.',
+    inputSchema: {
+      node_id: z.string(),
+      text: z.string(),
+    },
+  }, async (args) => {
+    const result = handleAnnotateNode(args as any, stateManager);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+  });
+
+  mcp.registerTool('mark_archived', {
+    description:
+      'Set pathStatus to "archived" on a node and its tool-call/tool-result children. ' +
+      'Use to mark a node and its associated tool nodes as no longer on the active path.',
+    inputSchema: {
+      node_id: z.string(),
+    },
+  }, async (args) => {
+    const result = handleMarkArchived(args as any, stateManager);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+  });
+
+  mcp.registerTool('mark_active', {
+    description:
+      'Set pathStatus to "active" on a node and its tool-call/tool-result children. ' +
+      'Use to restore a node and its associated tool nodes to the active path.',
+    inputSchema: {
+      node_id: z.string(),
+    },
+  }, async (args) => {
+    const result = handleMarkActive(args as any, stateManager);
     return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
   });
 
   mcp.registerTool('canvas_set_status', {
     description:
-      'Set the status of a node: "streaming" (in progress), "complete" (done), or "error" (failed). ' +
+      'Set the status of a node: "streaming" (in progress), "completed" (done), or "error" (failed). ' +
       'Use to signal node lifecycle to the canvas UI.',
     inputSchema: {
       node_id: z.string(),
-      status: z.enum(['streaming', 'complete', 'error']),
+      status: z.enum(['streaming', 'completed', 'error']),
     },
   }, async (args) => {
     const result = handleSetStatus(args as any, stateManager);
