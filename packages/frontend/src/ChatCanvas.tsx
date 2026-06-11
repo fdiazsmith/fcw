@@ -198,6 +198,7 @@ export default function ChatCanvas() {
           }
           const a = editor.getShape(arrowId);
           if (!a) return; // already converted or deleted
+          if (a.meta?.fcwCtx) return; // already adopted (handler fires once per terminal)
           const bindings = editor
             .getBindingsFromShape(a.id, 'arrow') as TLArrowBinding[];
           const start = bindings.find((b) => b.props.terminal === 'start');
@@ -209,8 +210,9 @@ export default function ChatCanvas() {
           const from = (fromShape as ChatShape).props.chatId;
           const to = (toShape as ChatShape).props.chatId;
           if (!from || !to || from === to) return;
-          if (findCtxArrow(editor, from, to)) {
-            // duplicate of an existing edge — drop the extra arrow
+          const existing = findCtxArrow(editor, from, to);
+          if (existing && existing.id !== a.id) {
+            // duplicate of an existing edge — drop the extra arrow only
             syncingRef.current = true;
             editor.deleteShape(a.id);
             syncingRef.current = false;
