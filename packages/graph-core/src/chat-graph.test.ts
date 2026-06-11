@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { createChatGraph, addChat, appendMessage, addContextEdge } from './chat-graph.js';
+import {
+  createChatGraph,
+  addChat,
+  appendMessage,
+  addContextEdge,
+  setEdgeEnabled,
+  removeContextEdge,
+} from './chat-graph.js';
 
 describe('createChatGraph', () => {
   it('returns an empty versioned chat graph', () => {
@@ -101,5 +108,35 @@ describe('addContextEdge', () => {
     addContextEdge(g, a, b);
     g.edges[0].enabled = false;
     expect(() => addContextEdge(g, b, a)).toThrow(/cycle/i);
+  });
+});
+
+describe('setEdgeEnabled / removeContextEdge', () => {
+  it('toggles an edge without deleting it', () => {
+    const g = createChatGraph('T');
+    const a = addChat(g);
+    const b = addChat(g);
+    addContextEdge(g, a, b);
+    setEdgeEnabled(g, a, b, false);
+    expect(g.edges[0].enabled).toBe(false);
+    setEdgeEnabled(g, a, b, true);
+    expect(g.edges[0].enabled).toBe(true);
+  });
+
+  it('removes an edge', () => {
+    const g = createChatGraph('T');
+    const a = addChat(g);
+    const b = addChat(g);
+    addContextEdge(g, a, b);
+    removeContextEdge(g, a, b);
+    expect(g.edges).toHaveLength(0);
+  });
+
+  it('throws for a missing edge', () => {
+    const g = createChatGraph('T');
+    const a = addChat(g);
+    const b = addChat(g);
+    expect(() => setEdgeEnabled(g, a, b, true)).toThrow(/no edge/i);
+    expect(() => removeContextEdge(g, a, b)).toThrow(/no edge/i);
   });
 });

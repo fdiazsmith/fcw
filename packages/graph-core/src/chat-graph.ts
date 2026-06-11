@@ -90,6 +90,26 @@ export function addContextEdge(
   graph.edges.push({ from, to, enabled: true, priority: options?.priority ?? 0 });
 }
 
+function findEdge(graph: ChatGraph, from: string, to: string): ContextEdge {
+  const edge = graph.edges.find((e) => e.from === from && e.to === to);
+  if (!edge) throw new Error(`no edge: ${from} -> ${to}`);
+  return edge;
+}
+
+export function setEdgeEnabled(
+  graph: ChatGraph,
+  from: string,
+  to: string,
+  enabled: boolean,
+): void {
+  findEdge(graph, from, to).enabled = enabled;
+}
+
+export function removeContextEdge(graph: ChatGraph, from: string, to: string): void {
+  const edge = findEdge(graph, from, to);
+  graph.edges.splice(graph.edges.indexOf(edge), 1);
+}
+
 /** True if `target` is reachable from `start` by following edges downstream.
  *  Disabled edges count: a cycle must be impossible even after re-enabling. */
 function reaches(graph: ChatGraph, start: string, target: string): boolean {
