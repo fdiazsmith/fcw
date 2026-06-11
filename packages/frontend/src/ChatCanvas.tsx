@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Tldraw, Editor, createShapeId, TLShapeId } from 'tldraw';
+import { Tldraw, Editor, createShapeId, TLShapeId, TLArrowBinding } from 'tldraw';
 import 'tldraw/tldraw.css';
-import { ChatShapeUtil, ChatShape, registerChatSender } from './shapes/ChatShape';
+import { ChatShapeUtil, ChatShape, registerChatActions } from './shapes/ChatShape';
 import { createWsClient, WsClient } from './ws-client';
 import { emptyChatState, applyChatMessage, ChatState, ChatView } from './chat-store';
 import type { ChatServerMessage, ChatClientMessage } from '@fcw/graph-core';
@@ -14,11 +14,22 @@ function chatShapeId(chatId: string): TLShapeId {
   return createShapeId(`chat-${chatId}`);
 }
 
+function ctxArrowId(from: string, to: string): TLShapeId {
+  return createShapeId(`ctx-${from}-${to}`);
+}
+
 /** FCW v2 surface: chats are tldraw shapes, edges are context inheritance. */
 export default function ChatCanvas() {
   const editorRef = useRef<Editor | null>(null);
   const stateRef = useRef<ChatState>(emptyChatState());
   const wsRef = useRef<WsClient | null>(null);
+  // True while we mutate the canvas from server events, so side-effect
+  // handlers don't echo those mutations back to the server.
+  const syncingRef = useRef(false);
+
+  const send = useCallback((msg: ChatClientMessage) => {
+    wsRef.current?.sendMessage(msg as never);
+  }, []);
 
   const syncChat = useCallback((view: ChatView) => {
     const editor = editorRef.current;
@@ -32,18 +43,61 @@ export default function ChatCanvas() {
       hasStream: view.streamingText !== null,
       error: view.error ?? '',
     };
-    if (editor.getShape(id)) {
-      editor.updateShape<ChatShape>({ id, type: 'chat-node', props });
-    } else {
-      editor.createShape<ChatShape>({
-        id,
-        type: 'chat-node',
-        x: view.position.x,
-        y: view.position.y,
-        props,
-      });
-      editor.select(id);
-      editor.setEditingShape(id);
+    syncingRef.current = true;
+    try {
+      if (editor.getShape(id)) {
+        editor.updateShape<ChatShape>({ id, type: 'chat-node', props });
+      } else {
+        editor.createShape<ChatShape>({
+          id,
+          type: 'chat-node',
+          x: view.position.x,
+          y: view.position.y,
+          props,
+        });
+        editor.select(id);
+        editor.setEditingShape(id);
+      }
+    } finally {
+      syncingRef.current = false;
+    }
+  }, []);
+
+  const syncEdge = useCallback((msg: ChatServerMessage) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    syncingRef.current = true;
+    try {
+      if (msg.type === 'chat_connected') {
+        const { from, to } = msg.edge;
+        const arrowId = ctxArrowId(from, to);
+        if (editor.getShape(arrowId)) return;
+        if (!editor.getShape(chatShapeId(from)) || !editor.getShape(chatShapeId(to))) return;
+        editor.createShape({
+          id: arrowId,
+          type: 'arrow',
+          meta: { fcwCtx: true, from, to },
+          props: { dash: 'dashed', color: 'blue', size: 's' },
+        });
+        for (const [terminal, chatId] of [['start', from], ['end', to]] as const) {
+          editor.createBinding({
+            type: 'arrow',
+            fromId: arrowId,
+            toId: chatShapeId(chatId),
+            props: {
+              terminal,
+              isExact: false,
+              isPrecise: false,
+              normalizedAnchor: { x: 0.5, y: 0.5 },
+            },
+          });
+        }
+      } else if (msg.type === 'chat_disconnected') {
+        const arrowId = ctxArrowId(msg.from, msg.to);
+        if (editor.getShape(arrowId)) editor.deleteShape(arrowId);
+      }
+    } finally {
+      syncingRef.current = false;
     }
   }, []);
 
@@ -52,35 +106,33 @@ export default function ChatCanvas() {
       const next = applyChatMessage(stateRef.current, msg);
       if (next === stateRef.current) return;
       stateRef.current = next;
+      if (msg.type === 'chat_connected' || msg.type === 'chat_disconnected') {
+        syncEdge(msg);
+        return;
+      }
       const chatId = msg.type === 'chat_created' ? msg.chat.id : msg.chatId;
       const view = next.chats[chatId];
       if (view) syncChat(view);
     },
-    [syncChat],
+    [syncChat, syncEdge],
   );
 
   useEffect(() => {
     const ws = createWsClient(WS_URL);
     wsRef.current = ws;
     ws.onMessage((msg) => handleServerMessage(msg as unknown as ChatServerMessage));
-    registerChatSender((chatId, content) => {
-      const out: ChatClientMessage = { type: 'chat_prompt_submitted', chatId, content };
-      ws.sendMessage(out as never);
+    registerChatActions({
+      sendPrompt: (chatId, content) =>
+        send({ type: 'chat_prompt_submitted', chatId, content }),
+      requestBranch: (parentId, position) =>
+        send({ type: 'chat_branch_requested', parentId, position }),
     });
     return () => {
-      registerChatSender(null);
+      registerChatActions(null);
       ws.close();
       wsRef.current = null;
     };
-  }, [handleServerMessage]);
-
-  const requestChatAt = useCallback((pageX: number, pageY: number) => {
-    const out: ChatClientMessage = {
-      type: 'chat_create_requested',
-      position: { x: pageX, y: pageY },
-    };
-    wsRef.current?.sendMessage(out as never);
-  }, []);
+  }, [handleServerMessage, send]);
 
   const onMount = useCallback(
     (editor: Editor) => {
@@ -92,45 +144,117 @@ export default function ChatCanvas() {
         const point = editor.screenToPage({ x: e.clientX, y: e.clientY });
         const hit = editor.getShapeAtPoint(point, { hitInside: true });
         if (hit) return;
-        // tldraw's select tool may have just created an empty text shape; remove it.
         const editing = editor.getEditingShape();
         if (editing && editing.type === 'text') {
           editor.deleteShape(editing.id);
         }
-        requestChatAt(point.x - 180, point.y - 60);
+        send({
+          type: 'chat_create_requested',
+          position: { x: point.x - 180, y: point.y - 60 },
+        });
       };
       container.addEventListener('dblclick', onDblClick);
 
+      // Hand-drawn arrow between two chat cards -> context edge.
+      // Wait for the drag to finish, verify both terminals, then convert.
+      editor.sideEffects.registerAfterCreateHandler('binding', (binding) => {
+        if (syncingRef.current || binding.type !== 'arrow') return;
+        const arrowId = binding.fromId;
+        const arrow = editor.getShape(arrowId);
+        if (!arrow || arrow.type !== 'arrow' || arrow.meta?.fcwCtx) return;
+
+        const tryConvert = () => {
+          if (editor.inputs.isDragging) {
+            setTimeout(tryConvert, 150);
+            return;
+          }
+          const a = editor.getShape(arrowId);
+          if (!a) return; // already converted or deleted
+          const bindings = editor
+            .getBindingsFromShape(a.id, 'arrow') as TLArrowBinding[];
+          const start = bindings.find((b) => b.props.terminal === 'start');
+          const end = bindings.find((b) => b.props.terminal === 'end');
+          if (!start || !end) return;
+          const fromShape = editor.getShape(start.toId);
+          const toShape = editor.getShape(end.toId);
+          if (fromShape?.type !== 'chat-node' || toShape?.type !== 'chat-node') return;
+          const from = (fromShape as ChatShape).props.chatId;
+          const to = (toShape as ChatShape).props.chatId;
+          if (!from || !to || from === to) return;
+
+          syncingRef.current = true;
+          editor.deleteShape(a.id); // server's chat_connected will draw the real edge
+          syncingRef.current = false;
+          send({ type: 'chat_connect_requested', from, to });
+        };
+        setTimeout(tryConvert, 150);
+      });
+
+      // Deleting a context arrow -> disconnect (unless we deleted it ourselves).
+      editor.sideEffects.registerAfterDeleteHandler('shape', (shape) => {
+        if (syncingRef.current) return;
+        if (shape.type === 'arrow' && shape.meta?.fcwCtx) {
+          send({
+            type: 'chat_disconnect_requested',
+            from: String(shape.meta.from),
+            to: String(shape.meta.to),
+          });
+        }
+      });
+
       return () => container.removeEventListener('dblclick', onDblClick);
     },
-    [requestChatAt],
+    [send],
   );
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <Tldraw shapeUtils={customShapes} onMount={onMount} />
-      <button
-        onClick={() => {
-          const editor = editorRef.current;
-          const center = editor ? editor.getViewportPageBounds().center : { x: 0, y: 0 };
-          requestChatAt(center.x - 180, center.y - 210);
-        }}
+      <div
         style={{
           position: 'absolute',
           top: 12,
           right: 12,
           zIndex: 1000,
-          padding: '8px 14px',
-          borderRadius: 8,
-          border: '1px solid #CBD5E1',
-          background: '#fff',
-          fontWeight: 600,
-          cursor: 'pointer',
-          boxShadow: '0 1px 4px rgba(15,23,42,0.1)',
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center',
         }}
       >
-        + New chat
-      </button>
+        <span
+          style={{
+            fontSize: 12,
+            color: '#64748B',
+            background: '#fff',
+            padding: '6px 10px',
+            borderRadius: 8,
+            border: '1px solid #E2E8F0',
+          }}
+        >
+          double-click: new chat · + under a card: branch · draw arrow: connect context
+        </span>
+        <button
+          onClick={() => {
+            const editor = editorRef.current;
+            const center = editor ? editor.getViewportPageBounds().center : { x: 0, y: 0 };
+            send({
+              type: 'chat_create_requested',
+              position: { x: center.x - 180, y: center.y - 210 },
+            });
+          }}
+          style={{
+            padding: '8px 14px',
+            borderRadius: 8,
+            border: '1px solid #CBD5E1',
+            background: '#fff',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 1px 4px rgba(15,23,42,0.1)',
+          }}
+        >
+          + New chat
+        </button>
+      </div>
     </div>
   );
 }
