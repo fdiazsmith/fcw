@@ -46,3 +46,23 @@ export type { GenerateSummary } from './summary.js';
 
 // WebSocket Messages
 export type { ServerMessage, ClientMessage } from './messages.js';
+
+// ── v2 chat-graph: node = chat window, edges = context inheritance ──
+export type {
+  ChatRole,
+  ChatMessage,
+  ChatNode,
+  ContextEdge,
+  ChatGraph,
+} from './chat-graph.js';
+export {
+  createChatGraph,
+  addChat,
+  appendMessage,
+  addContextEdge,
+  setEdgeEnabled,
+  removeContextEdge,
+} from './chat-graph.js';
+export { assembleContext } from './context-assembly.js';
+export type { AssembleOptions } from './context-assembly.js';
+export { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
