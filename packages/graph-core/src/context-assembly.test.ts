@@ -104,3 +104,51 @@ describe('assembleContext: multiple parents', () => {
     expect(build(true)).toEqual(build(false));
   });
 });
+
+describe('assembleContext: token budget', () => {
+  // estimator: 1 token per character, to make budgets easy to reason about
+  const byChar = (m: { content: string }) => m.content.length;
+
+  it('returns everything when under budget', () => {
+    const g = createChatGraph('T');
+    const a = chatWith(g, ['aaaa']);
+    const b = chatWith(g, ['bbbb']);
+    addContextEdge(g, a, b);
+    const out = assembleContext(g, b, { budget: 100, estimateTokens: byChar });
+    expect(out.map((m) => m.content)).toEqual(['aaaa', 'bbbb']);
+  });
+
+  it('degrades the most distant ancestor to its summary when over budget', () => {
+    const g = createChatGraph('T');
+    const a = chatWith(g, ['aaaaaaaaaa']); // 10 tokens
+    const b = chatWith(g, ['bbbb']); // 4
+    const c = chatWith(g, ['cccc']); // 4
+    g.chats[a].summary = 'sum-a'; // 5
+    addContextEdge(g, a, b);
+    addContextEdge(g, b, c);
+    // budget 14 forces A (most distant) to degrade; summary fits: 5+4+4=13
+    const out = assembleContext(g, c, { budget: 14, estimateTokens: byChar });
+    expect(out.map((m) => m.content)).toEqual(['sum-a', 'bbbb', 'cccc']);
+    expect(out[0].role).toBe('assistant');
+  });
+
+  it('drops a distant ancestor without a summary entirely', () => {
+    const g = createChatGraph('T');
+    const a = chatWith(g, ['aaaaaaaaaa']);
+    const b = chatWith(g, ['bbbb']);
+    const c = chatWith(g, ['cccc']);
+    addContextEdge(g, a, b);
+    addContextEdge(g, b, c);
+    const out = assembleContext(g, c, { budget: 8, estimateTokens: byChar });
+    expect(out.map((m) => m.content)).toEqual(['bbbb', 'cccc']);
+  });
+
+  it('never degrades the chat own messages', () => {
+    const g = createChatGraph('T');
+    const a = chatWith(g, ['aaaa']);
+    const b = chatWith(g, ['bbbbbbbbbbbbbbbb']); // own, over budget alone
+    addContextEdge(g, a, b);
+    const out = assembleContext(g, b, { budget: 4, estimateTokens: byChar });
+    expect(out.map((m) => m.content)).toEqual(['bbbbbbbbbbbbbbbb']);
+  });
+});

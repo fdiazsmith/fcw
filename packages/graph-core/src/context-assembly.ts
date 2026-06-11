@@ -2,15 +2,48 @@
 // Re-wiring edges changes the output of this function — that IS the product.
 import type { ChatGraph, ChatMessage } from './chat-graph.js';
 
-export function assembleContext(graph: ChatGraph, chatId: string): ChatMessage[] {
+export interface AssembleOptions {
+  /** Max total tokens. Ancestors degrade (summary, then drop) most-distant-first. */
+  budget?: number;
+  /** Token estimator per message. Default: ~4 chars per token. */
+  estimateTokens?: (message: ChatMessage) => number;
+}
+
+const defaultEstimator = (m: ChatMessage): number => Math.ceil(m.content.length / 4);
+
+export function assembleContext(
+  graph: ChatGraph,
+  chatId: string,
+  options?: AssembleOptions,
+): ChatMessage[] {
   const chat = graph.chats[chatId];
   if (!chat) throw new Error(`unknown chat: ${chatId}`);
-  const messages: ChatMessage[] = [];
-  for (const id of ancestorOrder(graph, chatId)) {
-    messages.push(...graph.chats[id].messages);
+
+  // One block per ancestor (most distant first), then the chat's own messages.
+  const blocks = ancestorOrder(graph, chatId).map((id) => {
+    const ancestor = graph.chats[id];
+    return { ancestor, messages: [...ancestor.messages] };
+  });
+  const own = [...chat.messages];
+
+  const budget = options?.budget;
+  if (budget !== undefined) {
+    const estimate = options?.estimateTokens ?? defaultEstimator;
+    const cost = (ms: ChatMessage[]) => ms.reduce((sum, m) => sum + estimate(m), 0);
+    const total = () => blocks.reduce((sum, b) => sum + cost(b.messages), cost(own));
+
+    // Own messages are never degraded; ancestors degrade most-distant-first.
+    for (const block of blocks) {
+      if (total() <= budget) break;
+      const summary = block.ancestor.summary;
+      block.messages = summary
+        ? [{ role: 'assistant', content: summary, createdAt: block.ancestor.createdAt }]
+        : [];
+      if (block.messages.length > 0 && total() > budget) block.messages = [];
+    }
   }
-  messages.push(...chat.messages);
-  return messages;
+
+  return [...blocks.flatMap((b) => b.messages), ...own];
 }
 
 /** Ancestors of `chatId` in deterministic topological order (most distant first).
