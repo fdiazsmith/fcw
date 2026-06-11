@@ -1,0 +1,75 @@
+import { describe, it, expect } from 'vitest';
+import type { ChatServerMessage, ChatNode } from '@fcw/graph-core';
+import { emptyChatState, applyChatMessage, ChatState } from './chat-store';
+
+const chat = (id: string): ChatNode => ({
+  id,
+  title: '',
+  messages: [],
+  position: { x: 0, y: 0 },
+  createdAt: 't0',
+});
+
+const apply = (state: ChatState, ...msgs: ChatServerMessage[]) =>
+  msgs.reduce(applyChatMessage, state);
+
+describe('applyChatMessage', () => {
+  it('chat_created adds a chat view', () => {
+    const s = apply(emptyChatState(), { type: 'chat_created', chat: chat('c1') });
+    expect(s.chats.c1).toMatchObject({ id: 'c1', messages: [], streamingText: null });
+  });
+
+  it('chat_user_message appends to the transcript', () => {
+    const m = { role: 'user' as const, content: 'hi', createdAt: 't1' };
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_user_message', chatId: 'c1', message: m },
+    );
+    expect(s.chats.c1.messages).toEqual([m]);
+  });
+
+  it('stream lifecycle: started -> deltas accumulate -> completed moves to transcript', () => {
+    const done = { role: 'assistant' as const, content: 'Hello!', createdAt: 't2' };
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_stream_started', chatId: 'c1' },
+      { type: 'chat_stream_delta', chatId: 'c1', delta: 'Hel' },
+    );
+    expect(s.chats.c1.streamingText).toBe('Hel');
+    s = apply(s, { type: 'chat_stream_delta', chatId: 'c1', delta: 'lo!' });
+    expect(s.chats.c1.streamingText).toBe('Hello!');
+    s = apply(s, { type: 'chat_stream_completed', chatId: 'c1', message: done });
+    expect(s.chats.c1.streamingText).toBeNull();
+    expect(s.chats.c1.messages).toEqual([done]);
+  });
+
+  it('chat_error clears streaming and records the error', () => {
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_stream_started', chatId: 'c1' },
+      { type: 'chat_error', chatId: 'c1', message: 'boom' },
+    );
+    expect(s.chats.c1.streamingText).toBeNull();
+    expect(s.chats.c1.error).toBe('boom');
+  });
+
+  it('ignores messages for unknown chats and unrelated types', () => {
+    const s0 = emptyChatState();
+    const s = apply(s0, { type: 'chat_stream_delta', chatId: 'ghost', delta: 'x' });
+    expect(s).toEqual(s0);
+  });
+
+  it('does not mutate previous state', () => {
+    const s0 = apply(emptyChatState(), { type: 'chat_created', chat: chat('c1') });
+    const s1 = apply(s0, {
+      type: 'chat_user_message',
+      chatId: 'c1',
+      message: { role: 'user', content: 'hi', createdAt: 't1' },
+    });
+    expect(s0.chats.c1.messages).toHaveLength(0);
+    expect(s1.chats.c1.messages).toHaveLength(1);
+  });
+});
