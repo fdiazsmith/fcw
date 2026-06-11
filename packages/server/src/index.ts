@@ -14,6 +14,8 @@ import { createRouter } from './routes.js';
 import { createWsServer } from './ws-server.js';
 import { createClaudeClient } from './claude-client.js';
 import { createLlmSummary } from './llm-summary.js';
+import { ChatSessionManager } from './chat-session.js';
+import { createChatStreamText } from './chat-claude-adapter.js';
 
 export { StateManager } from './state-manager.js';
 export { createRouter } from './routes.js';
@@ -30,6 +32,11 @@ export { MCP_CANVAS_PROMPT } from './mcp-system-prompt.js';
 export { buildSystemPrompt } from './context-builder.js';
 export { createLlmSummary } from './llm-summary.js';
 export type { LlmSummaryOptions } from './llm-summary.js';
+// v2 chat-graph
+export { ChatSessionManager } from './chat-session.js';
+export type { StreamTextFn } from './chat-session.js';
+export { createChatStreamText } from './chat-claude-adapter.js';
+export { isChatClientMessage, handleChatClientMessage, ChatClientMessageSchema } from './chat-ws-handler.js';
 export {
   handleCreateNode,
   handleUpdateNode,
@@ -84,7 +91,13 @@ export function createApp(options: ServerOptions = {}) {
     }
   });
 
-  const wss = createWsServer(httpServer, manager, { claudeClient });
+  // v2 chat-graph sessions: chats as nodes, edges as context inheritance
+  const chatSessions = new ChatSessionManager(
+    title,
+    claudeClient ? createChatStreamText(claudeClient) : undefined,
+  );
+
+  const wss = createWsServer(httpServer, manager, { claudeClient, chatSessions });
 
   function start(): Promise<void> {
     return new Promise((resolve) => httpServer.listen(port, resolve));

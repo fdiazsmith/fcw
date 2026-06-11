@@ -4,12 +4,15 @@ import { StateManager } from './state-manager.js';
 import { handleClientMessage } from './ws-handler.js';
 import type { ClaudeClient } from './claude-client.js';
 import type { ToolExecutor } from './prompt-handler.js';
-import type { ServerMessage, ClientMessage } from '@fcw/graph-core';
+import type { ServerMessage, ClientMessage, ChatServerMessage } from '@fcw/graph-core';
 import { formatErrorMessage } from './error-format.js';
+import { ChatSessionManager } from './chat-session.js';
+import { isChatClientMessage, handleChatClientMessage } from './chat-ws-handler.js';
 
 export interface WsServerOptions {
   claudeClient?: ClaudeClient;
   toolExecutor?: ToolExecutor;
+  chatSessions?: ChatSessionManager;
 }
 
 export function createWsServer(
@@ -38,6 +41,11 @@ export function createWsServer(
   manager.on('path_status_changed', (msg: ServerMessage) => broadcast(msg));
   manager.on('node_auto_collapsed', (msg: ServerMessage) => broadcast(msg));
 
+  // v2: forward chat-graph events to all WS clients
+  options?.chatSessions?.on('message', (msg: ChatServerMessage) => {
+    broadcast(msg as unknown as ServerMessage);
+  });
+
   wss.on('connection', (ws: WebSocket, _req: IncomingMessage) => {
     console.log('[ws] client connected');
 
@@ -51,6 +59,15 @@ export function createWsServer(
       }
 
       console.log('[ws] received:', msg.type);
+
+      // v2: chat-graph messages take their own path
+      if (options?.chatSessions && isChatClientMessage(msg)) {
+        handleChatClientMessage(msg, options.chatSessions).catch((err) => {
+          console.error('[ws] chat error:', err);
+          ws.send(JSON.stringify({ type: 'error', message: formatErrorMessage(err) }));
+        });
+        return;
+      }
       handleClientMessage(msg, manager, options?.claudeClient, options?.toolExecutor)
         .then(() => console.log('[ws] handled:', msg.type))
         .catch((err) => {
