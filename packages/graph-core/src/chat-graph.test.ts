@@ -79,4 +79,27 @@ describe('addContextEdge', () => {
     addContextEdge(g, a, b);
     expect(() => addContextEdge(g, a, b)).toThrow(/exists/i);
   });
+
+  it('rejects edges that would create a cycle', () => {
+    const g = createChatGraph('T');
+    const a = addChat(g);
+    const b = addChat(g);
+    const c = addChat(g);
+    addContextEdge(g, a, b);
+    addContextEdge(g, b, c);
+    expect(() => addContextEdge(g, c, a)).toThrow(/cycle/i);
+    expect(() => addContextEdge(g, b, a)).toThrow(/cycle/i);
+    // unrelated edge still fine
+    const d = addChat(g);
+    addContextEdge(g, a, d);
+  });
+
+  it('a disabled edge still counts for cycle detection', () => {
+    const g = createChatGraph('T');
+    const a = addChat(g);
+    const b = addChat(g);
+    addContextEdge(g, a, b);
+    g.edges[0].enabled = false;
+    expect(() => addContextEdge(g, b, a)).toThrow(/cycle/i);
+  });
 });

@@ -84,5 +84,25 @@ export function addContextEdge(
   if (graph.edges.some((e) => e.from === from && e.to === to)) {
     throw new Error(`edge already exists: ${from} -> ${to}`);
   }
+  if (reaches(graph, to, from)) {
+    throw new Error(`edge would create a cycle: ${from} -> ${to}`);
+  }
   graph.edges.push({ from, to, enabled: true, priority: options?.priority ?? 0 });
+}
+
+/** True if `target` is reachable from `start` by following edges downstream.
+ *  Disabled edges count: a cycle must be impossible even after re-enabling. */
+function reaches(graph: ChatGraph, start: string, target: string): boolean {
+  const stack = [start];
+  const seen = new Set<string>();
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    if (current === target) return true;
+    if (seen.has(current)) continue;
+    seen.add(current);
+    for (const e of graph.edges) {
+      if (e.from === current) stack.push(e.to);
+    }
+  }
+  return false;
 }
