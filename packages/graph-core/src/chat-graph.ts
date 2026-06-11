@@ -60,3 +60,14 @@ export function addChat(
   };
   return id;
 }
+
+export function appendMessage(
+  graph: ChatGraph,
+  chatId: string,
+  role: ChatRole,
+  content: string,
+): void {
+  const chat = graph.chats[chatId];
+  if (!chat) throw new Error(`unknown chat: ${chatId}`);
+  chat.messages.push({ role, content, createdAt: new Date().toISOString() });
+}
