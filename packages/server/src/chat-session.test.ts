@@ -37,3 +37,72 @@ describe('ChatSessionManager.prompt', () => {
     await expect(sessions.prompt('nope', 'x')).rejects.toThrow(/unknown chat/i);
   });
 });
+
+describe('ChatSessionManager.prompt with streaming', () => {
+  async function* fakeStream() {
+    yield 'Hel';
+    yield 'lo!';
+  }
+
+  it('streams deltas and appends the assistant message', async () => {
+    const seen: string[][] = [];
+    const sessions = new ChatSessionManager('T', (messages) => {
+      seen.push(messages.map((m) => `${m.role}:${m.content}`));
+      return fakeStream();
+    });
+    const id = sessions.createChat({ x: 0, y: 0 });
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+
+    const msgs = sessions.graph.chats[id].messages;
+    expect(msgs).toHaveLength(2);
+    expect(msgs[1]).toMatchObject({ role: 'assistant', content: 'Hello!' });
+    expect(events.map((e) => e.type)).toEqual([
+      'chat_user_message',
+      'chat_stream_started',
+      'chat_stream_delta',
+      'chat_stream_delta',
+      'chat_stream_completed',
+    ]);
+    expect(events[2]).toEqual({ type: 'chat_stream_delta', chatId: id, delta: 'Hel' });
+    expect(events[4]).toMatchObject({ chatId: id, message: { content: 'Hello!' } });
+    // the stream fn received the assembled context including the new user message
+    expect(seen).toEqual([['user:hi']]);
+  });
+
+  it('sends inherited parent context to the stream fn', async () => {
+    const seen: string[][] = [];
+    const sessions = new ChatSessionManager('T', (messages) => {
+      seen.push(messages.map((m) => `${m.role}:${m.content}`));
+      return fakeStream();
+    });
+    const parent = sessions.createChat({ x: 0, y: 0 });
+    await sessions.prompt(parent, 'parent question');
+    const child = sessions.createChat({ x: 0, y: 0 });
+    sessions.connect(parent, child);
+    await sessions.prompt(child, 'child question');
+    expect(seen[1]).toEqual([
+      'user:parent question',
+      'assistant:Hello!',
+      'user:child question',
+    ]);
+  });
+
+  it('emits chat_error and no assistant message when the stream fails', async () => {
+    async function* failing(): AsyncGenerator<string> {
+      yield 'par';
+      throw new Error('boom');
+    }
+    const sessions = new ChatSessionManager('T', () => failing());
+    const id = sessions.createChat({ x: 0, y: 0 });
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+    expect(events.map((e) => e.type)).toEqual([
+      'chat_user_message',
+      'chat_stream_started',
+      'chat_stream_delta',
+      'chat_error',
+    ]);
+    expect(sessions.graph.chats[id].messages).toHaveLength(1); // only the user msg
+  });
+});
