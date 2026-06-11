@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { Tldraw, Editor, createShapeId, TLShapeId, TLArrowBinding } from 'tldraw';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Tldraw, Editor, createShapeId, TLShapeId, TLArrowBinding, TLShape } from 'tldraw';
 import 'tldraw/tldraw.css';
 import { ChatShapeUtil, ChatShape, registerChatActions } from './shapes/ChatShape';
 import { createWsClient, WsClient } from './ws-client';
@@ -18,6 +18,19 @@ function ctxArrowId(from: string, to: string): TLShapeId {
   return createShapeId(`ctx-${from}-${to}`);
 }
 
+/** Find any arrow representing the context edge from->to (created by us or adopted). */
+function findCtxArrow(editor: Editor, from: string, to: string): TLShape | undefined {
+  return editor
+    .getCurrentPageShapes()
+    .find(
+      (s) =>
+        s.type === 'arrow' &&
+        s.meta?.fcwCtx === true &&
+        s.meta?.from === from &&
+        s.meta?.to === to,
+    );
+}
+
 /** FCW v2 surface: chats are tldraw shapes, edges are context inheritance. */
 export default function ChatCanvas() {
   const editorRef = useRef<Editor | null>(null);
@@ -26,6 +39,15 @@ export default function ChatCanvas() {
   // True while we mutate the canvas from server events, so side-effect
   // handlers don't echo those mutations back to the server.
   const syncingRef = useRef(false);
+
+  const [banner, setBanner] = useState<string | null>(null);
+  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showBanner = useCallback((text: string) => {
+    setBanner(text);
+    if (bannerTimer.current) clearTimeout(bannerTimer.current);
+    bannerTimer.current = setTimeout(() => setBanner(null), 5000);
+  }, []);
 
   const send = useCallback((msg: ChatClientMessage) => {
     wsRef.current?.sendMessage(msg as never);
@@ -70,6 +92,8 @@ export default function ChatCanvas() {
     try {
       if (msg.type === 'chat_connected') {
         const { from, to } = msg.edge;
+        // Already on canvas (e.g. an adopted hand-drawn arrow)? Done.
+        if (findCtxArrow(editor, from, to)) return;
         const arrowId = ctxArrowId(from, to);
         if (editor.getShape(arrowId)) return;
         if (!editor.getShape(chatShapeId(from)) || !editor.getShape(chatShapeId(to))) return;
@@ -93,8 +117,8 @@ export default function ChatCanvas() {
           });
         }
       } else if (msg.type === 'chat_disconnected') {
-        const arrowId = ctxArrowId(msg.from, msg.to);
-        if (editor.getShape(arrowId)) editor.deleteShape(arrowId);
+        const arrow = findCtxArrow(editor, msg.from, msg.to);
+        if (arrow) editor.deleteShape(arrow.id);
       }
     } finally {
       syncingRef.current = false;
@@ -103,6 +127,10 @@ export default function ChatCanvas() {
 
   const handleServerMessage = useCallback(
     (msg: ChatServerMessage) => {
+      if ((msg as { type: string }).type === 'error') {
+        showBanner((msg as unknown as { message: string }).message);
+        return;
+      }
       const next = applyChatMessage(stateRef.current, msg);
       if (next === stateRef.current) return;
       stateRef.current = next;
@@ -114,7 +142,7 @@ export default function ChatCanvas() {
       const view = next.chats[chatId];
       if (view) syncChat(view);
     },
-    [syncChat, syncEdge],
+    [syncChat, syncEdge, showBanner],
   );
 
   useEffect(() => {
@@ -181,9 +209,23 @@ export default function ChatCanvas() {
           const from = (fromShape as ChatShape).props.chatId;
           const to = (toShape as ChatShape).props.chatId;
           if (!from || !to || from === to) return;
+          if (findCtxArrow(editor, from, to)) {
+            // duplicate of an existing edge — drop the extra arrow
+            syncingRef.current = true;
+            editor.deleteShape(a.id);
+            syncingRef.current = false;
+            return;
+          }
 
+          // Adopt the user's arrow in place: it stays exactly where they drew it,
+          // restyled as a context edge. The server event is a no-op thanks to meta.
           syncingRef.current = true;
-          editor.deleteShape(a.id); // server's chat_connected will draw the real edge
+          editor.updateShape({
+            id: a.id,
+            type: 'arrow',
+            meta: { fcwCtx: true, from, to },
+            props: { dash: 'dashed', color: 'blue' },
+          });
           syncingRef.current = false;
           send({ type: 'chat_connect_requested', from, to });
         };
@@ -210,6 +252,28 @@ export default function ChatCanvas() {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <Tldraw shapeUtils={customShapes} onMount={onMount} />
+      {banner && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1001,
+            background: '#FEF2F2',
+            color: '#B91C1C',
+            border: '1px solid #FECACA',
+            borderRadius: 8,
+            padding: '8px 14px',
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: '0 2px 8px rgba(15,23,42,0.12)',
+            maxWidth: '60%',
+          }}
+        >
+          {banner}
+        </div>
+      )}
       <div
         style={{
           position: 'absolute',
