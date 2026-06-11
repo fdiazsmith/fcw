@@ -66,3 +66,4 @@ export {
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';
 export { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
+export type { ChatServerMessage, ChatClientMessage } from './chat-messages.js';
