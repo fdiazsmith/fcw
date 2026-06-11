@@ -33,4 +33,32 @@ describe('handleChatClientMessage', () => {
     );
     expect(sessions.graph.chats[id].messages).toHaveLength(1);
   });
+
+  it('chat_branch_requested creates a connected child', async () => {
+    const sessions = new ChatSessionManager();
+    const parent = sessions.createChat({ x: 0, y: 0 });
+    await handleChatClientMessage(
+      { type: 'chat_branch_requested', parentId: parent, position: { x: 1, y: 2 } },
+      sessions,
+    );
+    expect(Object.keys(sessions.graph.chats)).toHaveLength(2);
+    expect(sessions.graph.edges).toHaveLength(1);
+    expect(sessions.graph.edges[0].from).toBe(parent);
+  });
+
+  it('chat_connect_requested and chat_disconnect_requested manage edges', async () => {
+    const sessions = new ChatSessionManager();
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const b = sessions.createChat({ x: 0, y: 0 });
+    await handleChatClientMessage({ type: 'chat_connect_requested', from: a, to: b }, sessions);
+    expect(sessions.graph.edges).toHaveLength(1);
+    await handleChatClientMessage({ type: 'chat_disconnect_requested', from: a, to: b }, sessions);
+    expect(sessions.graph.edges).toHaveLength(0);
+  });
+
+  it('recognizes the new message types', () => {
+    expect(isChatClientMessage({ type: 'chat_branch_requested', parentId: 'p', position: { x: 0, y: 0 } })).toBe(true);
+    expect(isChatClientMessage({ type: 'chat_connect_requested', from: 'a', to: 'b' })).toBe(true);
+    expect(isChatClientMessage({ type: 'chat_disconnect_requested', from: 'a', to: 'b' })).toBe(true);
+  });
 });
