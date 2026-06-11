@@ -1,5 +1,5 @@
 // v2 frontend state: pure reducer over chat server messages.
-import type { ChatServerMessage, ChatMessage, ChatNode } from '@fcw/graph-core';
+import type { ChatServerMessage, ChatMessage, ChatNode, ContextEdge } from '@fcw/graph-core';
 
 export interface ChatView {
   id: string;
@@ -12,10 +12,11 @@ export interface ChatView {
 
 export interface ChatState {
   chats: Record<string, ChatView>;
+  edges: ContextEdge[];
 }
 
 export function emptyChatState(): ChatState {
-  return { chats: {} };
+  return { chats: {}, edges: [] };
 }
 
 function viewFrom(chat: ChatNode): ChatView {
@@ -31,13 +32,29 @@ function viewFrom(chat: ChatNode): ChatView {
 
 export function applyChatMessage(state: ChatState, msg: ChatServerMessage): ChatState {
   if (msg.type === 'chat_created') {
-    return { chats: { ...state.chats, [msg.chat.id]: viewFrom(msg.chat) } };
+    return { ...state, chats: { ...state.chats, [msg.chat.id]: viewFrom(msg.chat) } };
+  }
+
+  if (msg.type === 'chat_connected') {
+    const exists = state.edges.some(
+      (e) => e.from === msg.edge.from && e.to === msg.edge.to,
+    );
+    if (exists) return state;
+    return { ...state, edges: [...state.edges, msg.edge] };
+  }
+
+  if (msg.type === 'chat_disconnected') {
+    return {
+      ...state,
+      edges: state.edges.filter((e) => !(e.from === msg.from && e.to === msg.to)),
+    };
   }
 
   const existing = state.chats[msg.chatId];
   if (!existing) return state;
 
   const update = (patch: Partial<ChatView>): ChatState => ({
+    ...state,
     chats: { ...state.chats, [msg.chatId]: { ...existing, ...patch } },
   });
 

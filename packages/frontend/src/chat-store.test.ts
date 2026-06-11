@@ -62,6 +62,30 @@ describe('applyChatMessage', () => {
     expect(s).toEqual(s0);
   });
 
+  it('chat_connected adds an edge, chat_disconnected removes it', () => {
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('a') },
+      { type: 'chat_created', chat: chat('b') },
+      { type: 'chat_connected', edge: { from: 'a', to: 'b', enabled: true, priority: 0 } },
+    );
+    expect(s.edges).toEqual([{ from: 'a', to: 'b', enabled: true, priority: 0 }]);
+    s = apply(s, { type: 'chat_disconnected', from: 'a', to: 'b' });
+    expect(s.edges).toEqual([]);
+  });
+
+  it('chat_connected is idempotent per edge', () => {
+    const edge = { from: 'a', to: 'b', enabled: true, priority: 0 };
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('a') },
+      { type: 'chat_created', chat: chat('b') },
+      { type: 'chat_connected', edge },
+      { type: 'chat_connected', edge },
+    );
+    expect(s.edges).toHaveLength(1);
+  });
+
   it('does not mutate previous state', () => {
     const s0 = apply(emptyChatState(), { type: 'chat_created', chat: chat('c1') });
     const s1 = apply(s0, {
