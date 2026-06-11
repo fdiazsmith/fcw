@@ -6,6 +6,7 @@ import {
   addChat,
   appendMessage,
   addContextEdge,
+  removeContextEdge,
   assembleContext,
 } from '@fcw/graph-core';
 import type { ChatGraph, ChatMessage, Position } from '@fcw/graph-core';
@@ -32,6 +33,20 @@ export class ChatSessionManager extends EventEmitter {
 
   connect(from: string, to: string): void {
     addContextEdge(this.graph, from, to);
+    const edge = this.graph.edges[this.graph.edges.length - 1];
+    this.emit('message', { type: 'chat_connected', edge });
+  }
+
+  disconnect(from: string, to: string): void {
+    removeContextEdge(this.graph, from, to);
+    this.emit('message', { type: 'chat_disconnected', from, to });
+  }
+
+  /** Branch: new chat that inherits the parent's history via a context edge. */
+  branch(parentId: string, position: Position): string {
+    const child = this.createChat(position);
+    this.connect(parentId, child);
+    return child;
   }
 
   async prompt(chatId: string, content: string): Promise<void> {

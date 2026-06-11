@@ -38,6 +38,51 @@ describe('ChatSessionManager.prompt', () => {
   });
 });
 
+describe('ChatSessionManager connect / disconnect / branch', () => {
+  it('connect adds an edge and emits chat_connected', () => {
+    const sessions = new ChatSessionManager();
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const b = sessions.createChat({ x: 0, y: 0 });
+    const events = collect(sessions);
+    sessions.connect(a, b);
+    expect(sessions.graph.edges).toHaveLength(1);
+    expect(events).toEqual([
+      { type: 'chat_connected', edge: { from: a, to: b, enabled: true, priority: 0 } },
+    ]);
+  });
+
+  it('disconnect removes the edge and emits chat_disconnected', () => {
+    const sessions = new ChatSessionManager();
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const b = sessions.createChat({ x: 0, y: 0 });
+    sessions.connect(a, b);
+    const events = collect(sessions);
+    sessions.disconnect(a, b);
+    expect(sessions.graph.edges).toHaveLength(0);
+    expect(events).toEqual([{ type: 'chat_disconnected', from: a, to: b }]);
+  });
+
+  it('branch creates a connected child chat and emits both events', () => {
+    const sessions = new ChatSessionManager();
+    const parent = sessions.createChat({ x: 0, y: 0 });
+    const events = collect(sessions);
+    const child = sessions.branch(parent, { x: 10, y: 500 });
+    expect(sessions.graph.chats[child].position).toEqual({ x: 10, y: 500 });
+    expect(sessions.graph.edges).toEqual([
+      { from: parent, to: child, enabled: true, priority: 0 },
+    ]);
+    expect(events.map((e) => e.type)).toEqual(['chat_created', 'chat_connected']);
+  });
+
+  it('connect propagates cycle errors', () => {
+    const sessions = new ChatSessionManager();
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const b = sessions.createChat({ x: 0, y: 0 });
+    sessions.connect(a, b);
+    expect(() => sessions.connect(b, a)).toThrow(/cycle/i);
+  });
+});
+
 describe('ChatSessionManager.prompt with streaming', () => {
   async function* fakeStream() {
     yield 'Hel';
