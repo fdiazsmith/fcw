@@ -45,3 +45,62 @@ describe('assembleContext: inheritance', () => {
     expect(assembleContext(g, b).map((m) => m.content)).toEqual(['b-q']);
   });
 });
+
+describe('assembleContext: multiple parents', () => {
+  it('merges parents ordered by edge priority (lower first)', () => {
+    const g = createChatGraph('T');
+    const a = chatWith(g, ['a-q']);
+    const b = chatWith(g, ['b-q']);
+    const c = chatWith(g, ['c-q']);
+    addContextEdge(g, a, c, { priority: 2 });
+    addContextEdge(g, b, c, { priority: 1 });
+    expect(assembleContext(g, c).map((m) => m.content)).toEqual(['b-q', 'a-q', 'c-q']);
+  });
+
+  it('emits a diamond shared ancestor exactly once, before its dependents', () => {
+    const g = createChatGraph('T');
+    const a = chatWith(g, ['a-q']);
+    const b = chatWith(g, ['b-q']);
+    const c = chatWith(g, ['c-q']);
+    const d = chatWith(g, ['d-q']);
+    addContextEdge(g, a, b);
+    addContextEdge(g, a, c);
+    addContextEdge(g, b, d, { priority: 0 });
+    addContextEdge(g, c, d, { priority: 1 });
+    expect(assembleContext(g, d).map((m) => m.content)).toEqual([
+      'a-q', 'b-q', 'c-q', 'd-q',
+    ]);
+  });
+
+  it('re-wiring to a different parent rewrites history on the next assembly', () => {
+    const g = createChatGraph('T');
+    const a = chatWith(g, ['a-q']);
+    const b = chatWith(g, ['b-q']);
+    const c = chatWith(g, ['c-q']);
+    addContextEdge(g, a, c);
+    addContextEdge(g, b, c);
+    g.edges.find((e) => e.from === b)!.enabled = false;
+    expect(assembleContext(g, c).map((m) => m.content)).toEqual(['a-q', 'c-q']);
+    g.edges.find((e) => e.from === a)!.enabled = false;
+    g.edges.find((e) => e.from === b)!.enabled = true;
+    expect(assembleContext(g, c).map((m) => m.content)).toEqual(['b-q', 'c-q']);
+  });
+
+  it('is deterministic regardless of edge insertion order', () => {
+    const build = (flip: boolean) => {
+      const g = createChatGraph('T');
+      const a = chatWith(g, ['a-q']);
+      const b = chatWith(g, ['b-q']);
+      const c = chatWith(g, ['c-q']);
+      if (flip) {
+        addContextEdge(g, b, c, { priority: 1 });
+        addContextEdge(g, a, c, { priority: 0 });
+      } else {
+        addContextEdge(g, a, c, { priority: 0 });
+        addContextEdge(g, b, c, { priority: 1 });
+      }
+      return assembleContext(g, c).map((m) => m.content);
+    };
+    expect(build(true)).toEqual(build(false));
+  });
+});
