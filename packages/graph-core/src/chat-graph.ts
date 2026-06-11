@@ -71,3 +71,18 @@ export function appendMessage(
   if (!chat) throw new Error(`unknown chat: ${chatId}`);
   chat.messages.push({ role, content, createdAt: new Date().toISOString() });
 }
+
+export function addContextEdge(
+  graph: ChatGraph,
+  from: string,
+  to: string,
+  options?: { priority?: number },
+): void {
+  if (!graph.chats[from]) throw new Error(`unknown chat: ${from}`);
+  if (!graph.chats[to]) throw new Error(`unknown chat: ${to}`);
+  if (from === to) throw new Error('self-edges are not allowed');
+  if (graph.edges.some((e) => e.from === from && e.to === to)) {
+    throw new Error(`edge already exists: ${from} -> ${to}`);
+  }
+  graph.edges.push({ from, to, enabled: true, priority: options?.priority ?? 0 });
+}

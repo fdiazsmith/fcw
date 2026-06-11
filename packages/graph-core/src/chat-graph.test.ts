@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createChatGraph, addChat, appendMessage } from './chat-graph.js';
+import { createChatGraph, addChat, appendMessage, addContextEdge } from './chat-graph.js';
 
 describe('createChatGraph', () => {
   it('returns an empty versioned chat graph', () => {
@@ -49,5 +49,34 @@ describe('appendMessage', () => {
   it('throws for an unknown chat id', () => {
     const g = createChatGraph('T');
     expect(() => appendMessage(g, 'nope', 'user', 'x')).toThrow(/unknown chat/i);
+  });
+});
+
+describe('addContextEdge', () => {
+  it('creates an enabled edge with default priority 0', () => {
+    const g = createChatGraph('T');
+    const a = addChat(g);
+    const b = addChat(g);
+    addContextEdge(g, a, b);
+    expect(g.edges).toEqual([{ from: a, to: b, enabled: true, priority: 0 }]);
+  });
+
+  it('accepts an explicit priority', () => {
+    const g = createChatGraph('T');
+    const a = addChat(g);
+    const b = addChat(g);
+    addContextEdge(g, a, b, { priority: 5 });
+    expect(g.edges[0].priority).toBe(5);
+  });
+
+  it('throws on unknown endpoints, self-edges, and duplicates', () => {
+    const g = createChatGraph('T');
+    const a = addChat(g);
+    const b = addChat(g);
+    expect(() => addContextEdge(g, a, 'nope')).toThrow(/unknown chat/i);
+    expect(() => addContextEdge(g, 'nope', b)).toThrow(/unknown chat/i);
+    expect(() => addContextEdge(g, a, a)).toThrow(/self/i);
+    addContextEdge(g, a, b);
+    expect(() => addContextEdge(g, a, b)).toThrow(/exists/i);
   });
 });
