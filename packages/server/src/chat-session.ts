@@ -1,6 +1,6 @@
 // v2: owns the chat-graph and runs stateless chat turns against it.
 import { EventEmitter } from 'node:events';
-import { createChatGraph, addChat } from '@fcw/graph-core';
+import { createChatGraph, addChat, appendMessage } from '@fcw/graph-core';
 import type { ChatGraph, Position } from '@fcw/graph-core';
 
 export class ChatSessionManager extends EventEmitter {
@@ -15,5 +15,15 @@ export class ChatSessionManager extends EventEmitter {
     const id = addChat(this.graph, { position, title });
     this.emit('message', { type: 'chat_created', chat: this.graph.chats[id] });
     return id;
+  }
+
+  async prompt(chatId: string, content: string): Promise<void> {
+    appendMessage(this.graph, chatId, 'user', content);
+    const messages = this.graph.chats[chatId].messages;
+    this.emit('message', {
+      type: 'chat_user_message',
+      chatId,
+      message: messages[messages.length - 1],
+    });
   }
 }
