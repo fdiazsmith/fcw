@@ -4,6 +4,8 @@ import 'tldraw/tldraw.css';
 import { ChatShapeUtil, ChatShape, registerChatActions } from './shapes/ChatShape';
 import { createWsClient, WsClient } from './ws-client';
 import { emptyChatState, applyChatMessage, ChatState, ChatView } from './chat-store';
+import { ChatSearchBar } from './components/ChatSearchBar';
+import { exportBranchMarkdown } from './export-branch';
 import type { ChatServerMessage, ChatClientMessage } from '@fcw/graph-core';
 
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8009';
@@ -12,6 +14,16 @@ const customShapes = [ChatShapeUtil];
 
 function chatShapeId(chatId: string): TLShapeId {
   return createShapeId(`chat-${chatId}`);
+}
+
+function downloadFile(content: string, filename: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function ctxArrowId(from: string, to: string): TLShapeId {
@@ -51,6 +63,29 @@ export default function ChatCanvas() {
 
   const send = useCallback((msg: ChatClientMessage) => {
     wsRef.current?.sendMessage(msg as never);
+  }, []);
+
+  const exportSelectedBranch = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selected = editor
+      .getSelectedShapes()
+      .find((s) => s.type === 'chat-node') as ChatShape | undefined;
+    if (!selected) return; // nothing selected -> no-op
+    const chatId = selected.props.chatId;
+    const view = stateRef.current.chats[chatId];
+    const md = exportBranchMarkdown(stateRef.current, chatId);
+    const name = (view?.title || chatId || 'chat').replace(/[^\w.-]+/g, '_');
+    downloadFile(md, `${name}.md`, 'text/markdown');
+  }, []);
+
+  const zoomToChat = useCallback((chatId: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const id = chatShapeId(chatId);
+    if (!editor.getShape(id)) return;
+    editor.select(id);
+    editor.zoomToSelection({ animation: { duration: 200 } });
   }, []);
 
   const syncChat = useCallback((view: ChatView, focus = true) => {
@@ -317,6 +352,7 @@ export default function ChatCanvas() {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <Tldraw shapeUtils={customShapes} onMount={onMount} />
+      <ChatSearchBar getState={() => stateRef.current} onSelect={zoomToChat} />
       {banner && (
         <div
           style={{
@@ -382,6 +418,21 @@ export default function ChatCanvas() {
           }}
         >
           + New chat
+        </button>
+        <button
+          onClick={exportSelectedBranch}
+          title="Export the selected chat (with inherited context) as Markdown"
+          style={{
+            padding: '8px 14px',
+            borderRadius: 8,
+            border: '1px solid #CBD5E1',
+            background: '#fff',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 1px 4px rgba(15,23,42,0.1)',
+          }}
+        >
+          Export
         </button>
       </div>
     </div>
