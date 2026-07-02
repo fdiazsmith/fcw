@@ -39,6 +39,16 @@ const ChatMoveRequestedSchema = z.object({
   position: z.object({ x: z.number(), y: z.number() }),
 });
 
+const ChatStopRequestedSchema = z.object({
+  type: z.literal('chat_stop_requested'),
+  chatId: z.string(),
+});
+
+const ChatRegenerateRequestedSchema = z.object({
+  type: z.literal('chat_regenerate_requested'),
+  chatId: z.string(),
+});
+
 export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatCreateRequestedSchema,
   ChatPromptSubmittedSchema,
@@ -46,6 +56,8 @@ export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatConnectRequestedSchema,
   ChatDisconnectRequestedSchema,
   ChatMoveRequestedSchema,
+  ChatStopRequestedSchema,
+  ChatRegenerateRequestedSchema,
 ]);
 
 export function isChatClientMessage(value: unknown): value is ChatClientMessage {
@@ -68,5 +80,9 @@ export async function handleChatClientMessage(
     sessions.disconnect(msg.from, msg.to);
   } else if (msg.type === 'chat_move_requested') {
     sessions.moveChat(msg.chatId, msg.position);
+  } else if (msg.type === 'chat_stop_requested') {
+    sessions.stop(msg.chatId);
+  } else if (msg.type === 'chat_regenerate_requested') {
+    await sessions.regenerate(msg.chatId);
   }
 }

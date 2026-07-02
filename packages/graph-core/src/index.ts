@@ -63,6 +63,7 @@ export {
   setEdgeEnabled,
   removeContextEdge,
   setChatPosition,
+  removeLastMessage,
 } from './chat-graph.js';
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';

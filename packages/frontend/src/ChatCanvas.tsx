@@ -189,6 +189,8 @@ export default function ChatCanvas() {
         send({ type: 'chat_prompt_submitted', chatId, content }),
       requestBranch: (parentId, position) =>
         send({ type: 'chat_branch_requested', parentId, position }),
+      stopStream: (chatId) => send({ type: 'chat_stop_requested', chatId }),
+      regenerate: (chatId) => send({ type: 'chat_regenerate_requested', chatId }),
     });
     return () => {
       registerChatActions(null);

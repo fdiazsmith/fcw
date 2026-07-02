@@ -66,7 +66,36 @@ describe('handleChatClientMessage', () => {
     expect(sessions.graph.chats[id].position).toEqual({ x: 7, y: 8 });
   });
 
+  it('chat_stop_requested stops the in-flight stream (partial settles)', async () => {
+    const sessions = new ChatSessionManager('T');
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    async function* slow(): AsyncGenerator<string> {
+      yield 'par';
+      await handleChatClientMessage({ type: 'chat_stop_requested', chatId: id }, sessions);
+      yield 'tial';
+    }
+    (sessions as unknown as { streamText: () => AsyncIterable<string> }).streamText = () => slow();
+    await handleChatClientMessage({ type: 'chat_prompt_submitted', chatId: id, content: 'hi' }, sessions);
+    const msgs = sessions.graph.chats[id].messages;
+    expect(msgs[msgs.length - 1]).toMatchObject({ role: 'assistant', content: 'par' });
+  });
+
+  it('chat_regenerate_requested re-runs the last turn', async () => {
+    async function* stream(): AsyncGenerator<string> {
+      yield 'ok';
+    }
+    const sessions = new ChatSessionManager('T', () => stream());
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    await sessions.prompt(id, 'q');
+    expect(sessions.graph.chats[id].messages).toHaveLength(2);
+    await handleChatClientMessage({ type: 'chat_regenerate_requested', chatId: id }, sessions);
+    const msgs = sessions.graph.chats[id].messages;
+    expect(msgs.map((m) => m.role)).toEqual(['user', 'assistant']);
+  });
+
   it('recognizes the new message types', () => {
+    expect(isChatClientMessage({ type: 'chat_stop_requested', chatId: 'c' })).toBe(true);
+    expect(isChatClientMessage({ type: 'chat_regenerate_requested', chatId: 'c' })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_move_requested', chatId: 'c', position: { x: 0, y: 0 } })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_branch_requested', parentId: 'p', position: { x: 0, y: 0 } })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_connect_requested', from: 'a', to: 'b' })).toBe(true);

@@ -75,6 +75,10 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
       return update({ streamingText: (existing.streamingText ?? '') + msg.delta });
     case 'chat_stream_completed':
       return update({ streamingText: null, messages: [...existing.messages, msg.message] });
+    case 'chat_title_changed':
+      return update({ title: msg.title });
+    case 'chat_last_message_removed':
+      return update({ messages: existing.messages.slice(0, -1) });
     case 'chat_error':
       return update({ streamingText: null, error: msg.message });
     default:
