@@ -12,6 +12,8 @@ export type ChatServerMessage =
   | { type: 'chat_stream_started'; chatId: string }
   | { type: 'chat_stream_delta'; chatId: string; delta: string }
   | { type: 'chat_stream_completed'; chatId: string; message: ChatMessage }
+  | { type: 'chat_title_changed'; chatId: string; title: string }
+  | { type: 'chat_last_message_removed'; chatId: string }
   | { type: 'chat_error'; chatId: string; message: string };
 
 // Client -> Server
@@ -21,4 +23,6 @@ export type ChatClientMessage =
   | { type: 'chat_branch_requested'; parentId: string; position: Position }
   | { type: 'chat_connect_requested'; from: string; to: string }
   | { type: 'chat_disconnect_requested'; from: string; to: string }
-  | { type: 'chat_move_requested'; chatId: string; position: Position };
+  | { type: 'chat_move_requested'; chatId: string; position: Position }
+  | { type: 'chat_stop_requested'; chatId: string }
+  | { type: 'chat_regenerate_requested'; chatId: string };

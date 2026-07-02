@@ -72,6 +72,13 @@ export function appendMessage(
   chat.messages.push({ role, content, createdAt: new Date().toISOString() });
 }
 
+/** Removes and returns the last message of a chat, or undefined if empty. */
+export function removeLastMessage(graph: ChatGraph, chatId: string): ChatMessage | undefined {
+  const chat = graph.chats[chatId];
+  if (!chat) throw new Error(`unknown chat: ${chatId}`);
+  return chat.messages.pop();
+}
+
 export function setChatPosition(graph: ChatGraph, chatId: string, position: Position): void {
   const chat = graph.chats[chatId];
   if (!chat) throw new Error(`unknown chat: ${chatId}`);

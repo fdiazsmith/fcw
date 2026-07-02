@@ -7,6 +7,7 @@ import {
   setEdgeEnabled,
   removeContextEdge,
   setChatPosition,
+  removeLastMessage,
 } from './chat-graph.js';
 
 describe('createChatGraph', () => {
@@ -71,6 +72,30 @@ describe('setChatPosition', () => {
   it('throws for an unknown chat', () => {
     const g = createChatGraph('T');
     expect(() => setChatPosition(g, 'nope', { x: 0, y: 0 })).toThrow(/unknown chat/i);
+  });
+});
+
+describe('removeLastMessage', () => {
+  it('removes and returns the last message', () => {
+    const g = createChatGraph('T');
+    const id = addChat(g);
+    appendMessage(g, id, 'user', 'hello');
+    appendMessage(g, id, 'assistant', 'hi there');
+    const removed = removeLastMessage(g, id);
+    expect(removed).toMatchObject({ role: 'assistant', content: 'hi there' });
+    expect(g.chats[id].messages.map((m) => m.content)).toEqual(['hello']);
+  });
+
+  it('returns undefined when there are no messages', () => {
+    const g = createChatGraph('T');
+    const id = addChat(g);
+    expect(removeLastMessage(g, id)).toBeUndefined();
+    expect(g.chats[id].messages).toHaveLength(0);
+  });
+
+  it('throws for an unknown chat id', () => {
+    const g = createChatGraph('T');
+    expect(() => removeLastMessage(g, 'nope')).toThrow(/unknown chat/i);
   });
 });
 
