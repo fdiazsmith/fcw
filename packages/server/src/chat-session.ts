@@ -9,6 +9,7 @@ import {
   removeContextEdge,
   setChatPosition,
   assembleContext,
+  removeLastMessage,
 } from '@fcw/graph-core';
 import type { ChatGraph, ChatMessage, Position } from '@fcw/graph-core';
 
@@ -23,6 +24,8 @@ export class ChatSessionManager extends EventEmitter {
   readonly graph: ChatGraph;
   private saveHandler: SaveHandler | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Chats whose in-flight stream has been asked to stop. */
+  private readonly stopped = new Set<string>();
 
   constructor(
     title = 'Untitled',
@@ -86,24 +89,36 @@ export class ChatSessionManager extends EventEmitter {
     this.emit('message', { type: 'chat_user_message', chatId, message: own[own.length - 1] });
     this.scheduleSave();
 
+    await this.runStream(chatId);
+  }
+
+  /** Streams an assistant turn from the chat's current assembled context.
+   *  Reused by prompt() and regenerate() — never appends a user message. */
+  private async runStream(chatId: string): Promise<void> {
     if (!this.streamText) return;
 
+    const own = this.graph.chats[chatId].messages;
     const context = assembleContext(this.graph, chatId);
     this.emit('message', { type: 'chat_stream_started', chatId });
+    this.stopped.delete(chatId);
     try {
       let text = '';
       for await (const delta of this.streamText(context)) {
+        if (this.stopped.has(chatId)) break;
         text += delta;
         this.emit('message', { type: 'chat_stream_delta', chatId, delta });
       }
+      this.stopped.delete(chatId);
       appendMessage(this.graph, chatId, 'assistant', text);
       this.emit('message', {
         type: 'chat_stream_completed',
         chatId,
         message: own[own.length - 1],
       });
+      this.maybeAutoTitle(chatId);
       this.scheduleSave();
     } catch (err) {
+      this.stopped.delete(chatId);
       this.emit('message', {
         type: 'chat_error',
         chatId,
@@ -111,4 +126,43 @@ export class ChatSessionManager extends EventEmitter {
       });
     }
   }
+
+  /** Stops the in-flight stream for a chat; the loop breaks and settles the turn. */
+  stop(chatId: string): void {
+    this.stopped.add(chatId);
+  }
+
+  /** Re-runs the last turn: drops a trailing assistant message and streams again. */
+  async regenerate(chatId: string): Promise<void> {
+    const chat = this.graph.chats[chatId];
+    if (!chat) throw new Error(`unknown chat: ${chatId}`);
+    const last = chat.messages[chat.messages.length - 1];
+    if (!last || last.role !== 'assistant') return;
+    removeLastMessage(this.graph, chatId);
+    this.emit('message', { type: 'chat_last_message_removed', chatId });
+    this.scheduleSave();
+    await this.runStream(chatId);
+  }
+
+  private maybeAutoTitle(chatId: string): void {
+    const chat = this.graph.chats[chatId];
+    if (chat.title !== '') return;
+    const firstUser = chat.messages.find((m) => m.role === 'user');
+    if (!firstUser) return;
+    const title = truncateTitle(firstUser.content);
+    chat.title = title;
+    this.emit('message', { type: 'chat_title_changed', chatId, title });
+  }
+}
+
+const TITLE_MAX = 40;
+
+/** Truncate to TITLE_MAX chars at a word boundary, adding '…' if shortened. */
+function truncateTitle(content: string): string {
+  const text = content.trim();
+  if (text.length <= TITLE_MAX) return text;
+  const cut = text.slice(0, TITLE_MAX);
+  const lastSpace = cut.lastIndexOf(' ');
+  const base = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+  return base.replace(/\s+$/, '') + '…';
 }

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { ChatServerMessage } from '@fcw/graph-core';
 import { createChatGraph, addChat } from '@fcw/graph-core';
 import { ChatSessionManager } from './chat-session.js';
+import type { StreamTextFn } from './chat-session.js';
 
 function collect(sessions: ChatSessionManager): ChatServerMessage[] {
   const events: ChatServerMessage[] = [];
@@ -153,6 +154,7 @@ describe('ChatSessionManager.prompt with streaming', () => {
       'chat_stream_delta',
       'chat_stream_delta',
       'chat_stream_completed',
+      'chat_title_changed', // untitled chat gets auto-titled after the turn
     ]);
     expect(events[2]).toEqual({ type: 'chat_stream_delta', chatId: id, delta: 'Hel' });
     expect(events[4]).toMatchObject({ chatId: id, message: { content: 'Hello!' } });
@@ -176,6 +178,98 @@ describe('ChatSessionManager.prompt with streaming', () => {
       'assistant:Hello!',
       'user:child question',
     ]);
+  });
+
+  it('auto-titles an untitled chat from the first user message when the stream completes', async () => {
+    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const id = sessions.createChat({ x: 0, y: 0 }); // title ''
+    const events = collect(sessions);
+    await sessions.prompt(id, 'What is the capital of France?');
+    expect(sessions.graph.chats[id].title).toBe('What is the capital of France?');
+    const titleEvent = events.find((e) => e.type === 'chat_title_changed');
+    expect(titleEvent).toEqual({
+      type: 'chat_title_changed',
+      chatId: id,
+      title: 'What is the capital of France?',
+    });
+  });
+
+  it('truncates a long first message at a word boundary with an ellipsis', async () => {
+    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const id = sessions.createChat({ x: 0, y: 0 });
+    const events = collect(sessions);
+    await sessions.prompt(
+      id,
+      'Please explain the entire history of the Roman empire in great detail',
+    );
+    const title = sessions.graph.chats[id].title;
+    expect(title.endsWith('…')).toBe(true);
+    expect(title.length).toBeLessThanOrEqual(41); // 40 chars + ellipsis
+    expect(title).toBe('Please explain the entire history of…');
+    expect(events.some((e) => e.type === 'chat_title_changed')).toBe(true);
+  });
+
+  it('does not retitle a chat that already has a title', async () => {
+    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset title');
+    const events = collect(sessions);
+    await sessions.prompt(id, 'anything');
+    expect(sessions.graph.chats[id].title).toBe('Preset title');
+    expect(events.some((e) => e.type === 'chat_title_changed')).toBe(false);
+  });
+
+  it('stop() breaks the stream, appends the partial text, and completes', async () => {
+    let started = false;
+    async function* slow(sessions: ChatSessionManager, id: string): AsyncGenerator<string> {
+      yield 'par';
+      started = true;
+      sessions.stop(id); // request stop mid-stream
+      yield 'tial'; // should be ignored
+      yield 'more';
+    }
+    const sessions = new ChatSessionManager('T');
+    // wire stream after construction so it can reference `sessions`
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    (sessions as unknown as { streamText: StreamTextFn }).streamText = () => slow(sessions, id);
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+    expect(started).toBe(true);
+    const msgs = sessions.graph.chats[id].messages;
+    expect(msgs[msgs.length - 1]).toMatchObject({ role: 'assistant', content: 'par' });
+    expect(events.some((e) => e.type === 'chat_stream_completed')).toBe(true);
+    expect(events.some((e) => e.type === 'chat_error')).toBe(false);
+  });
+
+  it('regenerate() drops a trailing assistant message and re-streams', async () => {
+    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    await sessions.prompt(id, 'question'); // -> user + assistant 'Hello!'
+    expect(sessions.graph.chats[id].messages).toHaveLength(2);
+    const events = collect(sessions);
+    await sessions.regenerate(id);
+    // still user + one assistant (removed then re-added), no new user message
+    const msgs = sessions.graph.chats[id].messages;
+    expect(msgs.map((m) => m.role)).toEqual(['user', 'assistant']);
+    expect(msgs[0].content).toBe('question');
+    const types = events.map((e) => e.type);
+    expect(types[0]).toBe('chat_last_message_removed');
+    expect(types).toContain('chat_stream_started');
+    expect(types).toContain('chat_stream_completed');
+    expect(types).not.toContain('chat_user_message');
+  });
+
+  it('regenerate() is a no-op when the last message is not assistant', async () => {
+    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    const events = collect(sessions);
+    await sessions.regenerate(id); // no messages at all
+    expect(events).toHaveLength(0);
+    expect(sessions.graph.chats[id].messages).toHaveLength(0);
+  });
+
+  it('regenerate() throws for an unknown chat', async () => {
+    const sessions = new ChatSessionManager('T', () => fakeStream());
+    await expect(sessions.regenerate('nope')).rejects.toThrow(/unknown chat/i);
   });
 
   it('emits chat_error and no assistant message when the stream fails', async () => {
