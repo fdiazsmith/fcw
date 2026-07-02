@@ -56,6 +56,29 @@ describe('applyChatMessage', () => {
     expect(s.chats.c1.error).toBe('boom');
   });
 
+  it('chat_title_changed updates the view title', () => {
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_title_changed', chatId: 'c1', title: 'New Title' },
+    );
+    expect(s.chats.c1.title).toBe('New Title');
+  });
+
+  it('chat_last_message_removed pops the last message', () => {
+    const a = { role: 'user' as const, content: 'q', createdAt: 't1' };
+    const b = { role: 'assistant' as const, content: 'ans', createdAt: 't2' };
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_user_message', chatId: 'c1', message: a },
+      { type: 'chat_user_message', chatId: 'c1', message: b },
+    );
+    expect(s.chats.c1.messages).toHaveLength(2);
+    s = apply(s, { type: 'chat_last_message_removed', chatId: 'c1' });
+    expect(s.chats.c1.messages).toEqual([a]);
+  });
+
   it('ignores messages for unknown chats and unrelated types', () => {
     const s0 = emptyChatState();
     const s = apply(s0, { type: 'chat_stream_delta', chatId: 'ghost', delta: 'x' });
