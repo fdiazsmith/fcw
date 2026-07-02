@@ -53,7 +53,7 @@ export default function ChatCanvas() {
     wsRef.current?.sendMessage(msg as never);
   }, []);
 
-  const syncChat = useCallback((view: ChatView) => {
+  const syncChat = useCallback((view: ChatView, focus = true) => {
     const editor = editorRef.current;
     if (!editor) return;
     const id = chatShapeId(view.id);
@@ -77,8 +77,10 @@ export default function ChatCanvas() {
           y: view.position.y,
           props,
         });
-        editor.select(id);
-        editor.setEditingShape(id);
+        if (focus) {
+          editor.select(id);
+          editor.setEditingShape(id);
+        }
       }
     } finally {
       syncingRef.current = false;
@@ -125,10 +127,43 @@ export default function ChatCanvas() {
     }
   }, []);
 
+  /** Full canvas resync from a snapshot: create/update everything, delete strays. */
+  const syncAll = useCallback((state: ChatState) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    for (const view of Object.values(state.chats)) syncChat(view, false);
+    for (const edge of state.edges) {
+      syncEdge({ type: 'chat_connected', edge });
+    }
+    // remove shapes for chats/edges that no longer exist
+    syncingRef.current = true;
+    try {
+      for (const shape of editor.getCurrentPageShapes()) {
+        if (shape.type === 'chat-node') {
+          const chatId = (shape as ChatShape).props.chatId;
+          if (!state.chats[chatId]) editor.deleteShape(shape.id);
+        } else if (shape.type === 'arrow' && shape.meta?.fcwCtx) {
+          const { from, to } = shape.meta as { from: string; to: string };
+          if (!state.edges.some((e) => e.from === from && e.to === to)) {
+            editor.deleteShape(shape.id);
+          }
+        }
+      }
+    } finally {
+      syncingRef.current = false;
+    }
+  }, [syncChat, syncEdge]);
+
   const handleServerMessage = useCallback(
     (msg: ChatServerMessage) => {
       if ((msg as { type: string }).type === 'error') {
         showBanner((msg as unknown as { message: string }).message);
+        return;
+      }
+      if (msg.type === 'chat_snapshot') {
+        const next = applyChatMessage(stateRef.current, msg);
+        stateRef.current = next;
+        syncAll(next);
         return;
       }
       const next = applyChatMessage(stateRef.current, msg);
@@ -142,7 +177,7 @@ export default function ChatCanvas() {
       const view = next.chats[chatId];
       if (view) syncChat(view);
     },
-    [syncChat, syncEdge, showBanner],
+    [syncChat, syncEdge, syncAll, showBanner],
   );
 
   useEffect(() => {
@@ -165,6 +200,34 @@ export default function ChatCanvas() {
   const onMount = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
+
+      // The snapshot may have arrived before the editor mounted — replay it.
+      if (Object.keys(stateRef.current.chats).length > 0) {
+        syncAll(stateRef.current);
+      }
+
+      // Persist card positions after drags (debounced per chat).
+      const moveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+      editor.sideEffects.registerAfterChangeHandler('shape', (_prev, next) => {
+        if (syncingRef.current || next.type !== 'chat-node') return;
+        const chatId = (next as ChatShape).props.chatId;
+        if (!chatId) return;
+        const existing = moveTimers.get(chatId);
+        if (existing) clearTimeout(existing);
+        moveTimers.set(
+          chatId,
+          setTimeout(() => {
+            moveTimers.delete(chatId);
+            const shape = editor.getShape(next.id) as ChatShape | undefined;
+            if (!shape) return;
+            send({
+              type: 'chat_move_requested',
+              chatId,
+              position: { x: shape.x, y: shape.y },
+            });
+          }, 500),
+        );
+      });
 
       // Double-click on empty canvas -> new chat shape at that point.
       const container = editor.getContainer();
@@ -248,7 +311,7 @@ export default function ChatCanvas() {
 
       return () => container.removeEventListener('dblclick', onDblClick);
     },
-    [send],
+    [send, syncAll],
   );
 
   return (
