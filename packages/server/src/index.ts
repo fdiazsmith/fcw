@@ -1,13 +1,13 @@
 import { config } from 'dotenv';
 import { createServer } from 'node:http';
 import { join, resolve } from 'node:path';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 
 // Load .env.local from project root
 config({ path: resolve(process.cwd(), '.env.local') });
 config({ path: resolve(process.cwd(), '../../.env.local') });
 import { writeFile } from 'node:fs/promises';
-import { toJSON } from '@fcw/graph-core';
+import { toJSON, chatGraphToJSON, chatGraphFromJSON } from '@fcw/graph-core';
 import type { GraphDocument } from '@fcw/graph-core';
 import { StateManager } from './state-manager.js';
 import { createRouter } from './routes.js';
@@ -91,11 +91,30 @@ export function createApp(options: ServerOptions = {}) {
     }
   });
 
-  // v2 chat-graph sessions: chats as nodes, edges as context inheritance
+  // v2 chat-graph sessions: chats as nodes, edges as context inheritance.
+  // Load the most recent .fcw2.json so restarts keep the canvas.
+  let initialGraph;
+  try {
+    const files = readdirSync(storageDir)
+      .filter((f) => f.endsWith('.fcw2.json'))
+      .map((f) => ({ f, mtime: statSync(join(storageDir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    if (files.length > 0) {
+      initialGraph = chatGraphFromJSON(readFileSync(join(storageDir, files[0].f), 'utf-8'));
+      console.log('[init] loaded chat-graph:', files[0].f);
+    }
+  } catch (err) {
+    console.error('[init] failed to load chat-graph, starting fresh:', err);
+  }
+
   const chatSessions = new ChatSessionManager(
     title,
     claudeClient ? createChatStreamText(claudeClient) : undefined,
+    initialGraph,
   );
+  chatSessions.setSaveHandler(async (graph) => {
+    await writeFile(join(storageDir, `${graph.id}.fcw2.json`), chatGraphToJSON(graph), 'utf-8');
+  });
 
   const wss = createWsServer(httpServer, manager, { claudeClient, chatSessions });
 

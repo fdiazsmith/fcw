@@ -49,6 +49,11 @@ export function createWsServer(
   wss.on('connection', (ws: WebSocket, _req: IncomingMessage) => {
     console.log('[ws] client connected');
 
+    // v2: sync the full chat-graph so refreshes/restarts restore the canvas
+    if (options?.chatSessions) {
+      ws.send(JSON.stringify({ type: 'chat_snapshot', graph: options.chatSessions.graph }));
+    }
+
     ws.on('message', (raw) => {
       let msg: ClientMessage;
       try {
