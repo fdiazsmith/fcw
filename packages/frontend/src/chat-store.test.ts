@@ -86,6 +86,27 @@ describe('applyChatMessage', () => {
     expect(s.edges).toHaveLength(1);
   });
 
+  it('chat_snapshot replaces the whole state from a graph', () => {
+    // pre-existing local state should be discarded
+    let s = apply(emptyChatState(), { type: 'chat_created', chat: chat('old') });
+    const graph = {
+      id: 'g1',
+      version: 2 as const,
+      meta: { title: 'T', created: 't0' },
+      chats: {
+        a: { ...chat('a'), messages: [{ role: 'user' as const, content: 'hi', createdAt: 't1' }] },
+        b: chat('b'),
+      },
+      edges: [{ from: 'a', to: 'b', enabled: true, priority: 0 }],
+    };
+    s = apply(s, { type: 'chat_snapshot', graph });
+    expect(Object.keys(s.chats).sort()).toEqual(['a', 'b']);
+    expect(s.chats.old).toBeUndefined();
+    expect(s.chats.a.messages).toHaveLength(1);
+    expect(s.chats.a.streamingText).toBeNull();
+    expect(s.edges).toEqual(graph.edges);
+  });
+
   it('does not mutate previous state', () => {
     const s0 = apply(emptyChatState(), { type: 'chat_created', chat: chat('c1') });
     const s1 = apply(s0, {

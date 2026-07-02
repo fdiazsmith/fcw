@@ -31,6 +31,14 @@ function viewFrom(chat: ChatNode): ChatView {
 }
 
 export function applyChatMessage(state: ChatState, msg: ChatServerMessage): ChatState {
+  if (msg.type === 'chat_snapshot') {
+    const chats: Record<string, ChatView> = {};
+    for (const chat of Object.values(msg.graph.chats)) {
+      chats[chat.id] = viewFrom(chat);
+    }
+    return { chats, edges: [...msg.graph.edges] };
+  }
+
   if (msg.type === 'chat_created') {
     return { ...state, chats: { ...state.chats, [msg.chat.id]: viewFrom(msg.chat) } };
   }
