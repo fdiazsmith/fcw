@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { ChatServerMessage } from '@fcw/graph-core';
+import { createChatGraph, addChat } from '@fcw/graph-core';
 import { ChatSessionManager } from './chat-session.js';
 
 function collect(sessions: ChatSessionManager): ChatServerMessage[] {
@@ -35,6 +36,50 @@ describe('ChatSessionManager.prompt', () => {
   it('rejects for an unknown chat', async () => {
     const sessions = new ChatSessionManager();
     await expect(sessions.prompt('nope', 'x')).rejects.toThrow(/unknown chat/i);
+  });
+});
+
+describe('ChatSessionManager persistence', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('adopts an initial graph', () => {
+    const g = createChatGraph('Loaded');
+    const id = addChat(g, { position: { x: 1, y: 2 } });
+    const sessions = new ChatSessionManager('ignored', undefined, g);
+    expect(sessions.graph).toBe(g);
+    expect(sessions.graph.chats[id]).toBeDefined();
+  });
+
+  it('moveChat updates position and schedules a debounced save', async () => {
+    vi.useFakeTimers();
+    const saves: string[] = [];
+    const sessions = new ChatSessionManager();
+    sessions.setSaveHandler(async (graph) => { saves.push(graph.id); });
+    const id = sessions.createChat({ x: 0, y: 0 });
+    sessions.moveChat(id, { x: 9, y: 9 });
+    expect(sessions.graph.chats[id].position).toEqual({ x: 9, y: 9 });
+    expect(saves).toHaveLength(0); // not yet — debounced
+    await vi.advanceTimersByTimeAsync(600);
+    expect(saves).toHaveLength(1); // one save for both mutations
+  });
+
+  it('saves after prompts and edge changes', async () => {
+    vi.useFakeTimers();
+    const saves: string[] = [];
+    const sessions = new ChatSessionManager();
+    sessions.setSaveHandler(async (graph) => { saves.push(graph.id); });
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const b = sessions.createChat({ x: 0, y: 0 });
+    await sessions.prompt(a, 'hi');
+    sessions.connect(a, b);
+    sessions.disconnect(a, b);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(saves.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('moveChat throws for unknown chat', () => {
+    const sessions = new ChatSessionManager();
+    expect(() => sessions.moveChat('nope', { x: 0, y: 0 })).toThrow(/unknown chat/i);
   });
 });
 
