@@ -62,6 +62,7 @@ export {
   addContextEdge,
   setEdgeEnabled,
   removeContextEdge,
+  setChatPosition,
 } from './chat-graph.js';
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';

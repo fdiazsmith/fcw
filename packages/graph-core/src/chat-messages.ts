@@ -1,9 +1,10 @@
 // v2 WebSocket protocol: chat-graph messages (shared server <-> frontend language).
-import type { ChatMessage, ChatNode, ContextEdge } from './chat-graph.js';
+import type { ChatGraph, ChatMessage, ChatNode, ContextEdge } from './chat-graph.js';
 import type { Position } from './types.js';
 
 // Server -> Client
 export type ChatServerMessage =
+  | { type: 'chat_snapshot'; graph: ChatGraph }
   | { type: 'chat_created'; chat: ChatNode }
   | { type: 'chat_connected'; edge: ContextEdge }
   | { type: 'chat_disconnected'; from: string; to: string }
@@ -19,4 +20,5 @@ export type ChatClientMessage =
   | { type: 'chat_prompt_submitted'; chatId: string; content: string }
   | { type: 'chat_branch_requested'; parentId: string; position: Position }
   | { type: 'chat_connect_requested'; from: string; to: string }
-  | { type: 'chat_disconnect_requested'; from: string; to: string };
+  | { type: 'chat_disconnect_requested'; from: string; to: string }
+  | { type: 'chat_move_requested'; chatId: string; position: Position };

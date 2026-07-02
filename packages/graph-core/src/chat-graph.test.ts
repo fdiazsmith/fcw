@@ -6,6 +6,7 @@ import {
   addContextEdge,
   setEdgeEnabled,
   removeContextEdge,
+  setChatPosition,
 } from './chat-graph.js';
 
 describe('createChatGraph', () => {
@@ -56,6 +57,20 @@ describe('appendMessage', () => {
   it('throws for an unknown chat id', () => {
     const g = createChatGraph('T');
     expect(() => appendMessage(g, 'nope', 'user', 'x')).toThrow(/unknown chat/i);
+  });
+});
+
+describe('setChatPosition', () => {
+  it('moves a chat', () => {
+    const g = createChatGraph('T');
+    const id = addChat(g, { position: { x: 0, y: 0 } });
+    setChatPosition(g, id, { x: 40, y: 50 });
+    expect(g.chats[id].position).toEqual({ x: 40, y: 50 });
+  });
+
+  it('throws for an unknown chat', () => {
+    const g = createChatGraph('T');
+    expect(() => setChatPosition(g, 'nope', { x: 0, y: 0 })).toThrow(/unknown chat/i);
   });
 });
 

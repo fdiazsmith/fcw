@@ -72,6 +72,12 @@ export function appendMessage(
   chat.messages.push({ role, content, createdAt: new Date().toISOString() });
 }
 
+export function setChatPosition(graph: ChatGraph, chatId: string, position: Position): void {
+  const chat = graph.chats[chatId];
+  if (!chat) throw new Error(`unknown chat: ${chatId}`);
+  chat.position = position;
+}
+
 export function addContextEdge(
   graph: ChatGraph,
   from: string,
