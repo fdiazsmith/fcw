@@ -33,12 +33,19 @@ const ChatDisconnectRequestedSchema = z.object({
   to: z.string(),
 });
 
+const ChatMoveRequestedSchema = z.object({
+  type: z.literal('chat_move_requested'),
+  chatId: z.string(),
+  position: z.object({ x: z.number(), y: z.number() }),
+});
+
 export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatCreateRequestedSchema,
   ChatPromptSubmittedSchema,
   ChatBranchRequestedSchema,
   ChatConnectRequestedSchema,
   ChatDisconnectRequestedSchema,
+  ChatMoveRequestedSchema,
 ]);
 
 export function isChatClientMessage(value: unknown): value is ChatClientMessage {
@@ -59,5 +66,7 @@ export async function handleChatClientMessage(
     sessions.connect(msg.from, msg.to);
   } else if (msg.type === 'chat_disconnect_requested') {
     sessions.disconnect(msg.from, msg.to);
+  } else if (msg.type === 'chat_move_requested') {
+    sessions.moveChat(msg.chatId, msg.position);
   }
 }

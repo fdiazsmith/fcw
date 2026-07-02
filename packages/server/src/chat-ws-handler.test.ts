@@ -56,7 +56,18 @@ describe('handleChatClientMessage', () => {
     expect(sessions.graph.edges).toHaveLength(0);
   });
 
+  it('chat_move_requested updates the chat position', async () => {
+    const sessions = new ChatSessionManager();
+    const id = sessions.createChat({ x: 0, y: 0 });
+    await handleChatClientMessage(
+      { type: 'chat_move_requested', chatId: id, position: { x: 7, y: 8 } },
+      sessions,
+    );
+    expect(sessions.graph.chats[id].position).toEqual({ x: 7, y: 8 });
+  });
+
   it('recognizes the new message types', () => {
+    expect(isChatClientMessage({ type: 'chat_move_requested', chatId: 'c', position: { x: 0, y: 0 } })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_branch_requested', parentId: 'p', position: { x: 0, y: 0 } })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_connect_requested', from: 'a', to: 'b' })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_disconnect_requested', from: 'a', to: 'b' })).toBe(true);
