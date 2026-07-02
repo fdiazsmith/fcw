@@ -9,6 +9,7 @@ import {
 } from 'tldraw';
 import { ChatWindow } from '../components/ChatWindow';
 import type { ChatView } from '../chat-store';
+import { collapseToggle } from '../collapse-pill';
 
 // Chat data rides in shape props (JSON), following the v1 GraphNodeShape pattern:
 // the server is the source of truth and sync code updates props on every event.
@@ -21,6 +22,8 @@ export type ChatShapeProps = {
   streamingText: string; // '' means "not streaming"; '\0' sentinel unused — see hasStream
   hasStream: boolean;
   error: string;
+  collapsed: boolean;
+  expandedH: number; // height to restore when un-collapsing
 };
 
 export type ChatShape = TLBaseShape<'chat-node', ChatShapeProps>;
@@ -68,6 +71,8 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
     streamingText: T.string,
     hasStream: T.boolean,
     error: T.string,
+    collapsed: T.boolean,
+    expandedH: T.number,
   };
 
   override getDefaultProps(): ChatShapeProps {
@@ -80,6 +85,8 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
       streamingText: '',
       hasStream: false,
       error: '',
+      collapsed: false,
+      expandedH: 420,
     };
   }
 
@@ -98,6 +105,20 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
   override component(shape: ChatShape) {
     const view = viewFromShape(shape);
     const isEditing = this.editor.getEditingShapeId() === shape.id;
+    const collapsed = shape.props.collapsed;
+
+    const toggleCollapse = () => {
+      const next = collapseToggle({
+        collapsed: shape.props.collapsed,
+        h: shape.props.h,
+        expandedH: shape.props.expandedH,
+      });
+      this.editor.updateShape<ChatShape>({
+        id: shape.id,
+        type: 'chat-node',
+        props: next,
+      });
+    };
 
     return (
       <HTMLContainer
@@ -122,12 +143,86 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
           if (!isEditing) this.editor.setEditingShape(shape.id);
         }}
       >
-        <ChatWindow
-          chat={view}
-          onSend={(content) => chatActions?.sendPrompt(shape.props.chatId, content)}
-          onStop={() => chatActions?.stopStream(shape.props.chatId)}
-          onRegenerate={() => chatActions?.regenerate(shape.props.chatId)}
-        />
+        {collapsed ? (
+          <div
+            data-testid="chat-pill"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              height: '100%',
+              padding: '0 78px 0 12px',
+              boxSizing: 'border-box',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#334155',
+            }}
+          >
+            <span
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                flex: 1,
+              }}
+            >
+              {view.title || 'New chat'}
+            </span>
+            <span
+              style={{
+                background: '#E2E8F0',
+                color: '#475569',
+                borderRadius: 10,
+                padding: '1px 8px',
+                fontSize: 11,
+                fontWeight: 700,
+              }}
+            >
+              {view.messages.length}
+            </span>
+          </div>
+        ) : (
+          <ChatWindow
+            chat={view}
+            onSend={(content) => chatActions?.sendPrompt(shape.props.chatId, content)}
+            onStop={() => chatActions?.stopStream(shape.props.chatId)}
+            onRegenerate={() => chatActions?.regenerate(shape.props.chatId)}
+          />
+        )}
+        {/* Collapse/expand toggle: same event pattern as + branch. */}
+        <button
+          title={collapsed ? 'Expand chat' : 'Collapse to pill'}
+          onPointerDown={stopEventPropagation}
+          onTouchStart={stopEventPropagation}
+          onDoubleClick={stopEventPropagation}
+          onPointerUp={(e) => {
+            stopEventPropagation(e);
+            toggleCollapse();
+          }}
+          style={{
+            position: 'absolute',
+            top: 4,
+            right: 70,
+            width: 22,
+            height: 22,
+            padding: 0,
+            borderRadius: 11,
+            border: 'none',
+            background: '#E2E8F0',
+            color: '#334155',
+            fontSize: 12,
+            fontWeight: 700,
+            lineHeight: '22px',
+            cursor: 'pointer',
+            pointerEvents: 'all',
+            boxShadow: '0 1px 3px rgba(15,23,42,0.2)',
+            touchAction: 'none',
+          }}
+        >
+          {collapsed ? '▢' : '—'}
+        </button>
         {/* Branch handle: inside the card (overflow clips anything outside),
             always interactive even when the card isn't in edit mode. */}
         <button
