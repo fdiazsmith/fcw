@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "lsof -ti:8009 | xargs kill -9 2>/dev/null; node --watch dist/index.js",
+    "dev": "lsof -ti:8009 | xargs kill -9 2>/dev/null; tsc -w --preserveWatchOutput & node --watch dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
