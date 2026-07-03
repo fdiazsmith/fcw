@@ -78,3 +78,8 @@ export type {
   CapabilityModel,
   CapabilityCommand,
 } from './chat-messages.js';
+
+// WI-1 probe: lets server tests assert they resolve graph-core SOURCE, not a
+// possibly-stale dist. If a test imports this and fails, the vitest alias is
+// gone AND dist is stale — re-add the alias (see packages/server/vitest.config.ts).
+export const __graphCoreSrcProbe = true;

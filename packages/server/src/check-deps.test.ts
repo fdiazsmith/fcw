@@ -15,11 +15,13 @@ describe('findMissingDeps', () => {
     // exists() claims it's absent -> it must be flagged.
     const result = findMissingDeps({
       root: ROOT,
-      exists: (p) => !p.endsWith('node_modules/@anthropic-ai/claude-agent-sdk'),
+      exists: (p: string) => !p.endsWith('node_modules/@anthropic-ai/claude-agent-sdk'),
       workspaces: ['packages/server'],
     });
-    expect(result.missing.map((m) => m.dep)).toContain('@anthropic-ai/claude-agent-sdk');
-    expect(result.missing.every((m) => m.workspace === 'server')).toBe(true);
+    expect(result.missing.map((m: { workspace: string; dep: string }) => m.dep)).toContain(
+      '@anthropic-ai/claude-agent-sdk',
+    );
+    expect(result.missing.every((m: { workspace: string; dep: string }) => m.workspace === 'server')).toBe(true);
   });
 
   it('reports OK when every declared dependency is installed', async () => {
