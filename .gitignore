@@ -12,6 +12,7 @@ dist/
 
 # FCW documents
 .fcw/
+packages/server/data/
 
 # OMC state
 .omc/
