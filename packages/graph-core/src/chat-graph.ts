@@ -3,10 +3,32 @@ import type { Position } from './types.js';
 
 export type ChatRole = 'user' | 'assistant' | 'tool';
 
+/** File attached to a prompt. Stored on disk; messages reference it by id. */
+export interface Attachment {
+  id: string;
+  name: string;
+  mediaType: string;
+  path: string;
+}
+
 export interface ChatMessage {
   role: ChatRole;
   content: string;
   createdAt: string;
+  attachments?: Attachment[];
+  /** Set on role 'tool' messages produced by agent tool use/results. */
+  toolUseId?: string;
+  toolName?: string;
+  toolInput?: unknown;
+}
+
+/** Per-chat engine configuration. `engine: 'api'` is the default. */
+export interface ChatSettings {
+  engine: 'api' | 'agent';
+  model?: string;
+  effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  permissionMode?: 'default' | 'acceptEdits' | 'bypassPermissions';
+  cwd?: string;
 }
 
 export interface ChatNode {
@@ -16,6 +38,11 @@ export interface ChatNode {
   position: Position;
   createdAt: string;
   summary?: string;
+  settings?: ChatSettings;
+  /** Agent-engine SDK session id, captured from the init message. */
+  sessionId?: string;
+  /** When true, the next prompt starts a fresh session with a re-assembled preamble. */
+  sessionStale?: boolean;
 }
 
 export interface ContextEdge {
@@ -77,6 +104,35 @@ export function removeLastMessage(graph: ChatGraph, chatId: string): ChatMessage
   const chat = graph.chats[chatId];
   if (!chat) throw new Error(`unknown chat: ${chatId}`);
   return chat.messages.pop();
+}
+
+/** Merge a partial settings patch onto a chat, defaulting to the api engine. */
+export function updateChatSettings(
+  graph: ChatGraph,
+  chatId: string,
+  patch: Partial<ChatSettings>,
+): void {
+  const chat = graph.chats[chatId];
+  if (!chat) throw new Error(`unknown chat: ${chatId}`);
+  chat.settings = { engine: 'api', ...chat.settings, ...patch };
+}
+
+/** Marks a chat and every downstream descendant sessionStale (via enabled or
+ *  disabled edges, mirroring reaches()). Used when edges change so the agent
+ *  session is rebuilt with a re-assembled preamble. */
+export function markSessionStale(graph: ChatGraph, chatId: string): void {
+  if (!graph.chats[chatId]) throw new Error(`unknown chat: ${chatId}`);
+  const stack = [chatId];
+  const seen = new Set<string>();
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    if (seen.has(current)) continue;
+    seen.add(current);
+    graph.chats[current].sessionStale = true;
+    for (const e of graph.edges) {
+      if (e.from === current) stack.push(e.to);
+    }
+  }
 }
 
 export function setChatPosition(graph: ChatGraph, chatId: string, position: Position): void {

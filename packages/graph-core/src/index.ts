@@ -54,6 +54,8 @@ export type {
   ChatNode,
   ContextEdge,
   ChatGraph,
+  ChatSettings,
+  Attachment,
 } from './chat-graph.js';
 export {
   createChatGraph,
@@ -64,6 +66,8 @@ export {
   removeContextEdge,
   setChatPosition,
   removeLastMessage,
+  updateChatSettings,
+  markSessionStale,
 } from './chat-graph.js';
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';

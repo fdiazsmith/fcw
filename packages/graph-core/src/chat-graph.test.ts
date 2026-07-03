@@ -8,6 +8,8 @@ import {
   removeContextEdge,
   setChatPosition,
   removeLastMessage,
+  updateChatSettings,
+  markSessionStale,
 } from './chat-graph.js';
 
 describe('createChatGraph', () => {
@@ -178,5 +180,69 @@ describe('setEdgeEnabled / removeContextEdge', () => {
     const b = addChat(g);
     expect(() => setEdgeEnabled(g, a, b, true)).toThrow(/no edge/i);
     expect(() => removeContextEdge(g, a, b)).toThrow(/no edge/i);
+  });
+});
+
+describe('updateChatSettings', () => {
+  it('defaults to the api engine and merges partial settings', () => {
+    const g = createChatGraph('S');
+    const a = addChat(g);
+    updateChatSettings(g, a, { engine: 'agent', model: 'claude-opus-4-8' });
+    expect(g.chats[a].settings).toEqual({ engine: 'agent', model: 'claude-opus-4-8' });
+    // partial merge keeps prior fields
+    updateChatSettings(g, a, { effort: 'xhigh' });
+    expect(g.chats[a].settings).toEqual({
+      engine: 'agent',
+      model: 'claude-opus-4-8',
+      effort: 'xhigh',
+    });
+  });
+
+  it('starts from the api default when no settings exist yet', () => {
+    const g = createChatGraph('S');
+    const a = addChat(g);
+    updateChatSettings(g, a, { cwd: '/tmp' });
+    expect(g.chats[a].settings).toEqual({ engine: 'api', cwd: '/tmp' });
+  });
+
+  it('throws for an unknown chat', () => {
+    const g = createChatGraph('S');
+    expect(() => updateChatSettings(g, 'nope', { engine: 'agent' })).toThrow(/unknown chat/i);
+  });
+});
+
+describe('markSessionStale', () => {
+  it('marks the chat and its downstream descendants stale', () => {
+    const g = createChatGraph('S');
+    const a = addChat(g);
+    const b = addChat(g);
+    const c = addChat(g);
+    const other = addChat(g);
+    addContextEdge(g, a, b); // a -> b
+    addContextEdge(g, b, c); // b -> c
+    markSessionStale(g, a);
+    expect(g.chats[a].sessionStale).toBe(true);
+    expect(g.chats[b].sessionStale).toBe(true);
+    expect(g.chats[c].sessionStale).toBe(true);
+    expect(g.chats[other].sessionStale).toBeUndefined();
+  });
+
+  it('handles diamonds without infinite loops', () => {
+    const g = createChatGraph('S');
+    const a = addChat(g);
+    const b = addChat(g);
+    const c = addChat(g);
+    const d = addChat(g);
+    addContextEdge(g, a, b);
+    addContextEdge(g, a, c);
+    addContextEdge(g, b, d);
+    addContextEdge(g, c, d);
+    markSessionStale(g, a);
+    expect([a, b, c, d].every((id) => g.chats[id].sessionStale === true)).toBe(true);
+  });
+
+  it('throws for an unknown chat', () => {
+    const g = createChatGraph('S');
+    expect(() => markSessionStale(g, 'nope')).toThrow(/unknown chat/i);
   });
 });
