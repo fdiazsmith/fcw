@@ -1,5 +1,19 @@
 // v2 frontend state: pure reducer over chat server messages.
-import type { ChatServerMessage, ChatMessage, ChatNode, ContextEdge } from '@fcw/graph-core';
+import type {
+  ChatServerMessage,
+  ChatMessage,
+  ChatNode,
+  ContextEdge,
+  ChatSettings,
+  CapabilityModel,
+  CapabilityCommand,
+} from '@fcw/graph-core';
+
+export interface PendingPermission {
+  requestId: string;
+  toolName: string;
+  input: unknown;
+}
 
 export interface ChatView {
   id: string;
@@ -8,15 +22,23 @@ export interface ChatView {
   messages: ChatMessage[];
   streamingText: string | null;
   error: string | null;
+  settings: ChatSettings;
+  pendingPermission: PendingPermission | null;
+}
+
+export interface Capabilities {
+  models: CapabilityModel[];
+  commands: CapabilityCommand[];
 }
 
 export interface ChatState {
   chats: Record<string, ChatView>;
   edges: ContextEdge[];
+  capabilities: Capabilities;
 }
 
 export function emptyChatState(): ChatState {
-  return { chats: {}, edges: [] };
+  return { chats: {}, edges: [], capabilities: { models: [], commands: [] } };
 }
 
 function viewFrom(chat: ChatNode): ChatView {
@@ -27,6 +49,8 @@ function viewFrom(chat: ChatNode): ChatView {
     messages: [...chat.messages],
     streamingText: null,
     error: null,
+    settings: chat.settings ?? { engine: 'api' },
+    pendingPermission: null,
   };
 }
 
@@ -36,7 +60,11 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
     for (const chat of Object.values(msg.graph.chats)) {
       chats[chat.id] = viewFrom(chat);
     }
-    return { chats, edges: [...msg.graph.edges] };
+    return { ...state, chats, edges: [...msg.graph.edges] };
+  }
+
+  if (msg.type === 'chat_capabilities') {
+    return { ...state, capabilities: { models: msg.models, commands: msg.commands } };
   }
 
   if (msg.type === 'chat_created') {
@@ -69,6 +97,18 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
   switch (msg.type) {
     case 'chat_user_message':
       return update({ messages: [...existing.messages, msg.message], error: null });
+    case 'chat_tool_message':
+      return update({ messages: [...existing.messages, msg.message] });
+    case 'chat_settings_changed':
+      return update({ settings: msg.settings });
+    case 'chat_permission_requested':
+      return update({
+        pendingPermission: { requestId: msg.requestId, toolName: msg.toolName, input: msg.input },
+      });
+    case 'chat_permission_resolved':
+      return existing.pendingPermission?.requestId === msg.requestId
+        ? update({ pendingPermission: null })
+        : state;
     case 'chat_stream_started':
       return update({ streamingText: '', error: null });
     case 'chat_stream_delta':

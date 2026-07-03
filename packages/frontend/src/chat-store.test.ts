@@ -141,3 +141,75 @@ describe('applyChatMessage', () => {
     expect(s1.chats.c1.messages).toHaveLength(1);
   });
 });
+
+describe('applyChatMessage — agent features', () => {
+  it('chat_settings_changed stores the settings on the view', () => {
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_settings_changed', chatId: 'c1', settings: { engine: 'agent', model: 'claude-opus-4-8' } },
+    );
+    expect(s.chats.c1.settings).toEqual({ engine: 'agent', model: 'claude-opus-4-8' });
+  });
+
+  it('chat_snapshot carries per-chat settings', () => {
+    const node = { ...chat('c1'), settings: { engine: 'agent' as const } };
+    const graph = {
+      id: 'g', version: 2 as const,
+      meta: { title: 't', created: 't0' },
+      chats: { c1: node }, edges: [],
+    };
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph });
+    expect(s.chats.c1.settings).toEqual({ engine: 'agent' });
+  });
+
+  it('chat_capabilities is stored on the state', () => {
+    const s = apply(emptyChatState(), {
+      type: 'chat_capabilities',
+      models: [{ id: 'claude-opus-4-8', displayName: 'Claude Opus 4.8' }],
+      commands: [{ name: 'review', description: 'review a PR' }],
+    });
+    expect(s.capabilities).toEqual({
+      models: [{ id: 'claude-opus-4-8', displayName: 'Claude Opus 4.8' }],
+      commands: [{ name: 'review', description: 'review a PR' }],
+    });
+  });
+
+  it('chat_permission_requested / _resolved toggle pendingPermission', () => {
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_permission_requested', chatId: 'c1', requestId: 'r1', toolName: 'Bash', input: { cmd: 'ls' } },
+    );
+    expect(s.chats.c1.pendingPermission).toEqual({ requestId: 'r1', toolName: 'Bash', input: { cmd: 'ls' } });
+    s = apply(s, { type: 'chat_permission_resolved', chatId: 'c1', requestId: 'r1' });
+    expect(s.chats.c1.pendingPermission).toBeNull();
+  });
+
+  it('chat_permission_resolved for a stale requestId leaves the current prompt', () => {
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_permission_requested', chatId: 'c1', requestId: 'r2', toolName: 'Bash', input: {} },
+    );
+    s = apply(s, { type: 'chat_permission_resolved', chatId: 'c1', requestId: 'r1-old' });
+    expect(s.chats.c1.pendingPermission?.requestId).toBe('r2');
+  });
+
+  it('chat_tool_message appends a tool message to the transcript', () => {
+    const toolMsg = {
+      role: 'tool' as const,
+      content: '→ Read',
+      createdAt: 't1',
+      toolUseId: 'tu1',
+      toolName: 'Read',
+      toolInput: { path: '/x' },
+    };
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_tool_message', chatId: 'c1', message: toolMsg },
+    );
+    expect(s.chats.c1.messages).toEqual([toolMsg]);
+  });
+});
