@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRouter } from './routes.js';
 import { StateManager } from './state-manager.js';
+import { AttachmentStore } from './attachments.js';
 
 async function makeRequest(
   server: ReturnType<typeof createServer>,
@@ -107,5 +108,59 @@ describe('HTTP Document API', () => {
   it('GET /documents/:id returns 404 for unknown id', async () => {
     const { status } = await makeRequest(server, 'GET', '/documents/nonexistent');
     expect(status).toBe(404);
+  });
+});
+
+describe('HTTP Attachments API', () => {
+  let storageDir: string;
+  let manager: StateManager;
+  let store: AttachmentStore;
+  let server: ReturnType<typeof createServer>;
+
+  beforeEach(async () => {
+    storageDir = mkdtempSync(join(tmpdir(), 'fcw-att-'));
+    manager = new StateManager();
+    store = new AttachmentStore(storageDir, { maxBytes: 10 });
+    server = createServer(createRouter(manager, storageDir, store));
+    await startServer(server);
+  });
+
+  afterEach(async () => {
+    manager.destroy();
+    await stopServer(server);
+    rmSync(storageDir, { recursive: true, force: true });
+  });
+
+  it('POST /attachments stores a file and GET serves it back', async () => {
+    const { status, data } = await makeRequest(server, 'POST', '/attachments', {
+      name: 'hi.txt',
+      mediaType: 'text/plain',
+      data: Buffer.from('hello').toString('base64'),
+    });
+    expect(status).toBe(201);
+    const att = data as { id: string; name: string; mediaType: string; path: string };
+    expect(att.id).toBeTruthy();
+    expect(att.name).toBe('hi.txt');
+    expect(store.get(att.id)).toBeDefined();
+
+    const port = (server.address() as { port: number }).port;
+    const res = await fetch(`http://localhost:${port}/attachments/${att.id}`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe('hello');
+  });
+
+  it('rejects oversized uploads with 413', async () => {
+    const { status } = await makeRequest(server, 'POST', '/attachments', {
+      name: 'big.bin',
+      mediaType: 'application/octet-stream',
+      data: Buffer.from('this is more than ten bytes').toString('base64'),
+    });
+    expect(status).toBe(413);
+  });
+
+  it('GET /attachments/:id returns 404 for unknown id', async () => {
+    const port = (server.address() as { port: number }).port;
+    const res = await fetch(`http://localhost:${port}/attachments/nope`);
+    expect(res.status).toBe(404);
   });
 });
