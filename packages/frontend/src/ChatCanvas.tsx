@@ -379,8 +379,10 @@ export default function ChatCanvas() {
       )}
       <div
         style={{
+          // Sits below tldraw's top-right style-panel line so it clears it in
+          // the common case (a selected chat card shows no style panel).
           position: 'absolute',
-          top: 12,
+          top: 54,
           right: 12,
           zIndex: 1000,
           display: 'flex',
@@ -388,18 +390,6 @@ export default function ChatCanvas() {
           alignItems: 'center',
         }}
       >
-        <span
-          style={{
-            fontSize: 12,
-            color: '#64748B',
-            background: '#fff',
-            padding: '6px 10px',
-            borderRadius: 8,
-            border: '1px solid #E2E8F0',
-          }}
-        >
-          double-click: new chat · + under a card: branch · draw arrow: connect context
-        </span>
         <button
           onClick={() => {
             const editor = editorRef.current;
@@ -436,6 +426,26 @@ export default function ChatCanvas() {
         >
           Export
         </button>
+      </div>
+      {/* Compact usage hint, bottom-left clear of tldraw's zoom controls.
+          pointerEvents:none so it never intercepts canvas interaction. */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 12,
+          left: 140,
+          zIndex: 1000,
+          pointerEvents: 'none',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: 11,
+          color: '#64748B',
+          background: 'rgba(255,255,255,0.9)',
+          padding: '4px 10px',
+          borderRadius: 8,
+          border: '1px solid #E2E8F0',
+        }}
+      >
+        double-click: new · + : branch · drag arrow: connect
       </div>
     </div>
   );

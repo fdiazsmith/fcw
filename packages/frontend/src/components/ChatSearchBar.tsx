@@ -21,8 +21,9 @@ export function ChatSearchBar({ getState, onSelect }: ChatSearchBarProps) {
     <div
       data-testid="chat-search-bar"
       style={{
+        // Sits below tldraw's top-left menu/pages row so it doesn't overlap it.
         position: 'absolute',
-        top: 12,
+        top: 54,
         left: 12,
         zIndex: 1000,
         width: 280,
