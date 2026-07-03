@@ -248,6 +248,34 @@ describe('ChatSessionManager.prompt with streaming', () => {
     expect(last).toMatchObject({ role: 'assistant', content: 'done' });
   });
 
+  it('truncates large toolInput in the emitted tool message but keeps it full on disk', async () => {
+    const big = 'x'.repeat(50_000);
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* () {
+        yield { type: 'tool_use', toolUseId: 'tu1', name: 'Read', input: { path: '/big', data: big } } as TurnEvent;
+        yield { type: 'text_delta', text: 'done' } as TurnEvent;
+      },
+    });
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    sessions.updateSettings(id, { engine: 'agent' });
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+
+    // Graph (disk-side) message keeps the full input.
+    const diskMsg = sessions.graph.chats[id].messages.find((m) => m.role === 'tool');
+    expect(diskMsg?.toolInput).toEqual({ path: '/big', data: big });
+
+    // Emitted WS copy is truncated.
+    const emitted = events.find(
+      (e) => e.type === 'chat_tool_message' && (e as { message?: { toolUseId?: string } }).message?.toolUseId === 'tu1',
+    ) as { message: { toolInput?: string; toolInputTruncated?: boolean } };
+    expect(emitted).toBeDefined();
+    expect(emitted.message.toolInputTruncated).toBe(true);
+    expect(typeof emitted.message.toolInput).toBe('string');
+    expect((emitted.message.toolInput as string).length).toBeLessThanOrEqual(4096);
+    expect((emitted.message.toolInput as string).length).toBeLessThan(big.length);
+  });
+
   it('emits chat_permission_requested and resolvePermission unblocks the turn', async () => {
     let decision: unknown;
     const sessions = new ChatSessionManager('T', {

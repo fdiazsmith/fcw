@@ -30,6 +30,8 @@ export type SaveHandler = (graph: ChatGraph) => Promise<void>;
 const SAVE_DEBOUNCE_MS = 500;
 /** Auto-deny a permission prompt after this long so a turn never hangs forever. */
 const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
+/** Cap toolInput size in emitted WS tool messages (full input stays on disk). */
+const TOOL_INPUT_EMIT_MAX = 4096;
 
 export class ChatSessionManager extends EventEmitter {
   readonly graph: ChatGraph;
@@ -216,7 +218,9 @@ export class ChatSessionManager extends EventEmitter {
     }
   }
 
-  /** Append a role 'tool' message with structured fields and broadcast it. */
+  /** Append a role 'tool' message with structured fields and broadcast it.
+   *  The graph message keeps the full toolInput; the emitted WS copy is
+   *  truncated so large tool outputs don't bloat frames. */
   private appendToolMessage(
     chatId: string,
     content: string,
@@ -226,7 +230,21 @@ export class ChatSessionManager extends EventEmitter {
     const msgs = this.graph.chats[chatId].messages;
     const msg = msgs[msgs.length - 1];
     Object.assign(msg, fields);
-    this.emit('message', { type: 'chat_tool_message', chatId, message: msg });
+    this.emit('message', { type: 'chat_tool_message', chatId, message: this.emitCopy(msg) });
+  }
+
+  /** Shallow-copy a tool message, truncating toolInput to TOOL_INPUT_EMIT_MAX. */
+  private emitCopy(msg: ChatMessage): ChatMessage {
+    if (msg.toolInput === undefined) return { ...msg };
+    const serialized = JSON.stringify(msg.toolInput);
+    if (serialized.length <= TOOL_INPUT_EMIT_MAX) return { ...msg };
+    const slice = serialized.slice(0, TOOL_INPUT_EMIT_MAX);
+    const { toolInput, ...rest } = msg;
+    return {
+      ...rest,
+      toolInput: slice,
+      toolInputTruncated: true,
+    };
   }
 
   /** Register a pending permission prompt; auto-deny after a timeout. */

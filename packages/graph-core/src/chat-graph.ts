@@ -20,6 +20,8 @@ export interface ChatMessage {
   toolUseId?: string;
   toolName?: string;
   toolInput?: unknown;
+  /** True on emitted copies whose toolInput was truncated to fit a WS frame. */
+  toolInputTruncated?: boolean;
 }
 
 /** Per-chat engine configuration. `engine: 'api'` is the default. */
