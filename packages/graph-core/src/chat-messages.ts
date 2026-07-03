@@ -1,6 +1,15 @@
 // v2 WebSocket protocol: chat-graph messages (shared server <-> frontend language).
-import type { ChatGraph, ChatMessage, ChatNode, ContextEdge } from './chat-graph.js';
+import type { ChatGraph, ChatMessage, ChatNode, ContextEdge, ChatSettings } from './chat-graph.js';
 import type { Position } from './types.js';
+
+export interface CapabilityModel {
+  id: string;
+  displayName: string;
+}
+export interface CapabilityCommand {
+  name: string;
+  description: string;
+}
 
 // Server -> Client
 export type ChatServerMessage =
@@ -14,15 +23,22 @@ export type ChatServerMessage =
   | { type: 'chat_stream_completed'; chatId: string; message: ChatMessage }
   | { type: 'chat_title_changed'; chatId: string; title: string }
   | { type: 'chat_last_message_removed'; chatId: string }
-  | { type: 'chat_error'; chatId: string; message: string };
+  | { type: 'chat_error'; chatId: string; message: string }
+  | { type: 'chat_settings_changed'; chatId: string; settings: ChatSettings }
+  | { type: 'chat_tool_message'; chatId: string; message: ChatMessage }
+  | { type: 'chat_capabilities'; models: CapabilityModel[]; commands: CapabilityCommand[] }
+  | { type: 'chat_permission_requested'; chatId: string; requestId: string; toolName: string; input: unknown }
+  | { type: 'chat_permission_resolved'; chatId: string; requestId: string };
 
 // Client -> Server
 export type ChatClientMessage =
   | { type: 'chat_create_requested'; position: Position; title?: string }
-  | { type: 'chat_prompt_submitted'; chatId: string; content: string }
+  | { type: 'chat_prompt_submitted'; chatId: string; content: string; attachmentIds?: string[] }
   | { type: 'chat_branch_requested'; parentId: string; position: Position }
   | { type: 'chat_connect_requested'; from: string; to: string }
   | { type: 'chat_disconnect_requested'; from: string; to: string }
   | { type: 'chat_move_requested'; chatId: string; position: Position }
   | { type: 'chat_stop_requested'; chatId: string }
-  | { type: 'chat_regenerate_requested'; chatId: string };
+  | { type: 'chat_regenerate_requested'; chatId: string }
+  | { type: 'chat_settings_updated'; chatId: string; settings: Partial<ChatSettings> }
+  | { type: 'chat_permission_decision'; chatId: string; requestId: string; behavior: 'allow' | 'deny'; message?: string };

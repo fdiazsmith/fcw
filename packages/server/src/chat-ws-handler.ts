@@ -13,6 +13,29 @@ const ChatPromptSubmittedSchema = z.object({
   type: z.literal('chat_prompt_submitted'),
   chatId: z.string(),
   content: z.string(),
+  attachmentIds: z.array(z.string()).optional(),
+});
+
+const ChatSettingsSchema = z.object({
+  engine: z.enum(['api', 'agent']).optional(),
+  model: z.string().optional(),
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+  permissionMode: z.enum(['default', 'acceptEdits', 'bypassPermissions']).optional(),
+  cwd: z.string().optional(),
+});
+
+const ChatSettingsUpdatedSchema = z.object({
+  type: z.literal('chat_settings_updated'),
+  chatId: z.string(),
+  settings: ChatSettingsSchema,
+});
+
+const ChatPermissionDecisionSchema = z.object({
+  type: z.literal('chat_permission_decision'),
+  chatId: z.string(),
+  requestId: z.string(),
+  behavior: z.enum(['allow', 'deny']),
+  message: z.string().optional(),
 });
 
 const ChatBranchRequestedSchema = z.object({
@@ -58,6 +81,8 @@ export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatMoveRequestedSchema,
   ChatStopRequestedSchema,
   ChatRegenerateRequestedSchema,
+  ChatSettingsUpdatedSchema,
+  ChatPermissionDecisionSchema,
 ]);
 
 export function isChatClientMessage(value: unknown): value is ChatClientMessage {
@@ -71,7 +96,14 @@ export async function handleChatClientMessage(
   if (msg.type === 'chat_create_requested') {
     sessions.createChat(msg.position, msg.title);
   } else if (msg.type === 'chat_prompt_submitted') {
-    await sessions.prompt(msg.chatId, msg.content);
+    await sessions.prompt(msg.chatId, msg.content, msg.attachmentIds);
+  } else if (msg.type === 'chat_settings_updated') {
+    sessions.updateSettings(msg.chatId, msg.settings);
+  } else if (msg.type === 'chat_permission_decision') {
+    sessions.resolvePermission(msg.chatId, msg.requestId, {
+      behavior: msg.behavior,
+      message: msg.message,
+    });
   } else if (msg.type === 'chat_branch_requested') {
     sessions.branch(msg.parentId, msg.position);
   } else if (msg.type === 'chat_connect_requested') {

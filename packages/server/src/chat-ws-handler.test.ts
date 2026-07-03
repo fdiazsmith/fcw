@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ChatSessionManager } from './chat-session.js';
 import { handleChatClientMessage, isChatClientMessage } from './chat-ws-handler.js';
 
@@ -100,5 +100,58 @@ describe('handleChatClientMessage', () => {
     expect(isChatClientMessage({ type: 'chat_branch_requested', parentId: 'p', position: { x: 0, y: 0 } })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_connect_requested', from: 'a', to: 'b' })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_disconnect_requested', from: 'a', to: 'b' })).toBe(true);
+  });
+
+  it('recognizes settings / attachment / permission messages', () => {
+    expect(
+      isChatClientMessage({ type: 'chat_settings_updated', chatId: 'c', settings: { engine: 'agent' } }),
+    ).toBe(true);
+    expect(
+      isChatClientMessage({ type: 'chat_prompt_submitted', chatId: 'c', content: 'x', attachmentIds: ['a1'] }),
+    ).toBe(true);
+    expect(
+      isChatClientMessage({ type: 'chat_permission_decision', chatId: 'c', requestId: 'r', behavior: 'allow' }),
+    ).toBe(true);
+    // invalid enum values are rejected
+    expect(
+      isChatClientMessage({ type: 'chat_settings_updated', chatId: 'c', settings: { engine: 'bogus' } }),
+    ).toBe(false);
+    expect(
+      isChatClientMessage({ type: 'chat_permission_decision', chatId: 'c', requestId: 'r', behavior: 'maybe' }),
+    ).toBe(false);
+  });
+
+  it('chat_settings_updated dispatches to sessions.updateSettings', async () => {
+    const sessions = new ChatSessionManager();
+    const id = sessions.createChat({ x: 0, y: 0 });
+    const spy = vi.spyOn(sessions, 'updateSettings');
+    await handleChatClientMessage(
+      { type: 'chat_settings_updated', chatId: id, settings: { engine: 'agent', effort: 'high' } },
+      sessions,
+    );
+    expect(spy).toHaveBeenCalledWith(id, { engine: 'agent', effort: 'high' });
+    expect(sessions.graph.chats[id].settings).toMatchObject({ engine: 'agent', effort: 'high' });
+  });
+
+  it('chat_prompt_submitted forwards attachmentIds', async () => {
+    const sessions = new ChatSessionManager();
+    const id = sessions.createChat({ x: 0, y: 0 });
+    const spy = vi.spyOn(sessions, 'prompt');
+    await handleChatClientMessage(
+      { type: 'chat_prompt_submitted', chatId: id, content: 'hi', attachmentIds: ['a1', 'a2'] },
+      sessions,
+    );
+    expect(spy).toHaveBeenCalledWith(id, 'hi', ['a1', 'a2']);
+  });
+
+  it('chat_permission_decision dispatches to sessions.resolvePermission', async () => {
+    const sessions = new ChatSessionManager();
+    const id = sessions.createChat({ x: 0, y: 0 });
+    const spy = vi.spyOn(sessions, 'resolvePermission');
+    await handleChatClientMessage(
+      { type: 'chat_permission_decision', chatId: id, requestId: 'r1', behavior: 'deny', message: 'no' },
+      sessions,
+    );
+    expect(spy).toHaveBeenCalledWith(id, 'r1', { behavior: 'deny', message: 'no' });
   });
 });

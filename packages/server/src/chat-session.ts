@@ -10,8 +10,10 @@ import {
   setChatPosition,
   assembleContext,
   removeLastMessage,
+  updateChatSettings,
 } from '@fcw/graph-core';
-import type { ChatGraph, ChatMessage, Position } from '@fcw/graph-core';
+import type { ChatGraph, ChatMessage, Position, ChatSettings } from '@fcw/graph-core';
+import type { PermissionDecision } from './turn-events.js';
 
 /** Streams assistant text for an assembled context. Injected for testability. */
 export type StreamTextFn = (messages: ChatMessage[]) => AsyncIterable<string>;
@@ -26,6 +28,8 @@ export class ChatSessionManager extends EventEmitter {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   /** Chats whose in-flight stream has been asked to stop. */
   private readonly stopped = new Set<string>();
+  /** requestId -> resolver for pending agent permission prompts. */
+  private readonly pendingPermissions = new Map<string, (d: PermissionDecision) => void>();
 
   constructor(
     title = 'Untitled',
@@ -83,7 +87,27 @@ export class ChatSessionManager extends EventEmitter {
     return child;
   }
 
-  async prompt(chatId: string, content: string): Promise<void> {
+  /** Merge partial settings, broadcast the result, and persist. */
+  updateSettings(chatId: string, patch: Partial<ChatSettings>): void {
+    updateChatSettings(this.graph, chatId, patch);
+    this.emit('message', {
+      type: 'chat_settings_changed',
+      chatId,
+      settings: this.graph.chats[chatId].settings,
+    });
+    this.scheduleSave();
+  }
+
+  /** Resolve a pending agent permission prompt and notify clients. */
+  resolvePermission(chatId: string, requestId: string, decision: PermissionDecision): void {
+    const resolve = this.pendingPermissions.get(requestId);
+    if (!resolve) return;
+    this.pendingPermissions.delete(requestId);
+    resolve(decision);
+    this.emit('message', { type: 'chat_permission_resolved', chatId, requestId });
+  }
+
+  async prompt(chatId: string, content: string, _attachmentIds?: string[]): Promise<void> {
     appendMessage(this.graph, chatId, 'user', content);
     const own = this.graph.chats[chatId].messages;
     this.emit('message', { type: 'chat_user_message', chatId, message: own[own.length - 1] });
