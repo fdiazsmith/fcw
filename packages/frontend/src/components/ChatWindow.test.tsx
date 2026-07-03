@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ChatWindow } from './ChatWindow';
-import type { ChatView } from '../chat-store';
+import type { ChatView, Capabilities } from '../chat-store';
 
 const view = (over: Partial<ChatView> = {}): ChatView => ({
   id: 'c1',
@@ -11,6 +11,14 @@ const view = (over: Partial<ChatView> = {}): ChatView => ({
   messages: [],
   streamingText: null,
   error: null,
+  settings: { engine: 'api' },
+  pendingPermission: null,
+  ...over,
+});
+
+const caps = (over: Partial<Capabilities> = {}): Capabilities => ({
+  models: [{ id: 'claude-opus-4-8', displayName: 'Claude Opus 4.8' }],
+  commands: [{ name: 'review', description: 'review a PR' }],
   ...over,
 });
 
@@ -168,5 +176,100 @@ describe('ChatWindow', () => {
       />,
     );
     expect(screen.getByText('bold').tagName).toBe('STRONG');
+  });
+
+  it('toolbar changes engine and (in agent mode) model via onUpdateSettings', () => {
+    const onUpdateSettings = vi.fn();
+    const { rerender } = render(
+      <ChatWindow chat={view()} capabilities={caps()} onSend={() => {}} onUpdateSettings={onUpdateSettings} />,
+    );
+    fireEvent.change(screen.getByLabelText('Engine'), { target: { value: 'agent' } });
+    expect(onUpdateSettings).toHaveBeenCalledWith({ engine: 'agent' });
+    // now render in agent mode so the model dropdown appears
+    rerender(
+      <ChatWindow
+        chat={view({ settings: { engine: 'agent' } })}
+        capabilities={caps()}
+        onSend={() => {}}
+        onUpdateSettings={onUpdateSettings}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'claude-opus-4-8' } });
+    expect(onUpdateSettings).toHaveBeenCalledWith({ model: 'claude-opus-4-8' });
+  });
+
+  it('falls back to a free-text model input when no capabilities are loaded', () => {
+    render(
+      <ChatWindow chat={view({ settings: { engine: 'agent' } })} onSend={() => {}} onUpdateSettings={() => {}} />,
+    );
+    const model = screen.getByLabelText('Model') as HTMLInputElement;
+    expect(model.tagName).toBe('INPUT');
+  });
+
+  it('permission banner renders and Allow/Deny call onPermissionDecision', () => {
+    const onPermissionDecision = vi.fn();
+    render(
+      <ChatWindow
+        chat={view({ pendingPermission: { requestId: 'r1', toolName: 'Bash', input: { command: 'ls' } } })}
+        onSend={() => {}}
+        onPermissionDecision={onPermissionDecision}
+      />,
+    );
+    expect(screen.getByTestId('permission-banner')).toBeTruthy();
+    expect(screen.getByText('Bash')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /allow/i }));
+    expect(onPermissionDecision).toHaveBeenCalledWith('r1', 'allow');
+    fireEvent.click(screen.getByRole('button', { name: /deny/i }));
+    expect(onPermissionDecision).toHaveBeenCalledWith('r1', 'deny');
+  });
+
+  it('shows a slash-command popup and inserts the selected command', () => {
+    render(<ChatWindow chat={view()} capabilities={caps()} onSend={() => {}} />);
+    const input = screen.getByPlaceholderText(/message/i) as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: '/rev' } });
+    const popup = screen.getByTestId('command-popup');
+    expect(popup).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /\/review/ }));
+    expect(input.value).toBe('/review ');
+  });
+
+  it('uploads an attachment, renders a chip, and sends its id', async () => {
+    const onSend = vi.fn();
+    const uploadAttachment = vi
+      .fn()
+      .mockResolvedValue({ id: 'a1', name: 'pic.png', mediaType: 'image/png', path: '/d/a1.png' });
+    render(<ChatWindow chat={view()} onSend={onSend} uploadAttachment={uploadAttachment} />);
+    const fileInput = screen.getByLabelText('File input') as HTMLInputElement;
+    const file = new File(['x'], 'pic.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    expect(uploadAttachment).toHaveBeenCalledWith(file);
+    await screen.findByText(/pic\.png/);
+
+    const input = screen.getByPlaceholderText(/message/i) as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: 'about this' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(onSend).toHaveBeenCalledWith('about this', ['a1']));
+  });
+
+  it('renders a tool message with its name and collapsed input', () => {
+    render(
+      <ChatWindow
+        chat={view({
+          messages: [
+            {
+              role: 'tool',
+              content: '→ Read',
+              createdAt: 't',
+              toolUseId: 'tu1',
+              toolName: 'Read',
+              toolInput: { path: '/x' },
+            },
+          ],
+        })}
+        onSend={() => {}}
+      />,
+    );
+    expect(screen.getByText('Read')).toBeTruthy();
+    expect(screen.getByText(/"path": "\/x"/)).toBeTruthy();
   });
 });
