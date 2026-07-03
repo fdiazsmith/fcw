@@ -142,7 +142,10 @@ export function createAgentTurnStream(queryFn: QueryFn = realQuery): StreamTurnF
     if (!fresh) options.resume = ctx.sessionId;
 
     const q = queryFn({ prompt: promptStream(ctx, fresh), options });
-    const onAbort = () => void q.interrupt?.().catch(() => {});
+    const onAbort = () => {
+      void q.interrupt?.().catch(() => {});
+      q.close?.();
+    };
     ctx.signal.addEventListener('abort', onAbort);
 
     const run = (async () => {

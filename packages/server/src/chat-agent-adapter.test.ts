@@ -28,6 +28,7 @@ interface Capture {
   params?: { prompt: unknown; options?: Record<string, unknown> };
   promptMessages: unknown[];
   interrupt: ReturnType<typeof vi.fn>;
+  close: ReturnType<typeof vi.fn>;
 }
 
 /** Fake query() that records params/prompt and yields the given SDK messages. */
@@ -46,7 +47,9 @@ function fakeQuery(
       for (const m of messages) yield m;
     })() as AsyncGenerator<unknown> & { interrupt: ReturnType<typeof vi.fn> };
     capture.interrupt = vi.fn().mockResolvedValue(undefined);
+    capture.close = vi.fn();
     gen.interrupt = capture.interrupt;
+    (gen as unknown as { close: ReturnType<typeof vi.fn> }).close = capture.close;
     return gen as never;
   }) as QueryFn;
 }
@@ -59,7 +62,7 @@ async function collect(stream: AsyncIterable<TurnEvent>): Promise<TurnEvent[]> {
 
 describe('createAgentTurnStream options', () => {
   it('maps settings to query options and resumes when a session id is present', async () => {
-    const cap: Capture = { promptMessages: [], interrupt: vi.fn() };
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
     const turn = createAgentTurnStream(fakeQuery([], cap));
     await collect(
       turn(
@@ -80,7 +83,7 @@ describe('createAgentTurnStream options', () => {
   });
 
   it('omits resume and injects a preamble for a fresh session', async () => {
-    const cap: Capture = { promptMessages: [], interrupt: vi.fn() };
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
     const turn = createAgentTurnStream(fakeQuery([], cap));
     await collect(
       turn(
@@ -103,7 +106,7 @@ describe('createAgentTurnStream options', () => {
 
 describe('createAgentTurnStream message mapping', () => {
   it('emits session, text deltas, tool_use, and tool_result', async () => {
-    const cap: Capture = { promptMessages: [], interrupt: vi.fn() };
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
     const turn = createAgentTurnStream(
       fakeQuery(
         [
@@ -145,7 +148,7 @@ describe('createAgentTurnStream message mapping', () => {
 
 describe('createAgentTurnStream permissions', () => {
   it('emits permission_request and returns the awaited decision to canUseTool', async () => {
-    const cap: Capture = { promptMessages: [], interrupt: vi.fn() };
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
     let permissionResult: unknown;
     const turn = createAgentTurnStream(
       fakeQuery(
@@ -185,7 +188,7 @@ describe('createAgentTurnStream attachments', () => {
     const pdfPath = join(dir, 'doc.pdf');
     writeFileSync(imgPath, Buffer.from([1, 2, 3]));
     writeFileSync(pdfPath, Buffer.from([4, 5, 6]));
-    const cap: Capture = { promptMessages: [], interrupt: vi.fn() };
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
     const turn = createAgentTurnStream(fakeQuery([], cap));
     await collect(
       turn(
@@ -208,8 +211,8 @@ describe('createAgentTurnStream attachments', () => {
 });
 
 describe('createAgentTurnStream abort', () => {
-  it('interrupts the query when the signal aborts', async () => {
-    const cap: Capture = { promptMessages: [], interrupt: vi.fn() };
+  it('interrupts and closes the query when the signal aborts', async () => {
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
     const controller = new AbortController();
     const turn = createAgentTurnStream(
       fakeQuery([], cap, async () => {
@@ -218,5 +221,6 @@ describe('createAgentTurnStream abort', () => {
     );
     await collect(turn(ctx({ signal: controller.signal })));
     expect(cap.interrupt).toHaveBeenCalled();
+    expect(cap.close).toHaveBeenCalled();
   });
 });
