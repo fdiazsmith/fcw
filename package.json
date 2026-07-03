@@ -8,6 +8,7 @@
   "scripts": {
     "check-deps": "node scripts/check-deps.mjs",
     "pretest": "npm run check-deps",
+    "smoke:agent": "npm run build -w packages/graph-core && npm run build -w packages/server && node scripts/agent-smoke.mjs",
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

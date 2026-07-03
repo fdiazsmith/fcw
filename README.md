@@ -122,6 +122,19 @@ npm run test --workspace=packages/server
 npm run test --workspace=packages/frontend
 ```
 
+## Agent-engine smoke test
+
+The vitest suite mocks `@anthropic-ai/claude-agent-sdk`. To exercise the real
+SDK (resume, `canUseTool`, partial-message streaming) locally:
+
+```bash
+npm run smoke:agent        # uses process.cwd() as the agent cwd
+npm run smoke:agent -- /path/to/repo
+```
+
+Requires a local Claude Code install (`claude` on PATH) and `ANTHROPIC_API_KEY`
+in `.env.local`. Not run by `npm test`.
+
 ## Tech Stack
 
 tldraw, React, Vite, dagre, Anthropic SDK, MCP SDK, WebSocket (ws), zod, vitest
