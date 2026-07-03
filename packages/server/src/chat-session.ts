@@ -11,30 +11,40 @@ import {
   assembleContext,
   removeLastMessage,
   updateChatSettings,
+  markSessionStale,
 } from '@fcw/graph-core';
-import type { ChatGraph, ChatMessage, Position, ChatSettings } from '@fcw/graph-core';
-import type { PermissionDecision } from './turn-events.js';
+import type { ChatGraph, ChatMessage, Position, ChatSettings, Attachment } from '@fcw/graph-core';
+import type { StreamTurnFn, TurnContext, PermissionDecision } from './turn-events.js';
 
-/** Streams assistant text for an assembled context. Injected for testability. */
-export type StreamTextFn = (messages: ChatMessage[]) => AsyncIterable<string>;
+/** Per-engine turn streams, selected by chat.settings.engine. */
+export interface ManagerStreams {
+  api?: StreamTurnFn;
+  agent?: StreamTurnFn;
+}
+
+/** Resolves an uploaded attachment id to its metadata (backed by disk). */
+export type AttachmentResolver = (id: string) => Attachment | undefined;
 
 export type SaveHandler = (graph: ChatGraph) => Promise<void>;
 
 const SAVE_DEBOUNCE_MS = 500;
+/** Auto-deny a permission prompt after this long so a turn never hangs forever. */
+const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
 
 export class ChatSessionManager extends EventEmitter {
   readonly graph: ChatGraph;
   private saveHandler: SaveHandler | null = null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
-  /** Chats whose in-flight stream has been asked to stop. */
-  private readonly stopped = new Set<string>();
+  /** In-flight turns keyed by chat, so stop() can abort them. */
+  private readonly controllers = new Map<string, AbortController>();
   /** requestId -> resolver for pending agent permission prompts. */
   private readonly pendingPermissions = new Map<string, (d: PermissionDecision) => void>();
 
   constructor(
     title = 'Untitled',
-    private readonly streamText?: StreamTextFn,
+    private readonly streams: ManagerStreams = {},
     initialGraph?: ChatGraph,
+    private readonly attachmentResolver?: AttachmentResolver,
   ) {
     super();
     this.graph = initialGraph ?? createChatGraph(title);
@@ -70,12 +80,15 @@ export class ChatSessionManager extends EventEmitter {
   connect(from: string, to: string): void {
     addContextEdge(this.graph, from, to);
     const edge = this.graph.edges[this.graph.edges.length - 1];
+    // Re-wiring context invalidates the target's agent session (and everything downstream).
+    markSessionStale(this.graph, to);
     this.emit('message', { type: 'chat_connected', edge });
     this.scheduleSave();
   }
 
   disconnect(from: string, to: string): void {
     removeContextEdge(this.graph, from, to);
+    markSessionStale(this.graph, to);
     this.emit('message', { type: 'chat_disconnected', from, to });
     this.scheduleSave();
   }
@@ -107,10 +120,15 @@ export class ChatSessionManager extends EventEmitter {
     this.emit('message', { type: 'chat_permission_resolved', chatId, requestId });
   }
 
-  async prompt(chatId: string, content: string, _attachmentIds?: string[]): Promise<void> {
+  async prompt(chatId: string, content: string, attachmentIds?: string[]): Promise<void> {
     appendMessage(this.graph, chatId, 'user', content);
     const own = this.graph.chats[chatId].messages;
-    this.emit('message', { type: 'chat_user_message', chatId, message: own[own.length - 1] });
+    const userMsg = own[own.length - 1];
+    const attachments = (attachmentIds ?? [])
+      .map((id) => this.attachmentResolver?.(id))
+      .filter((a): a is Attachment => Boolean(a));
+    if (attachments.length > 0) userMsg.attachments = attachments;
+    this.emit('message', { type: 'chat_user_message', chatId, message: userMsg });
     this.scheduleSave();
 
     await this.runStream(chatId);
@@ -119,41 +137,117 @@ export class ChatSessionManager extends EventEmitter {
   /** Streams an assistant turn from the chat's current assembled context.
    *  Reused by prompt() and regenerate() — never appends a user message. */
   private async runStream(chatId: string): Promise<void> {
-    if (!this.streamText) return;
+    const chat = this.graph.chats[chatId];
+    const settings: ChatSettings = chat.settings ?? { engine: 'api' };
+    const stream = settings.engine === 'agent' ? this.streams.agent : this.streams.api;
+    if (!stream) return;
 
-    const own = this.graph.chats[chatId].messages;
     const context = assembleContext(this.graph, chatId);
+    const lastUser = [...context].reverse().find((m) => m.role === 'user');
+    const latest = lastUser?.content ?? '';
+    const attachments = lastUser?.attachments ?? [];
+    const fresh = !chat.sessionId || chat.sessionStale === true;
+
+    const controller = new AbortController();
+    this.controllers.set(chatId, controller);
+
+    const ctx: TurnContext = {
+      context,
+      latest,
+      settings,
+      sessionId: fresh ? undefined : chat.sessionId,
+      attachments,
+      waitForPermission: (requestId) => this.awaitPermission(chatId, requestId),
+      signal: controller.signal,
+    };
+
     this.emit('message', { type: 'chat_stream_started', chatId });
-    this.stopped.delete(chatId);
     try {
       let text = '';
-      for await (const delta of this.streamText(context)) {
-        if (this.stopped.has(chatId)) break;
-        text += delta;
-        this.emit('message', { type: 'chat_stream_delta', chatId, delta });
+      for await (const ev of stream(ctx)) {
+        if (controller.signal.aborted) break;
+        switch (ev.type) {
+          case 'session':
+            chat.sessionId = ev.sessionId;
+            chat.sessionStale = false;
+            break;
+          case 'text_delta':
+            text += ev.text;
+            this.emit('message', { type: 'chat_stream_delta', chatId, delta: ev.text });
+            break;
+          case 'tool_use':
+            this.appendToolMessage(chatId, `→ ${ev.name}`, {
+              toolUseId: ev.toolUseId,
+              toolName: ev.name,
+              toolInput: ev.input,
+            });
+            break;
+          case 'tool_result':
+            this.appendToolMessage(chatId, ev.content, { toolUseId: ev.toolUseId });
+            break;
+          case 'permission_request':
+            this.emit('message', {
+              type: 'chat_permission_requested',
+              chatId,
+              requestId: ev.requestId,
+              toolName: ev.toolName,
+              input: ev.input,
+            });
+            break;
+        }
       }
-      this.stopped.delete(chatId);
       appendMessage(this.graph, chatId, 'assistant', text);
+      const msgs = this.graph.chats[chatId].messages;
       this.emit('message', {
         type: 'chat_stream_completed',
         chatId,
-        message: own[own.length - 1],
+        message: msgs[msgs.length - 1],
       });
       this.maybeAutoTitle(chatId);
       this.scheduleSave();
     } catch (err) {
-      this.stopped.delete(chatId);
       this.emit('message', {
         type: 'chat_error',
         chatId,
         message: err instanceof Error ? err.message : String(err),
       });
+    } finally {
+      this.controllers.delete(chatId);
     }
   }
 
-  /** Stops the in-flight stream for a chat; the loop breaks and settles the turn. */
+  /** Append a role 'tool' message with structured fields and broadcast it. */
+  private appendToolMessage(
+    chatId: string,
+    content: string,
+    fields: { toolUseId?: string; toolName?: string; toolInput?: unknown },
+  ): void {
+    appendMessage(this.graph, chatId, 'tool', content);
+    const msgs = this.graph.chats[chatId].messages;
+    const msg = msgs[msgs.length - 1];
+    Object.assign(msg, fields);
+    this.emit('message', { type: 'chat_tool_message', chatId, message: msg });
+  }
+
+  /** Register a pending permission prompt; auto-deny after a timeout. */
+  private awaitPermission(chatId: string, requestId: string): Promise<PermissionDecision> {
+    return new Promise<PermissionDecision>((resolve) => {
+      const timer = setTimeout(() => {
+        if (this.pendingPermissions.delete(requestId)) {
+          this.emit('message', { type: 'chat_permission_resolved', chatId, requestId });
+          resolve({ behavior: 'deny', message: 'permission request timed out' });
+        }
+      }, PERMISSION_TIMEOUT_MS);
+      this.pendingPermissions.set(requestId, (decision) => {
+        clearTimeout(timer);
+        resolve(decision);
+      });
+    });
+  }
+
+  /** Stops the in-flight turn for a chat; the loop breaks and settles the turn. */
   stop(chatId: string): void {
-    this.stopped.add(chatId);
+    this.controllers.get(chatId)?.abort();
   }
 
   /** Re-runs the last turn: drops a trailing assistant message and streams again. */
@@ -163,6 +257,9 @@ export class ChatSessionManager extends EventEmitter {
     const last = chat.messages[chat.messages.length - 1];
     if (!last || last.role !== 'assistant') return;
     removeLastMessage(this.graph, chatId);
+    // The agent SDK session already contains the turn being discarded, so the
+    // regenerated turn must start fresh with a re-assembled preamble.
+    if ((chat.settings?.engine ?? 'api') === 'agent') markSessionStale(this.graph, chatId);
     this.emit('message', { type: 'chat_last_message_removed', chatId });
     this.scheduleSave();
     await this.runStream(chatId);

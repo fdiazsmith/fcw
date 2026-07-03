@@ -16,9 +16,9 @@ export interface PermissionDecision {
 }
 
 export interface TurnContext {
-  /** Assembled ancestor + own history (excludes the just-appended user prompt). */
+  /** Assembled ancestor + own history, INCLUDING the just-appended user prompt. */
   context: ChatMessage[];
-  /** The new user prompt text for this turn. */
+  /** The new user prompt text for this turn (last entry of context). */
   latest: string;
   settings: ChatSettings;
   /** Live agent session id, or undefined to start fresh with a preamble. */

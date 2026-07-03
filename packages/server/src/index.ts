@@ -34,7 +34,8 @@ export { createLlmSummary } from './llm-summary.js';
 export type { LlmSummaryOptions } from './llm-summary.js';
 // v2 chat-graph
 export { ChatSessionManager } from './chat-session.js';
-export type { StreamTextFn } from './chat-session.js';
+export type { ManagerStreams, AttachmentResolver } from './chat-session.js';
+export type { StreamTurnFn, TurnEvent, TurnContext, PermissionDecision } from './turn-events.js';
 export { createChatStreamText } from './chat-claude-adapter.js';
 export { isChatClientMessage, handleChatClientMessage, ChatClientMessageSchema } from './chat-ws-handler.js';
 export {
@@ -109,7 +110,7 @@ export function createApp(options: ServerOptions = {}) {
 
   const chatSessions = new ChatSessionManager(
     title,
-    claudeClient ? createChatStreamText(claudeClient) : undefined,
+    { api: claudeClient ? createChatStreamText(claudeClient) : undefined },
     initialGraph,
   );
   chatSessions.setSaveHandler(async (graph) => {

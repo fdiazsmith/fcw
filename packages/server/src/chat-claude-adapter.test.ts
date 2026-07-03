@@ -2,6 +2,18 @@ import { describe, it, expect } from 'vitest';
 import type { ChatMessage } from '@fcw/graph-core';
 import { createChatStreamText } from './chat-claude-adapter.js';
 import type { ClaudeClient } from './claude-client.js';
+import type { TurnContext, TurnEvent } from './turn-events.js';
+
+function turnCtx(context: ChatMessage[]): TurnContext {
+  return {
+    context,
+    latest: context[context.length - 1]?.content ?? '',
+    settings: { engine: 'api' },
+    attachments: [],
+    waitForPermission: async () => ({ behavior: 'deny' }),
+    signal: new AbortController().signal,
+  };
+}
 
 function fakeClient(events: unknown[], captured: { messages?: unknown; system?: string }) {
   return {
@@ -35,10 +47,12 @@ describe('createChatStreamText', () => {
       ],
       captured,
     );
-    const streamText = createChatStreamText(client);
+    const streamTurn = createChatStreamText(client);
     const out: string[] = [];
-    for await (const d of streamText([msg('user', 'q1'), msg('assistant', 'a1'), msg('user', 'q2')])) {
-      out.push(d);
+    for await (const ev of streamTurn(
+      turnCtx([msg('user', 'q1'), msg('assistant', 'a1'), msg('user', 'q2')]),
+    ) as AsyncIterable<TurnEvent>) {
+      if (ev.type === 'text_delta') out.push(ev.text);
     }
     expect(out).toEqual(['Hel', 'lo']);
     expect(captured.messages).toEqual([

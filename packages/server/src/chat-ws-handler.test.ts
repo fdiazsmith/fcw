@@ -69,22 +69,23 @@ describe('handleChatClientMessage', () => {
   it('chat_stop_requested stops the in-flight stream (partial settles)', async () => {
     const sessions = new ChatSessionManager('T');
     const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
-    async function* slow(): AsyncGenerator<string> {
-      yield 'par';
+    async function* slow(): AsyncGenerator<import('./turn-events.js').TurnEvent> {
+      yield { type: 'text_delta', text: 'par' };
       await handleChatClientMessage({ type: 'chat_stop_requested', chatId: id }, sessions);
-      yield 'tial';
+      yield { type: 'text_delta', text: 'tial' };
     }
-    (sessions as unknown as { streamText: () => AsyncIterable<string> }).streamText = () => slow();
+    (sessions as unknown as { streams: { api: () => AsyncIterable<unknown> } }).streams.api = () => slow();
     await handleChatClientMessage({ type: 'chat_prompt_submitted', chatId: id, content: 'hi' }, sessions);
     const msgs = sessions.graph.chats[id].messages;
     expect(msgs[msgs.length - 1]).toMatchObject({ role: 'assistant', content: 'par' });
   });
 
   it('chat_regenerate_requested re-runs the last turn', async () => {
-    async function* stream(): AsyncGenerator<string> {
-      yield 'ok';
-    }
-    const sessions = new ChatSessionManager('T', () => stream());
+    const sessions = new ChatSessionManager('T', {
+      api: async function* () {
+        yield { type: 'text_delta', text: 'ok' };
+      },
+    });
     const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
     await sessions.prompt(id, 'q');
     expect(sessions.graph.chats[id].messages).toHaveLength(2);

@@ -2,7 +2,16 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { ChatServerMessage } from '@fcw/graph-core';
 import { createChatGraph, addChat } from '@fcw/graph-core';
 import { ChatSessionManager } from './chat-session.js';
-import type { StreamTextFn } from './chat-session.js';
+import type { StreamTurnFn, TurnEvent, TurnContext } from './turn-events.js';
+
+/** Wrap a plain text-delta generator as an api-engine StreamTurnFn. */
+function textTurn(
+  gen: (ctx: TurnContext) => AsyncIterable<string>,
+): StreamTurnFn {
+  return async function* (ctx: TurnContext): AsyncIterable<TurnEvent> {
+    for await (const text of gen(ctx)) yield { type: 'text_delta', text };
+  };
+}
 
 function collect(sessions: ChatSessionManager): ChatServerMessage[] {
   const events: ChatServerMessage[] = [];
@@ -137,9 +146,11 @@ describe('ChatSessionManager.prompt with streaming', () => {
 
   it('streams deltas and appends the assistant message', async () => {
     const seen: string[][] = [];
-    const sessions = new ChatSessionManager('T', (messages) => {
-      seen.push(messages.map((m) => `${m.role}:${m.content}`));
-      return fakeStream();
+    const sessions = new ChatSessionManager('T', {
+      api: textTurn((ctx) => {
+        seen.push(ctx.context.map((m) => `${m.role}:${m.content}`));
+        return fakeStream();
+      }),
     });
     const id = sessions.createChat({ x: 0, y: 0 });
     const events = collect(sessions);
@@ -158,15 +169,17 @@ describe('ChatSessionManager.prompt with streaming', () => {
     ]);
     expect(events[2]).toEqual({ type: 'chat_stream_delta', chatId: id, delta: 'Hel' });
     expect(events[4]).toMatchObject({ chatId: id, message: { content: 'Hello!' } });
-    // the stream fn received the assembled context including the new user message
+    // the turn fn received the assembled context including the new user message
     expect(seen).toEqual([['user:hi']]);
   });
 
-  it('sends inherited parent context to the stream fn', async () => {
+  it('sends inherited parent context to the turn fn', async () => {
     const seen: string[][] = [];
-    const sessions = new ChatSessionManager('T', (messages) => {
-      seen.push(messages.map((m) => `${m.role}:${m.content}`));
-      return fakeStream();
+    const sessions = new ChatSessionManager('T', {
+      api: textTurn((ctx) => {
+        seen.push(ctx.context.map((m) => `${m.role}:${m.content}`));
+        return fakeStream();
+      }),
     });
     const parent = sessions.createChat({ x: 0, y: 0 });
     await sessions.prompt(parent, 'parent question');
@@ -180,8 +193,86 @@ describe('ChatSessionManager.prompt with streaming', () => {
     ]);
   });
 
+  it('dispatches to the agent engine when settings.engine is agent', async () => {
+    const calls: string[] = [];
+    const sessions = new ChatSessionManager('T', {
+      api: textTurn(() => {
+        calls.push('api');
+        return fakeStream();
+      }),
+      agent: textTurn(() => {
+        calls.push('agent');
+        return fakeStream();
+      }),
+    });
+    const id = sessions.createChat({ x: 0, y: 0 });
+    sessions.updateSettings(id, { engine: 'agent' });
+    await sessions.prompt(id, 'hi');
+    expect(calls).toEqual(['agent']);
+  });
+
+  it('stores the session id and clears staleness on a session event', async () => {
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* () {
+        yield { type: 'session', sessionId: 'sess_xyz' } as TurnEvent;
+        yield { type: 'text_delta', text: 'ok' } as TurnEvent;
+      },
+    });
+    const id = sessions.createChat({ x: 0, y: 0 });
+    sessions.updateSettings(id, { engine: 'agent' });
+    sessions.graph.chats[id].sessionStale = true;
+    await sessions.prompt(id, 'hi');
+    expect(sessions.graph.chats[id].sessionId).toBe('sess_xyz');
+    expect(sessions.graph.chats[id].sessionStale).toBe(false);
+  });
+
+  it('appends tool messages and emits chat_tool_message', async () => {
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* () {
+        yield { type: 'tool_use', toolUseId: 'tu1', name: 'Read', input: { path: '/x' } } as TurnEvent;
+        yield { type: 'tool_result', toolUseId: 'tu1', content: 'file contents' } as TurnEvent;
+        yield { type: 'text_delta', text: 'done' } as TurnEvent;
+      },
+    });
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    sessions.updateSettings(id, { engine: 'agent' });
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+    const toolMsgs = sessions.graph.chats[id].messages.filter((m) => m.role === 'tool');
+    expect(toolMsgs).toHaveLength(2);
+    expect(toolMsgs[0]).toMatchObject({ toolUseId: 'tu1', toolName: 'Read', toolInput: { path: '/x' } });
+    expect(toolMsgs[1]).toMatchObject({ toolUseId: 'tu1', content: 'file contents' });
+    expect(events.filter((e) => e.type === 'chat_tool_message')).toHaveLength(2);
+    // assistant text still lands as the final message
+    const last = sessions.graph.chats[id].messages.at(-1)!;
+    expect(last).toMatchObject({ role: 'assistant', content: 'done' });
+  });
+
+  it('emits chat_permission_requested and resolvePermission unblocks the turn', async () => {
+    let decision: unknown;
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* (ctx) {
+        yield { type: 'permission_request', requestId: 'r1', toolName: 'Bash', input: { cmd: 'ls' } } as TurnEvent;
+        decision = await ctx.waitForPermission('r1');
+        yield { type: 'text_delta', text: 'after' } as TurnEvent;
+      },
+    });
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    sessions.updateSettings(id, { engine: 'agent' });
+    const events = collect(sessions);
+    const done = sessions.prompt(id, 'hi');
+    // let the generator reach the await
+    await new Promise((r) => setTimeout(r, 0));
+    expect(events.some((e) => e.type === 'chat_permission_requested')).toBe(true);
+    sessions.resolvePermission(id, 'r1', { behavior: 'allow' });
+    await done;
+    expect(decision).toEqual({ behavior: 'allow' });
+    expect(events.some((e) => e.type === 'chat_permission_resolved')).toBe(true);
+    expect(sessions.graph.chats[id].messages.at(-1)).toMatchObject({ content: 'after' });
+  });
+
   it('auto-titles an untitled chat from the first user message when the stream completes', async () => {
-    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const sessions = new ChatSessionManager('T', { api: textTurn(() => fakeStream()) });
     const id = sessions.createChat({ x: 0, y: 0 }); // title ''
     const events = collect(sessions);
     await sessions.prompt(id, 'What is the capital of France?');
@@ -195,7 +286,7 @@ describe('ChatSessionManager.prompt with streaming', () => {
   });
 
   it('truncates a long first message at a word boundary with an ellipsis', async () => {
-    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const sessions = new ChatSessionManager('T', { api: textTurn(() => fakeStream()) });
     const id = sessions.createChat({ x: 0, y: 0 });
     const events = collect(sessions);
     await sessions.prompt(
@@ -210,7 +301,7 @@ describe('ChatSessionManager.prompt with streaming', () => {
   });
 
   it('does not retitle a chat that already has a title', async () => {
-    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const sessions = new ChatSessionManager('T', { api: textTurn(() => fakeStream()) });
     const id = sessions.createChat({ x: 0, y: 0 }, 'Preset title');
     const events = collect(sessions);
     await sessions.prompt(id, 'anything');
@@ -220,17 +311,17 @@ describe('ChatSessionManager.prompt with streaming', () => {
 
   it('stop() breaks the stream, appends the partial text, and completes', async () => {
     let started = false;
-    async function* slow(sessions: ChatSessionManager, id: string): AsyncGenerator<string> {
-      yield 'par';
-      started = true;
-      sessions.stop(id); // request stop mid-stream
-      yield 'tial'; // should be ignored
-      yield 'more';
-    }
     const sessions = new ChatSessionManager('T');
-    // wire stream after construction so it can reference `sessions`
     const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
-    (sessions as unknown as { streamText: StreamTextFn }).streamText = () => slow(sessions, id);
+    (sessions as unknown as { streams: { api: StreamTurnFn } }).streams.api = textTurn(
+      async function* (): AsyncGenerator<string> {
+        yield 'par';
+        started = true;
+        sessions.stop(id); // request stop mid-stream
+        yield 'tial'; // should be ignored
+        yield 'more';
+      },
+    );
     const events = collect(sessions);
     await sessions.prompt(id, 'hi');
     expect(started).toBe(true);
@@ -241,7 +332,7 @@ describe('ChatSessionManager.prompt with streaming', () => {
   });
 
   it('regenerate() drops a trailing assistant message and re-streams', async () => {
-    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const sessions = new ChatSessionManager('T', { api: textTurn(() => fakeStream()) });
     const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
     await sessions.prompt(id, 'question'); // -> user + assistant 'Hello!'
     expect(sessions.graph.chats[id].messages).toHaveLength(2);
@@ -258,8 +349,26 @@ describe('ChatSessionManager.prompt with streaming', () => {
     expect(types).not.toContain('chat_user_message');
   });
 
+  it('regenerate() marks an agent session stale before re-running', async () => {
+    const seenSessionIds: (string | undefined)[] = [];
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* (ctx) {
+        seenSessionIds.push(ctx.sessionId);
+        yield { type: 'session', sessionId: 'sess_1' } as TurnEvent;
+        yield { type: 'text_delta', text: 'reply' } as TurnEvent;
+      },
+    });
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    sessions.updateSettings(id, { engine: 'agent' });
+    await sessions.prompt(id, 'q'); // captures sessionId sess_1
+    expect(sessions.graph.chats[id].sessionId).toBe('sess_1');
+    await sessions.regenerate(id);
+    // second run started fresh (no resume) because regenerate marked it stale
+    expect(seenSessionIds).toEqual([undefined, undefined]);
+  });
+
   it('regenerate() is a no-op when the last message is not assistant', async () => {
-    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const sessions = new ChatSessionManager('T', { api: textTurn(() => fakeStream()) });
     const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
     const events = collect(sessions);
     await sessions.regenerate(id); // no messages at all
@@ -268,16 +377,17 @@ describe('ChatSessionManager.prompt with streaming', () => {
   });
 
   it('regenerate() throws for an unknown chat', async () => {
-    const sessions = new ChatSessionManager('T', () => fakeStream());
+    const sessions = new ChatSessionManager('T', { api: textTurn(() => fakeStream()) });
     await expect(sessions.regenerate('nope')).rejects.toThrow(/unknown chat/i);
   });
 
   it('emits chat_error and no assistant message when the stream fails', async () => {
-    async function* failing(): AsyncGenerator<string> {
-      yield 'par';
-      throw new Error('boom');
-    }
-    const sessions = new ChatSessionManager('T', () => failing());
+    const sessions = new ChatSessionManager('T', {
+      api: textTurn(async function* (): AsyncGenerator<string> {
+        yield 'par';
+        throw new Error('boom');
+      }),
+    });
     const id = sessions.createChat({ x: 0, y: 0 });
     const events = collect(sessions);
     await sessions.prompt(id, 'hi');
@@ -288,5 +398,64 @@ describe('ChatSessionManager.prompt with streaming', () => {
       'chat_error',
     ]);
     expect(sessions.graph.chats[id].messages).toHaveLength(1); // only the user msg
+  });
+
+  it('resolves attachmentIds to attachments on the user message', async () => {
+    const resolver = (attId: string) =>
+      attId === 'a1'
+        ? { id: 'a1', name: 'pic.png', mediaType: 'image/png', path: '/d/a1.png' }
+        : undefined;
+    let ctxAttachments: unknown;
+    const sessions = new ChatSessionManager(
+      'T',
+      {
+        api: async function* (ctx) {
+          ctxAttachments = ctx.attachments;
+          yield { type: 'text_delta', text: 'ok' } as TurnEvent;
+        },
+      },
+      undefined,
+      resolver,
+    );
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    await sessions.prompt(id, 'see this', ['a1', 'missing']);
+    const userMsg = sessions.graph.chats[id].messages[0];
+    expect(userMsg.attachments).toEqual([
+      { id: 'a1', name: 'pic.png', mediaType: 'image/png', path: '/d/a1.png' },
+    ]);
+    expect(ctxAttachments).toEqual(userMsg.attachments);
+  });
+});
+
+describe('ChatSessionManager edge staleness', () => {
+  it('connect and disconnect mark the target and descendants stale', () => {
+    const sessions = new ChatSessionManager('T');
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const b = sessions.createChat({ x: 0, y: 0 });
+    const c = sessions.createChat({ x: 0, y: 0 });
+    sessions.connect(b, c); // b -> c
+    sessions.connect(a, b); // a -> b, marks b and c stale
+    expect(sessions.graph.chats[b].sessionStale).toBe(true);
+    expect(sessions.graph.chats[c].sessionStale).toBe(true);
+    // clear then disconnect re-marks
+    sessions.graph.chats[b].sessionStale = false;
+    sessions.graph.chats[c].sessionStale = false;
+    sessions.disconnect(a, b);
+    expect(sessions.graph.chats[b].sessionStale).toBe(true);
+    expect(sessions.graph.chats[c].sessionStale).toBe(true);
+  });
+});
+
+describe('ChatSessionManager.updateSettings', () => {
+  it('emits chat_settings_changed with the merged settings', () => {
+    const sessions = new ChatSessionManager();
+    const id = sessions.createChat({ x: 0, y: 0 });
+    const events = collect(sessions);
+    sessions.updateSettings(id, { engine: 'agent', model: 'claude-opus-4-8' });
+    expect(events).toContainEqual({
+      type: 'chat_settings_changed',
+      chatId: id,
+      settings: { engine: 'agent', model: 'claude-opus-4-8' },
+    });
   });
 });
