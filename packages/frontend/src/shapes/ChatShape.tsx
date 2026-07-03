@@ -8,7 +8,8 @@ import {
   stopEventPropagation,
 } from 'tldraw';
 import { ChatWindow } from '../components/ChatWindow';
-import type { ChatView } from '../chat-store';
+import type { ChatView, Capabilities, PendingPermission } from '../chat-store';
+import type { ChatSettings, Attachment } from '@fcw/graph-core';
 import { collapseToggle } from '../collapse-pill';
 
 // Chat data rides in shape props (JSON), following the v1 GraphNodeShape pattern:
@@ -24,15 +25,21 @@ export type ChatShapeProps = {
   error: string;
   collapsed: boolean;
   expandedH: number; // height to restore when un-collapsing
+  settingsJson: string;
+  pendingPermissionJson: string; // '' means no pending permission
+  capabilitiesJson: string; // '' means capabilities not loaded yet
 };
 
 export type ChatShape = TLBaseShape<'chat-node', ChatShapeProps>;
 
 export interface ChatActions {
-  sendPrompt: (chatId: string, content: string) => void;
+  sendPrompt: (chatId: string, content: string, attachmentIds?: string[]) => void;
   requestBranch: (chatId: string, position: { x: number; y: number }) => void;
   stopStream: (chatId: string) => void;
   regenerate: (chatId: string) => void;
+  updateSettings: (chatId: string, patch: Partial<ChatSettings>) => void;
+  permissionDecision: (chatId: string, requestId: string, behavior: 'allow' | 'deny') => void;
+  uploadAttachment: (file: File) => Promise<Attachment>;
 }
 
 let chatActions: ChatActions | null = null;
@@ -42,21 +49,32 @@ export function registerChatActions(actions: ChatActions | null): void {
   chatActions = actions;
 }
 
-export function viewFromShape(shape: ChatShape): ChatView {
-  let messages: ChatView['messages'] = [];
+function parseJson<T>(raw: string, fallback: T): T {
+  if (!raw) return fallback;
   try {
-    messages = JSON.parse(shape.props.messagesJson);
+    return JSON.parse(raw) as T;
   } catch {
-    messages = [];
+    return fallback;
   }
+}
+
+export function viewFromShape(shape: ChatShape): ChatView {
   return {
     id: shape.props.chatId,
     title: shape.props.title,
     position: { x: shape.x, y: shape.y },
-    messages,
+    messages: parseJson<ChatView['messages']>(shape.props.messagesJson, []),
     streamingText: shape.props.hasStream ? shape.props.streamingText : null,
     error: shape.props.error || null,
+    settings: parseJson<ChatSettings>(shape.props.settingsJson, { engine: 'api' }),
+    pendingPermission: parseJson<PendingPermission | null>(shape.props.pendingPermissionJson, null),
   };
+}
+
+export function capabilitiesFromShape(shape: ChatShape): Capabilities | undefined {
+  return shape.props.capabilitiesJson
+    ? parseJson<Capabilities | undefined>(shape.props.capabilitiesJson, undefined)
+    : undefined;
 }
 
 export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
@@ -73,6 +91,9 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
     error: T.string,
     collapsed: T.boolean,
     expandedH: T.number,
+    settingsJson: T.string,
+    pendingPermissionJson: T.string,
+    capabilitiesJson: T.string,
   };
 
   override getDefaultProps(): ChatShapeProps {
@@ -87,6 +108,9 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
       error: '',
       collapsed: false,
       expandedH: 420,
+      settingsJson: '{"engine":"api"}',
+      pendingPermissionJson: '',
+      capabilitiesJson: '',
     };
   }
 
@@ -186,9 +210,21 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
         ) : (
           <ChatWindow
             chat={view}
-            onSend={(content) => chatActions?.sendPrompt(shape.props.chatId, content)}
+            capabilities={capabilitiesFromShape(shape)}
+            onSend={(content, attachmentIds) =>
+              chatActions?.sendPrompt(shape.props.chatId, content, attachmentIds)
+            }
             onStop={() => chatActions?.stopStream(shape.props.chatId)}
             onRegenerate={() => chatActions?.regenerate(shape.props.chatId)}
+            onUpdateSettings={(patch) => chatActions?.updateSettings(shape.props.chatId, patch)}
+            onPermissionDecision={(requestId, behavior) =>
+              chatActions?.permissionDecision(shape.props.chatId, requestId, behavior)
+            }
+            uploadAttachment={(file) =>
+              chatActions
+                ? chatActions.uploadAttachment(file)
+                : Promise.reject(new Error('not connected'))
+            }
           />
         )}
         {/* Collapse/expand toggle: same event pattern as + branch. */}

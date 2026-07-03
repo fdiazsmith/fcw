@@ -9,6 +9,7 @@ import { exportBranchMarkdown } from './export-branch';
 import type { ChatServerMessage, ChatClientMessage } from '@fcw/graph-core';
 
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8009';
+const HTTP_URL = WS_URL.replace(/^ws/, 'http');
 
 const customShapes = [ChatShapeUtil];
 
@@ -28,6 +29,23 @@ function downloadFile(content: string, filename: string, mime: string) {
 
 function ctxArrowId(from: string, to: string): TLShapeId {
   return createShapeId(`ctx-${from}-${to}`);
+}
+
+/** Upload a file to the server and return its attachment metadata. */
+async function uploadAttachment(file: File): Promise<import('@fcw/graph-core').Attachment> {
+  const data = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  const res = await fetch(`${HTTP_URL}/attachments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: file.name, mediaType: file.type || 'application/octet-stream', data }),
+  });
+  if (!res.ok) throw new Error(`upload failed: ${res.status}`);
+  return res.json();
 }
 
 /** Find any arrow representing the context edge from->to (created by us or adopted). */
@@ -92,6 +110,8 @@ export default function ChatCanvas() {
     const editor = editorRef.current;
     if (!editor) return;
     const id = chatShapeId(view.id);
+    const caps = stateRef.current.capabilities;
+    const hasCaps = caps.models.length > 0 || caps.commands.length > 0;
     const props = {
       chatId: view.id,
       title: view.title,
@@ -99,6 +119,9 @@ export default function ChatCanvas() {
       streamingText: view.streamingText ?? '',
       hasStream: view.streamingText !== null,
       error: view.error ?? '',
+      settingsJson: JSON.stringify(view.settings),
+      pendingPermissionJson: view.pendingPermission ? JSON.stringify(view.pendingPermission) : '',
+      capabilitiesJson: hasCaps ? JSON.stringify(caps) : '',
     };
     syncingRef.current = true;
     try {
@@ -208,6 +231,11 @@ export default function ChatCanvas() {
         syncEdge(msg);
         return;
       }
+      // Capabilities are canvas-wide; rewrite every card so its picker sees them.
+      if (msg.type === 'chat_capabilities') {
+        syncAll(next);
+        return;
+      }
       const chatId = msg.type === 'chat_created' ? msg.chat.id : msg.chatId;
       const view = next.chats[chatId];
       if (view) syncChat(view);
@@ -220,12 +248,17 @@ export default function ChatCanvas() {
     wsRef.current = ws;
     ws.onMessage((msg) => handleServerMessage(msg as unknown as ChatServerMessage));
     registerChatActions({
-      sendPrompt: (chatId, content) =>
-        send({ type: 'chat_prompt_submitted', chatId, content }),
+      sendPrompt: (chatId, content, attachmentIds) =>
+        send({ type: 'chat_prompt_submitted', chatId, content, attachmentIds }),
       requestBranch: (parentId, position) =>
         send({ type: 'chat_branch_requested', parentId, position }),
       stopStream: (chatId) => send({ type: 'chat_stop_requested', chatId }),
       regenerate: (chatId) => send({ type: 'chat_regenerate_requested', chatId }),
+      updateSettings: (chatId, settings) =>
+        send({ type: 'chat_settings_updated', chatId, settings }),
+      permissionDecision: (chatId, requestId, behavior) =>
+        send({ type: 'chat_permission_decision', chatId, requestId, behavior }),
+      uploadAttachment: (file) => uploadAttachment(file),
     });
     return () => {
       registerChatActions(null);
