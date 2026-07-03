@@ -13,6 +13,11 @@ export interface WsServerOptions {
   claudeClient?: ClaudeClient;
   toolExecutor?: ToolExecutor;
   chatSessions?: ChatSessionManager;
+  /** Lazily-loaded model/command capabilities, pushed to each client on connect. */
+  capabilities?: () => Promise<{
+    models: { id: string; displayName: string }[];
+    commands: { name: string; description: string }[];
+  }>;
 }
 
 export function createWsServer(
@@ -52,6 +57,18 @@ export function createWsServer(
     // v2: sync the full chat-graph so refreshes/restarts restore the canvas
     if (options?.chatSessions) {
       ws.send(JSON.stringify({ type: 'chat_snapshot', graph: options.chatSessions.graph }));
+    }
+
+    // v2: push agent model/command capabilities once they resolve
+    if (options?.capabilities) {
+      options
+        .capabilities()
+        .then((caps) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'chat_capabilities', ...caps }));
+          }
+        })
+        .catch((err) => console.error('[ws] capabilities failed:', err));
     }
 
     ws.on('message', (raw) => {

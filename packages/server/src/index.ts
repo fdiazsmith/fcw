@@ -16,6 +16,9 @@ import { createClaudeClient } from './claude-client.js';
 import { createLlmSummary } from './llm-summary.js';
 import { ChatSessionManager } from './chat-session.js';
 import { createChatStreamText } from './chat-claude-adapter.js';
+import { createAgentTurnStream } from './chat-agent-adapter.js';
+import { createCapabilitiesProvider } from './capabilities.js';
+import { AttachmentStore } from './attachments.js';
 
 export { StateManager } from './state-manager.js';
 export { createRouter } from './routes.js';
@@ -69,7 +72,8 @@ export function createApp(options: ServerOptions = {}) {
   mkdirSync(storageDir, { recursive: true });
 
   const manager = new StateManager(title);
-  const router = createRouter(manager, storageDir);
+  const attachmentStore = new AttachmentStore(storageDir);
+  const router = createRouter(manager, storageDir, attachmentStore);
   const httpServer = createServer(router);
 
   // Create Claude client if API key available
@@ -110,14 +114,19 @@ export function createApp(options: ServerOptions = {}) {
 
   const chatSessions = new ChatSessionManager(
     title,
-    { api: claudeClient ? createChatStreamText(claudeClient) : undefined },
+    {
+      api: claudeClient ? createChatStreamText(claudeClient) : undefined,
+      agent: createAgentTurnStream(),
+    },
     initialGraph,
+    (id) => attachmentStore.get(id),
   );
   chatSessions.setSaveHandler(async (graph) => {
     await writeFile(join(storageDir, `${graph.id}.fcw2.json`), chatGraphToJSON(graph), 'utf-8');
   });
 
-  const wss = createWsServer(httpServer, manager, { claudeClient, chatSessions });
+  const capabilities = createCapabilitiesProvider();
+  const wss = createWsServer(httpServer, manager, { claudeClient, chatSessions, capabilities });
 
   function start(): Promise<void> {
     return new Promise((resolve) => httpServer.listen(port, resolve));
