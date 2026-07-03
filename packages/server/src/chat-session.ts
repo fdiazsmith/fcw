@@ -166,8 +166,10 @@ export class ChatSessionManager extends EventEmitter {
     this.emit('message', { type: 'chat_stream_started', chatId });
     try {
       let text = '';
+      let emittedAny = false;
       for await (const ev of stream(ctx)) {
         if (controller.signal.aborted) break;
+        emittedAny = true;
         switch (ev.type) {
           case 'session':
             chat.sessionId = ev.sessionId;
@@ -197,6 +199,16 @@ export class ChatSessionManager extends EventEmitter {
             });
             break;
         }
+      }
+      if (!emittedAny && text === '') {
+        // The stream produced no output at all — surface as an error instead
+        // of a blank assistant bubble.
+        this.emit('message', {
+          type: 'chat_error',
+          chatId,
+          message: 'stream produced no output',
+        });
+        return;
       }
       appendMessage(this.graph, chatId, 'assistant', text);
       const msgs = this.graph.chats[chatId].messages;

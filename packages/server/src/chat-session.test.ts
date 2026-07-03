@@ -428,6 +428,40 @@ describe('ChatSessionManager.prompt with streaming', () => {
     expect(sessions.graph.chats[id].messages).toHaveLength(1); // only the user msg
   });
 
+  it('emits chat_error (not completed) when the stream yields nothing', async () => {
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* () {
+        // yields nothing, then closes
+      },
+    });
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    sessions.updateSettings(id, { engine: 'agent' });
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+    expect(events.some((e) => e.type === 'chat_error')).toBe(true);
+    expect(events.some((e) => e.type === 'chat_stream_completed')).toBe(false);
+    // no empty assistant message appended — only the user prompt remains
+    const roles = sessions.graph.chats[id].messages.map((m) => m.role);
+    expect(roles).toEqual(['user']);
+  });
+
+  it('completes normally for a tool-only stream with no text deltas', async () => {
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* () {
+        yield { type: 'tool_use', toolUseId: 'tu1', name: 'Read', input: { path: '/x' } } as TurnEvent;
+        yield { type: 'tool_result', toolUseId: 'tu1', content: 'done' } as TurnEvent;
+      },
+    });
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    sessions.updateSettings(id, { engine: 'agent' });
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+    expect(events.some((e) => e.type === 'chat_stream_completed')).toBe(true);
+    expect(events.some((e) => e.type === 'chat_error')).toBe(false);
+    // an empty assistant message is still appended (the turn did complete)
+    expect(sessions.graph.chats[id].messages.at(-1)).toMatchObject({ role: 'assistant', content: '' });
+  });
+
   it('resolves attachmentIds to attachments on the user message', async () => {
     const resolver = (attId: string) =>
       attId === 'a1'
