@@ -72,6 +72,28 @@ const ChatRegenerateRequestedSchema = z.object({
   chatId: z.string(),
 });
 
+const ChatCompactRequestedSchema = z.object({
+  type: z.literal('chat_compact_requested'),
+  chatIds: z.array(z.string()).min(1),
+});
+
+const ChatCompactionRegenerateRequestedSchema = z.object({
+  type: z.literal('chat_compaction_regenerate_requested'),
+  compactionId: z.string(),
+});
+
+const ChatCompactionDocumentUpdatedSchema = z.object({
+  type: z.literal('chat_compaction_document_updated'),
+  compactionId: z.string(),
+  document: z.string(),
+});
+
+const ChatCompactionMoveRequestedSchema = z.object({
+  type: z.literal('chat_compaction_move_requested'),
+  compactionId: z.string(),
+  position: z.object({ x: z.number(), y: z.number() }),
+});
+
 export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatCreateRequestedSchema,
   ChatPromptSubmittedSchema,
@@ -83,6 +105,10 @@ export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatRegenerateRequestedSchema,
   ChatSettingsUpdatedSchema,
   ChatPermissionDecisionSchema,
+  ChatCompactRequestedSchema,
+  ChatCompactionRegenerateRequestedSchema,
+  ChatCompactionDocumentUpdatedSchema,
+  ChatCompactionMoveRequestedSchema,
 ]);
 
 export function isChatClientMessage(value: unknown): value is ChatClientMessage {
@@ -116,5 +142,13 @@ export async function handleChatClientMessage(
     sessions.stop(msg.chatId);
   } else if (msg.type === 'chat_regenerate_requested') {
     await sessions.regenerate(msg.chatId);
+  } else if (msg.type === 'chat_compact_requested') {
+    await sessions.compact(msg.chatIds);
+  } else if (msg.type === 'chat_compaction_regenerate_requested') {
+    await sessions.regenerateCompaction(msg.compactionId);
+  } else if (msg.type === 'chat_compaction_document_updated') {
+    sessions.updateCompactionDocument(msg.compactionId, msg.document);
+  } else if (msg.type === 'chat_compaction_move_requested') {
+    sessions.moveCompaction(msg.compactionId, msg.position);
   }
 }

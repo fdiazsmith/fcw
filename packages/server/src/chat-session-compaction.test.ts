@@ -37,7 +37,9 @@ describe('ChatSessionManager.compact', () => {
     expect(isCompactionStale(sessions.graph, id)).toBe(false);
 
     expect(events[0]).toMatchObject({ type: 'chat_compaction_created' });
-    expect((events[0] as { compaction: { status: string } }).compaction.status).toBe('generating');
+    expect((events[0] as unknown as { compaction: { status: string } }).compaction.status).toBe(
+      'generating',
+    );
     expect(events[1]).toMatchObject({
       type: 'chat_compaction_document',
       compactionId: id,

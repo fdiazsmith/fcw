@@ -10,6 +10,24 @@ describe('isChatClientMessage', () => {
     expect(isChatClientMessage({ type: 'chat_bogus' })).toBe(false);
     expect(isChatClientMessage('junk')).toBe(false);
   });
+
+  it('recognizes compaction messages', () => {
+    expect(isChatClientMessage({ type: 'chat_compact_requested', chatIds: ['a'] })).toBe(true);
+    expect(isChatClientMessage({ type: 'chat_compact_requested', chatIds: [] })).toBe(false);
+    expect(
+      isChatClientMessage({ type: 'chat_compaction_regenerate_requested', compactionId: 'c' }),
+    ).toBe(true);
+    expect(
+      isChatClientMessage({ type: 'chat_compaction_document_updated', compactionId: 'c', document: 'd' }),
+    ).toBe(true);
+    expect(
+      isChatClientMessage({
+        type: 'chat_compaction_move_requested',
+        compactionId: 'c',
+        position: { x: 1, y: 2 },
+      }),
+    ).toBe(true);
+  });
 });
 
 describe('handleChatClientMessage', () => {
@@ -64,6 +82,51 @@ describe('handleChatClientMessage', () => {
       sessions,
     );
     expect(sessions.graph.chats[id].position).toEqual({ x: 7, y: 8 });
+  });
+
+  it('chat_compact_requested folds chats behind a compaction with a document', async () => {
+    const sessions = new ChatSessionManager();
+    const a = sessions.createChat({ x: 0, y: 0 });
+    sessions.graph.chats[a].messages.push({ role: 'user', content: 'stuff', createdAt: 't' });
+    await handleChatClientMessage({ type: 'chat_compact_requested', chatIds: [a] }, sessions);
+    const compactions = Object.values(sessions.graph.compactions);
+    expect(compactions).toHaveLength(1);
+    expect(compactions[0].memberIds).toEqual([a]);
+    expect(compactions[0].document).toContain('stuff');
+  });
+
+  it('chat_compaction_regenerate_requested re-synthesizes the document', async () => {
+    const sessions = new ChatSessionManager();
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const id = await sessions.compact([a]);
+    sessions.graph.chats[a].messages.push({ role: 'user', content: 'fresh insight', createdAt: 't' });
+    await handleChatClientMessage(
+      { type: 'chat_compaction_regenerate_requested', compactionId: id },
+      sessions,
+    );
+    expect(sessions.graph.compactions[id].document).toContain('fresh insight');
+  });
+
+  it('chat_compaction_document_updated stores the user edit', async () => {
+    const sessions = new ChatSessionManager();
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const id = await sessions.compact([a]);
+    await handleChatClientMessage(
+      { type: 'chat_compaction_document_updated', compactionId: id, document: '# Edited' },
+      sessions,
+    );
+    expect(sessions.graph.compactions[id].document).toBe('# Edited');
+  });
+
+  it('chat_compaction_move_requested repositions the compaction', async () => {
+    const sessions = new ChatSessionManager();
+    const a = sessions.createChat({ x: 0, y: 0 });
+    const id = await sessions.compact([a]);
+    await handleChatClientMessage(
+      { type: 'chat_compaction_move_requested', compactionId: id, position: { x: 5, y: 6 } },
+      sessions,
+    );
+    expect(sessions.graph.compactions[id].position).toEqual({ x: 5, y: 6 });
   });
 
   it('chat_stop_requested stops the in-flight stream (partial settles)', async () => {

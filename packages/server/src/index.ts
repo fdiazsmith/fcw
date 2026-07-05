@@ -18,6 +18,7 @@ import { ChatSessionManager } from './chat-session.js';
 import { createChatStreamText } from './chat-claude-adapter.js';
 import { createAgentTurnStream } from './chat-agent-adapter.js';
 import { createCapabilitiesProvider } from './capabilities.js';
+import { createCompactionDocGenerator } from './compaction-doc.js';
 import { AttachmentStore } from './attachments.js';
 
 export { StateManager } from './state-manager.js';
@@ -120,6 +121,7 @@ export function createApp(options: ServerOptions = {}) {
     },
     initialGraph,
     (id) => attachmentStore.get(id),
+    createCompactionDocGenerator({ apiKey }),
   );
   chatSessions.setSaveHandler(async (graph) => {
     await writeFile(join(storageDir, `${graph.id}.fcw2.json`), chatGraphToJSON(graph), 'utf-8');
