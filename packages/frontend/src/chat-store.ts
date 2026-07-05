@@ -7,7 +7,9 @@ import type {
   ChatSettings,
   CapabilityModel,
   CapabilityCommand,
+  Compaction,
 } from '@fcw/graph-core';
+import { compactionDigest } from '@fcw/graph-core';
 
 export interface PendingPermission {
   requestId: string;
@@ -38,10 +40,21 @@ export interface ChatState {
   chats: Record<string, ChatView>;
   edges: ContextEdge[];
   capabilities: Capabilities;
+  compactions: Record<string, Compaction>;
 }
 
 export function emptyChatState(): ChatState {
-  return { chats: {}, edges: [], capabilities: { models: [], commands: [] } };
+  return { chats: {}, edges: [], capabilities: { models: [], commands: [] }, compactions: {} };
+}
+
+/** True when a member transcript changed since the document was generated. */
+export function compactionIsStale(state: ChatState, compactionId: string): boolean {
+  const compaction = state.compactions[compactionId];
+  if (!compaction) return false;
+  const members = compaction.memberIds
+    .map((id) => state.chats[id])
+    .filter((v): v is ChatView => Boolean(v));
+  return compactionDigest(members) !== compaction.sourceDigest;
 }
 
 function viewFrom(chat: ChatNode): ChatView {
@@ -71,7 +84,36 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
         pendingPermissionQueue: prev?.pendingPermissionQueue ?? [],
       };
     }
-    return { ...state, chats, edges: [...msg.graph.edges] };
+    return {
+      ...state,
+      chats,
+      edges: [...msg.graph.edges],
+      compactions: { ...(msg.graph.compactions ?? {}) },
+    };
+  }
+
+  if (msg.type === 'chat_compaction_created') {
+    return {
+      ...state,
+      compactions: { ...state.compactions, [msg.compaction.id]: msg.compaction },
+    };
+  }
+
+  if (msg.type === 'chat_compaction_document') {
+    const compaction = state.compactions[msg.compactionId];
+    if (!compaction) return state;
+    return {
+      ...state,
+      compactions: {
+        ...state.compactions,
+        [msg.compactionId]: {
+          ...compaction,
+          document: msg.document,
+          sourceDigest: msg.sourceDigest,
+          status: msg.status,
+        },
+      },
+    };
   }
 
   if (msg.type === 'chat_capabilities') {

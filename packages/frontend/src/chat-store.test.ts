@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ChatServerMessage, ChatNode } from '@fcw/graph-core';
-import { emptyChatState, applyChatMessage, ChatState } from './chat-store';
+import { compactionDigest } from '@fcw/graph-core';
+import { emptyChatState, applyChatMessage, compactionIsStale, ChatState } from './chat-store';
 
 const chat = (id: string): ChatNode => ({
   id,
@@ -240,5 +241,89 @@ describe('applyChatMessage — agent features', () => {
       { type: 'chat_tool_message', chatId: 'c1', message: toolMsg },
     );
     expect(s.chats.c1.messages).toEqual([toolMsg]);
+  });
+});
+
+describe('applyChatMessage — compactions', () => {
+  const compaction = (id: string, memberIds: string[]) => ({
+    id,
+    title: 'Doc',
+    memberIds,
+    document: '',
+    sourceDigest: '',
+    position: { x: 0, y: 0 },
+    createdAt: 't0',
+    status: 'generating' as const,
+  });
+
+  it('starts empty and chat_compaction_created adds one', () => {
+    expect(emptyChatState().compactions).toEqual({});
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_compaction_created', compaction: compaction('k1', ['c1']) },
+    );
+    expect(s.compactions.k1).toMatchObject({ id: 'k1', memberIds: ['c1'], status: 'generating' });
+  });
+
+  it('chat_compaction_document patches document, digest and status', () => {
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_compaction_created', compaction: compaction('k1', ['c1']) },
+      {
+        type: 'chat_compaction_document',
+        compactionId: 'k1',
+        document: '# Doc',
+        sourceDigest: 'd1',
+        status: 'idle',
+      },
+    );
+    expect(s.compactions.k1).toMatchObject({ document: '# Doc', sourceDigest: 'd1', status: 'idle' });
+  });
+
+  it('chat_compaction_document for an unknown compaction is a no-op', () => {
+    const before = apply(emptyChatState(), { type: 'chat_created', chat: chat('c1') });
+    const after = apply(before, {
+      type: 'chat_compaction_document',
+      compactionId: 'nope',
+      document: 'x',
+      sourceDigest: 'd',
+      status: 'idle',
+    });
+    expect(after).toBe(before);
+  });
+
+  it('chat_snapshot carries compactions', () => {
+    const graph = {
+      id: 'g', version: 2 as const, compactions: { k1: compaction('k1', ['c1']) },
+      meta: { title: 't', created: 't0' },
+      chats: { c1: chat('c1') }, edges: [],
+    };
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph });
+    expect(s.compactions.k1).toBeDefined();
+  });
+
+  it('compactionIsStale compares the stored digest against member transcripts', () => {
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_compaction_created', compaction: compaction('k1', ['c1']) },
+    );
+    const digest = compactionDigest([s.chats.c1]);
+    s = apply(s, {
+      type: 'chat_compaction_document',
+      compactionId: 'k1',
+      document: 'doc',
+      sourceDigest: digest,
+      status: 'idle',
+    });
+    expect(compactionIsStale(s, 'k1')).toBe(false);
+    s = apply(s, {
+      type: 'chat_user_message',
+      chatId: 'c1',
+      message: { role: 'user', content: 'changed', createdAt: 't1' },
+    });
+    expect(compactionIsStale(s, 'k1')).toBe(true);
   });
 });
