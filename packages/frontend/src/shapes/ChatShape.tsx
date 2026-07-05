@@ -40,13 +40,23 @@ export interface ChatActions {
   updateSettings: (chatId: string, patch: Partial<ChatSettings>) => void;
   permissionDecision: (chatId: string, requestId: string, behavior: 'allow' | 'deny') => void;
   uploadAttachment: (file: File) => Promise<Attachment>;
+  compact: (chatIds: string[]) => void;
+  regenerateCompaction: (compactionId: string) => void;
+  updateCompactionDocument: (compactionId: string, document: string) => void;
+  /** Navigate into the tldraw page holding the compaction's member chats. */
+  enterCompaction: (compactionId: string) => void;
 }
 
-let chatActions: ChatActions | null = null;
+let registeredActions: ChatActions | null = null;
 
 /** The canvas app registers how shapes talk to the server. */
 export function registerChatActions(actions: ChatActions | null): void {
-  chatActions = actions;
+  registeredActions = actions;
+}
+
+/** Accessor for shapes that live outside the React tree (e.g. CompactShape). */
+export function chatActions(): ChatActions | null {
+  return registeredActions;
 }
 
 function parseJson<T>(raw: string, fallback: T): T {
@@ -215,17 +225,17 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
             chat={view}
             capabilities={capabilitiesFromShape(shape)}
             onSend={(content, attachmentIds) =>
-              chatActions?.sendPrompt(shape.props.chatId, content, attachmentIds)
+              registeredActions?.sendPrompt(shape.props.chatId, content, attachmentIds)
             }
-            onStop={() => chatActions?.stopStream(shape.props.chatId)}
-            onRegenerate={() => chatActions?.regenerate(shape.props.chatId)}
-            onUpdateSettings={(patch) => chatActions?.updateSettings(shape.props.chatId, patch)}
+            onStop={() => registeredActions?.stopStream(shape.props.chatId)}
+            onRegenerate={() => registeredActions?.regenerate(shape.props.chatId)}
+            onUpdateSettings={(patch) => registeredActions?.updateSettings(shape.props.chatId, patch)}
             onPermissionDecision={(requestId, behavior) =>
-              chatActions?.permissionDecision(shape.props.chatId, requestId, behavior)
+              registeredActions?.permissionDecision(shape.props.chatId, requestId, behavior)
             }
             uploadAttachment={(file) =>
-              chatActions
-                ? chatActions.uploadAttachment(file)
+              registeredActions
+                ? registeredActions.uploadAttachment(file)
                 : Promise.reject(new Error('not connected'))
             }
           />
@@ -271,7 +281,7 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
           onDoubleClick={stopEventPropagation}
           onPointerUp={(e) => {
             stopEventPropagation(e);
-            chatActions?.requestBranch(shape.props.chatId, {
+            registeredActions?.requestBranch(shape.props.chatId, {
               x: shape.x,
               y: shape.y + shape.props.h + 110,
             });

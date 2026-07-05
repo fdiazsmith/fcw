@@ -72,6 +72,8 @@ export default function ChatCanvas() {
 
   const [banner, setBanner] = useState<string | null>(null);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Filled once the editor mounts — page navigation needs the editor instance.
+  const enterCompactionRef = useRef<((compactionId: string) => void) | null>(null);
 
   const showBanner = useCallback((text: string) => {
     setBanner(text);
@@ -236,6 +238,11 @@ export default function ChatCanvas() {
         syncAll(next);
         return;
       }
+      // Compaction shape/page sync happens via full resync for now.
+      if (msg.type === 'chat_compaction_created' || msg.type === 'chat_compaction_document') {
+        syncAll(next);
+        return;
+      }
       const chatId = msg.type === 'chat_created' ? msg.chat.id : msg.chatId;
       const view = next.chats[chatId];
       if (view) syncChat(view);
@@ -259,6 +266,12 @@ export default function ChatCanvas() {
       permissionDecision: (chatId, requestId, behavior) =>
         send({ type: 'chat_permission_decision', chatId, requestId, behavior }),
       uploadAttachment: (file) => uploadAttachment(file),
+      compact: (chatIds) => send({ type: 'chat_compact_requested', chatIds }),
+      regenerateCompaction: (compactionId) =>
+        send({ type: 'chat_compaction_regenerate_requested', compactionId }),
+      updateCompactionDocument: (compactionId, document) =>
+        send({ type: 'chat_compaction_document_updated', compactionId, document }),
+      enterCompaction: (compactionId) => enterCompactionRef.current?.(compactionId),
     });
     return () => {
       registerChatActions(null);

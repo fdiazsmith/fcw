@@ -9,11 +9,16 @@ const view = (over: Partial<ChatView> & { id: string }): ChatView => ({
   messages: over.messages ?? [],
   streamingText: over.streamingText ?? null,
   error: over.error ?? null,
+  settings: over.settings ?? { engine: 'api' },
+  pendingPermission: null,
+  pendingPermissionQueue: [],
 });
 
 const state = (...views: ChatView[]): ChatState => ({
   chats: Object.fromEntries(views.map((v) => [v.id, v])),
   edges: [],
+  capabilities: { models: [], commands: [] },
+  compactions: {},
 });
 
 describe('searchChats', () => {

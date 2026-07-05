@@ -10,6 +10,16 @@ const view = (over: Partial<ChatView> & { id: string }): ChatView => ({
   messages: over.messages ?? [],
   streamingText: over.streamingText ?? null,
   error: over.error ?? null,
+  settings: over.settings ?? { engine: 'api' },
+  pendingPermission: null,
+  pendingPermissionQueue: [],
+});
+
+const mkState = (chats: Record<string, ChatView>, edges: ContextEdge[] = []): ChatState => ({
+  chats,
+  edges,
+  capabilities: { models: [], commands: [] },
+  compactions: {},
 });
 
 const edge = (from: string, to: string): ContextEdge => ({
@@ -21,37 +31,28 @@ const edge = (from: string, to: string): ContextEdge => ({
 
 describe('exportBranchMarkdown', () => {
   it('renders a header from the chat title', () => {
-    const state: ChatState = {
-      chats: { c1: view({ id: 'c1', title: 'My Branch' }) },
-      edges: [],
-    };
+    const state = mkState({ c1: view({ id: 'c1', title: 'My Branch' }) });
     const md = exportBranchMarkdown(state, 'c1');
     expect(md).toContain('## My Branch');
   });
 
   it('falls back to the chat id when title is empty', () => {
-    const state: ChatState = {
-      chats: { c1: view({ id: 'c1', title: '' }) },
-      edges: [],
-    };
+    const state = mkState({ c1: view({ id: 'c1', title: '' }) });
     expect(exportBranchMarkdown(state, 'c1')).toContain('## c1');
   });
 
   it('renders role-labelled messages', () => {
-    const state: ChatState = {
-      chats: {
-        c1: view({
-          id: 'c1',
-          title: 'T',
-          messages: [
-            { role: 'user', content: 'hi', createdAt: 't' },
-            { role: 'assistant', content: 'hello', createdAt: 't' },
-            { role: 'tool', content: 'ran', createdAt: 't' },
-          ],
-        }),
-      },
-      edges: [],
-    };
+    const state = mkState({
+      c1: view({
+        id: 'c1',
+        title: 'T',
+        messages: [
+          { role: 'user', content: 'hi', createdAt: 't' },
+          { role: 'assistant', content: 'hello', createdAt: 't' },
+          { role: 'tool', content: 'ran', createdAt: 't' },
+        ],
+      }),
+    });
     const md = exportBranchMarkdown(state, 'c1');
     expect(md).toContain('**User:**');
     expect(md).toContain('hi');
@@ -62,8 +63,8 @@ describe('exportBranchMarkdown', () => {
   });
 
   it('includes inherited parent context before the chat\'s own messages', () => {
-    const state: ChatState = {
-      chats: {
+    const state = mkState(
+      {
         parent: view({
           id: 'parent',
           title: 'Parent',
@@ -75,8 +76,8 @@ describe('exportBranchMarkdown', () => {
           messages: [{ role: 'user', content: 'CHILD_MSG', createdAt: 't1' }],
         }),
       },
-      edges: [edge('parent', 'child')],
-    };
+      [edge('parent', 'child')],
+    );
     const md = exportBranchMarkdown(state, 'child');
     expect(md).toContain('PARENT_MSG');
     expect(md).toContain('CHILD_MSG');
