@@ -36,10 +36,12 @@ export function findMissingDeps({
     const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
     for (const dep of Object.keys(deps)) {
       checked++;
-      // Workspace packages resolve to symlinks under root node_modules.
-      // External deps are hoisted to root node_modules by npm workspaces.
-      const candidate = join(root, 'node_modules', dep);
-      if (!exists(candidate)) {
+      // Workspace packages resolve to symlinks under root node_modules and
+      // external deps usually hoist there — but npm nests a dep under the
+      // workspace's own node_modules when the root holds a conflicting
+      // version (e.g. @tiptap v3 alongside tldraw's bundled v2).
+      const candidates = [join(root, 'node_modules', dep), join(dir, 'node_modules', dep)];
+      if (!candidates.some((c) => exists(c))) {
         missing.push({ workspace: basename(dir), dep });
       }
     }

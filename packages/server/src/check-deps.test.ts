@@ -34,4 +34,16 @@ describe('findMissingDeps', () => {
     expect(result.missing).toEqual([]);
     expect(result.checked).toBeGreaterThan(0);
   });
+
+  it('accepts deps nested in the workspace node_modules (npm version-conflict fallback)', async () => {
+    const { findMissingDeps } = await import(join(ROOT, 'scripts', 'check-deps.mjs'));
+    // npm nests a dep under the workspace when the root already holds a
+    // conflicting version (e.g. @tiptap v3 vs tldraw's bundled v2).
+    const result = findMissingDeps({
+      root: ROOT,
+      exists: (p: string) => !p.includes(join(ROOT, 'node_modules')),
+      workspaces: ['packages/frontend'],
+    });
+    expect(result.missing).toEqual([]);
+  });
 });
