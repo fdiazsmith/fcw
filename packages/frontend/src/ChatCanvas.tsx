@@ -1,9 +1,25 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Tldraw, Editor, createShapeId, TLShapeId, TLArrowBinding, TLShape } from 'tldraw';
+import {
+  Tldraw,
+  Editor,
+  createShapeId,
+  TLShapeId,
+  TLPageId,
+  TLArrowBinding,
+  TLShape,
+  PageRecordType,
+} from 'tldraw';
 import 'tldraw/tldraw.css';
 import { ChatShapeUtil, ChatShape, registerChatActions } from './shapes/ChatShape';
+import { CompactShapeUtil, CompactShape } from './shapes/CompactShape';
 import { createWsClient, WsClient } from './ws-client';
 import { emptyChatState, applyChatMessage, ChatState, ChatView } from './chat-store';
+import {
+  compactionForChat,
+  compactionPageSlug,
+  edgeVisible,
+  compactCardModel,
+} from './compaction-view';
 import { ChatSearchBar } from './components/ChatSearchBar';
 import { exportBranchMarkdown } from './export-branch';
 import type { ChatServerMessage, ChatClientMessage } from '@fcw/graph-core';
@@ -11,10 +27,19 @@ import type { ChatServerMessage, ChatClientMessage } from '@fcw/graph-core';
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8009';
 const HTTP_URL = WS_URL.replace(/^ws/, 'http');
 
-const customShapes = [ChatShapeUtil];
+const customShapes = [ChatShapeUtil, CompactShapeUtil];
 
 function chatShapeId(chatId: string): TLShapeId {
   return createShapeId(`chat-${chatId}`);
+}
+
+function compactShapeId(compactionId: string): TLShapeId {
+  return createShapeId(`compact-${compactionId}`);
+}
+
+/** The tldraw page holding a compaction's member chats. */
+function compactionPageId(compactionId: string): TLPageId {
+  return PageRecordType.createId(compactionPageSlug(compactionId));
 }
 
 function downloadFile(content: string, filename: string, mime: string) {
@@ -48,17 +73,38 @@ async function uploadAttachment(file: File): Promise<import('@fcw/graph-core').A
   return res.json();
 }
 
-/** Find any arrow representing the context edge from->to (created by us or adopted). */
+/** Find any arrow representing the context edge from->to (created by us or
+ *  adopted), on whichever page it lives. */
 function findCtxArrow(editor: Editor, from: string, to: string): TLShape | undefined {
-  return editor
-    .getCurrentPageShapes()
-    .find(
-      (s) =>
-        s.type === 'arrow' &&
+  for (const page of editor.getPages()) {
+    for (const shapeId of editor.getPageShapeIds(page.id)) {
+      const s = editor.getShape(shapeId);
+      if (
+        s?.type === 'arrow' &&
         s.meta?.fcwCtx === true &&
         s.meta?.from === from &&
-        s.meta?.to === to,
-    );
+        s.meta?.to === to
+      ) {
+        return s;
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Every fcw shape across all pages (chat cards, compact cards, ctx arrows). */
+function allFcwShapes(editor: Editor): TLShape[] {
+  const shapes: TLShape[] = [];
+  for (const page of editor.getPages()) {
+    for (const shapeId of editor.getPageShapeIds(page.id)) {
+      const s = editor.getShape(shapeId);
+      if (!s) continue;
+      if (s.type === 'chat-node' || s.type === 'compact-node' || (s.type === 'arrow' && s.meta?.fcwCtx)) {
+        shapes.push(s);
+      }
+    }
+  }
+  return shapes;
 }
 
 /** FCW v2 surface: chats are tldraw shapes, edges are context inheritance. */
@@ -74,6 +120,10 @@ export default function ChatCanvas() {
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Filled once the editor mounts — page navigation needs the editor instance.
   const enterCompactionRef = useRef<((compactionId: string) => void) | null>(null);
+  // The page the canvas started on; compaction members live on their own pages.
+  const mainPageIdRef = useRef<TLPageId | null>(null);
+  // Set while the user is inside a compaction page — drives the breadcrumb.
+  const [innerPage, setInnerPage] = useState<{ id: TLPageId; name: string } | null>(null);
 
   const showBanner = useCallback((text: string) => {
     setBanner(text);
@@ -103,10 +153,37 @@ export default function ChatCanvas() {
     const editor = editorRef.current;
     if (!editor) return;
     const id = chatShapeId(chatId);
-    if (!editor.getShape(id)) return;
+    const shape = editor.getShape(id);
+    if (!shape) return;
+    // The chat may live behind a compaction — navigate to its page first.
+    const pageId = shape.parentId;
+    if (String(pageId).startsWith('page:') && pageId !== editor.getCurrentPageId()) {
+      editor.setCurrentPage(pageId as TLPageId);
+    }
     editor.select(id);
     editor.zoomToSelection({ animation: { duration: 200 } });
   }, []);
+
+  /** Create the compaction's member page if it doesn't exist yet. */
+  const ensureCompactionPage = useCallback((editor: Editor, compactionId: string): TLPageId => {
+    const pageId = compactionPageId(compactionId);
+    if (!editor.getPage(pageId)) {
+      const title = stateRef.current.compactions[compactionId]?.title;
+      editor.createPage({ id: pageId, name: title || 'Compacted' });
+    }
+    return pageId;
+  }, []);
+
+  /** The page a chat card belongs on: its compaction's page, or the main canvas. */
+  const pageForChat = useCallback(
+    (editor: Editor, chatId: string): TLPageId => {
+      const compactionId = compactionForChat(stateRef.current, chatId);
+      return compactionId
+        ? ensureCompactionPage(editor, compactionId)
+        : (mainPageIdRef.current ?? editor.getCurrentPageId());
+    },
+    [ensureCompactionPage],
+  );
 
   const syncChat = useCallback((view: ChatView, focus = true) => {
     const editor = editorRef.current;
@@ -125,19 +202,26 @@ export default function ChatCanvas() {
       pendingPermissionJson: view.pendingPermission ? JSON.stringify(view.pendingPermission) : '',
       capabilitiesJson: hasCaps ? JSON.stringify(caps) : '',
     };
+    const targetPage = pageForChat(editor, view.id);
     syncingRef.current = true;
     try {
-      if (editor.getShape(id)) {
+      const existing = editor.getShape(id);
+      if (existing) {
         editor.updateShape<ChatShape>({ id, type: 'chat-node', props });
+        // Compacted (or un-compacted) since last sync — move to the right page.
+        if (existing.parentId !== targetPage && String(existing.parentId).startsWith('page:')) {
+          editor.reparentShapes([id], targetPage);
+        }
       } else {
         editor.createShape<ChatShape>({
           id,
           type: 'chat-node',
+          parentId: targetPage,
           x: view.position.x,
           y: view.position.y,
           props,
         });
-        if (focus) {
+        if (focus && targetPage === editor.getCurrentPageId()) {
           editor.select(id);
           editor.setEditingShape(id);
         }
@@ -145,7 +229,47 @@ export default function ChatCanvas() {
     } finally {
       syncingRef.current = false;
     }
-  }, []);
+  }, [pageForChat]);
+
+  /** Create/update the compact card for a compaction (always on the main page). */
+  const syncCompaction = useCallback(
+    (compactionId: string) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const state = stateRef.current;
+      const compaction = state.compactions[compactionId];
+      if (!compaction) return;
+      ensureCompactionPage(editor, compactionId);
+      const model = compactCardModel(state, compactionId);
+      const id = compactShapeId(compactionId);
+      const props = {
+        compactionId: model.compactionId,
+        title: model.title,
+        document: model.document,
+        memberCount: model.memberCount,
+        stale: model.stale,
+        generating: model.generating,
+      };
+      syncingRef.current = true;
+      try {
+        if (editor.getShape(id)) {
+          editor.updateShape<CompactShape>({ id, type: 'compact-node', props });
+        } else {
+          editor.createShape<CompactShape>({
+            id,
+            type: 'compact-node',
+            parentId: mainPageIdRef.current ?? editor.getCurrentPageId(),
+            x: compaction.position.x,
+            y: compaction.position.y,
+            props,
+          });
+        }
+      } finally {
+        syncingRef.current = false;
+      }
+    },
+    [ensureCompactionPage],
+  );
 
   const syncEdge = useCallback((msg: ChatServerMessage) => {
     const editor = editorRef.current;
@@ -154,14 +278,20 @@ export default function ChatCanvas() {
     try {
       if (msg.type === 'chat_connected') {
         const { from, to } = msg.edge;
+        // Arrows cannot span tldraw pages — cross-boundary edges stay data-only.
+        if (!edgeVisible(stateRef.current, from, to)) return;
         // Already on canvas (e.g. an adopted hand-drawn arrow)? Done.
         if (findCtxArrow(editor, from, to)) return;
         const arrowId = ctxArrowId(from, to);
         if (editor.getShape(arrowId)) return;
         if (!editor.getShape(chatShapeId(from)) || !editor.getShape(chatShapeId(to))) return;
+        const container = compactionForChat(stateRef.current, from);
         editor.createShape({
           id: arrowId,
           type: 'arrow',
+          parentId: container
+            ? compactionPageId(container)
+            : (mainPageIdRef.current ?? editor.getCurrentPageId()),
           meta: { fcwCtx: true, from, to },
           props: { dash: 'dashed', color: 'blue', size: 's' },
         });
@@ -191,28 +321,40 @@ export default function ChatCanvas() {
   const syncAll = useCallback((state: ChatState) => {
     const editor = editorRef.current;
     if (!editor) return;
+    for (const compactionId of Object.keys(state.compactions)) syncCompaction(compactionId);
     for (const view of Object.values(state.chats)) syncChat(view, false);
-    for (const edge of state.edges) {
-      syncEdge({ type: 'chat_connected', edge });
-    }
-    // remove shapes for chats/edges that no longer exist
+    // Remove shapes for chats/compactions/edges that no longer exist, and
+    // ctx arrows sitting on the wrong page (their edge crossed a compaction
+    // boundary) — those get recreated on the right page below.
     syncingRef.current = true;
     try {
-      for (const shape of editor.getCurrentPageShapes()) {
+      const strays: TLShapeId[] = [];
+      for (const shape of allFcwShapes(editor)) {
         if (shape.type === 'chat-node') {
           const chatId = (shape as ChatShape).props.chatId;
-          if (!state.chats[chatId]) editor.deleteShape(shape.id);
+          if (!state.chats[chatId]) strays.push(shape.id);
+        } else if (shape.type === 'compact-node') {
+          const compactionId = (shape as CompactShape).props.compactionId;
+          if (!state.compactions[compactionId]) strays.push(shape.id);
         } else if (shape.type === 'arrow' && shape.meta?.fcwCtx) {
           const { from, to } = shape.meta as { from: string; to: string };
-          if (!state.edges.some((e) => e.from === from && e.to === to)) {
-            editor.deleteShape(shape.id);
-          }
+          const exists = state.edges.some((e) => e.from === from && e.to === to);
+          const visible = exists && edgeVisible(state, from, to);
+          const container = compactionForChat(state, from);
+          const expectedPage = container
+            ? compactionPageId(container)
+            : (mainPageIdRef.current ?? editor.getCurrentPageId());
+          if (!visible || shape.parentId !== expectedPage) strays.push(shape.id);
         }
       }
+      if (strays.length > 0) editor.deleteShapes(strays);
     } finally {
       syncingRef.current = false;
     }
-  }, [syncChat, syncEdge]);
+    for (const edge of state.edges) {
+      syncEdge({ type: 'chat_connected', edge });
+    }
+  }, [syncChat, syncCompaction, syncEdge]);
 
   const handleServerMessage = useCallback(
     (msg: ChatServerMessage) => {
@@ -238,16 +380,23 @@ export default function ChatCanvas() {
         syncAll(next);
         return;
       }
-      // Compaction shape/page sync happens via full resync for now.
-      if (msg.type === 'chat_compaction_created' || msg.type === 'chat_compaction_document') {
+      // A new compaction re-homes member cards onto its page — full resync.
+      if (msg.type === 'chat_compaction_created') {
         syncAll(next);
+        return;
+      }
+      if (msg.type === 'chat_compaction_document') {
+        syncCompaction(msg.compactionId);
         return;
       }
       const chatId = msg.type === 'chat_created' ? msg.chat.id : msg.chatId;
       const view = next.chats[chatId];
       if (view) syncChat(view);
+      // A member transcript change flips the compact card's stale banner.
+      const compactionId = compactionForChat(next, chatId);
+      if (compactionId) syncCompaction(compactionId);
     },
-    [syncChat, syncEdge, syncAll, showBanner],
+    [syncChat, syncCompaction, syncEdge, syncAll, showBanner],
   );
 
   useEffect(() => {
@@ -283,24 +432,54 @@ export default function ChatCanvas() {
   const onMount = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
+      mainPageIdRef.current = editor.getCurrentPageId();
+
+      // TouchDesigner-style dive: switch to the compaction's member page.
+      enterCompactionRef.current = (compactionId) => {
+        if (!stateRef.current.compactions[compactionId]) return;
+        const pageId = ensureCompactionPage(editor, compactionId);
+        editor.setCurrentPage(pageId);
+        editor.zoomToFit({ animation: { duration: 200 } });
+      };
+
+      // Breadcrumb: reflect which page the user is on.
+      const stopPageListen = editor.store.listen(
+        () => {
+          const pageId = editor.getCurrentPageId();
+          if (pageId === mainPageIdRef.current) {
+            setInnerPage(null);
+          } else {
+            const page = editor.getPage(pageId);
+            setInnerPage(page ? { id: pageId, name: page.name } : null);
+          }
+        },
+        { scope: 'session', source: 'all' },
+      );
 
       // The snapshot may have arrived before the editor mounted — replay it.
       if (Object.keys(stateRef.current.chats).length > 0) {
         syncAll(stateRef.current);
       }
 
-      // Persist card positions after drags (debounced per chat).
+      // Persist card positions after drags (debounced per shape).
       const moveTimers = new Map<string, ReturnType<typeof setTimeout>>();
-      editor.sideEffects.registerAfterChangeHandler('shape', (_prev, next) => {
-        if (syncingRef.current || next.type !== 'chat-node') return;
-        const chatId = (next as ChatShape).props.chatId;
-        if (!chatId) return;
-        const existing = moveTimers.get(chatId);
+      const schedulePersist = (key: string, fire: () => void) => {
+        const existing = moveTimers.get(key);
         if (existing) clearTimeout(existing);
         moveTimers.set(
-          chatId,
+          key,
           setTimeout(() => {
-            moveTimers.delete(chatId);
+            moveTimers.delete(key);
+            fire();
+          }, 500),
+        );
+      };
+      editor.sideEffects.registerAfterChangeHandler('shape', (_prev, next) => {
+        if (syncingRef.current) return;
+        if (next.type === 'chat-node') {
+          const chatId = (next as ChatShape).props.chatId;
+          if (!chatId) return;
+          schedulePersist(`chat:${chatId}`, () => {
             const shape = editor.getShape(next.id) as ChatShape | undefined;
             if (!shape) return;
             send({
@@ -308,13 +487,28 @@ export default function ChatCanvas() {
               chatId,
               position: { x: shape.x, y: shape.y },
             });
-          }, 500),
-        );
+          });
+        } else if (next.type === 'compact-node') {
+          const compactionId = (next as CompactShape).props.compactionId;
+          if (!compactionId) return;
+          schedulePersist(`cmp:${compactionId}`, () => {
+            const shape = editor.getShape(next.id) as CompactShape | undefined;
+            if (!shape) return;
+            send({
+              type: 'chat_compaction_move_requested',
+              compactionId,
+              position: { x: shape.x, y: shape.y },
+            });
+          });
+        }
       });
 
       // Double-click on empty canvas -> new chat shape at that point.
+      // Only on the main canvas: chats born inside a compaction page would
+      // not be members and would teleport to the main page on sync.
       const container = editor.getContainer();
       const onDblClick = (e: MouseEvent) => {
+        if (editor.getCurrentPageId() !== mainPageIdRef.current) return;
         const point = editor.screenToPage({ x: e.clientX, y: e.clientY });
         const hit = editor.getShapeAtPoint(point, { hitInside: true });
         if (hit) return;
@@ -392,10 +586,33 @@ export default function ChatCanvas() {
         }
       });
 
-      return () => container.removeEventListener('dblclick', onDblClick);
+      return () => {
+        stopPageListen();
+        container.removeEventListener('dblclick', onDblClick);
+      };
     },
-    [send, syncAll],
+    [send, syncAll, ensureCompactionPage],
   );
+
+  /** Fold the selected chat cards into a new compaction. */
+  const compactSelection = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const chatIds = editor
+      .getSelectedShapes()
+      .filter((s): s is ChatShape => s.type === 'chat-node')
+      .map((s) => s.props.chatId)
+      .filter(Boolean);
+    if (chatIds.length === 0) return;
+    editor.selectNone();
+    send({ type: 'chat_compact_requested', chatIds });
+  }, [send]);
+
+  const exitCompaction = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor || !mainPageIdRef.current) return;
+    editor.setCurrentPage(mainPageIdRef.current);
+  }, []);
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
@@ -472,7 +689,64 @@ export default function ChatCanvas() {
         >
           Export
         </button>
+        <button
+          onClick={compactSelection}
+          title="Compact the selected chats into an editable document node"
+          style={{
+            padding: '8px 14px',
+            borderRadius: 8,
+            border: '1px solid #C4B5FD',
+            background: '#7C3AED',
+            color: '#fff',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 1px 4px rgba(88,28,135,0.2)',
+          }}
+        >
+          Compact
+        </button>
       </div>
+      {/* Breadcrumb while inside a compaction's member page. */}
+      {innerPage && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: '#FAF5FF',
+            border: '1px solid #E9D5FF',
+            borderRadius: 8,
+            padding: '6px 10px',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: 13,
+            color: '#581C87',
+            boxShadow: '0 2px 8px rgba(88,28,135,0.15)',
+          }}
+        >
+          <button
+            onClick={exitCompaction}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: '#7C3AED',
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            ← Canvas
+          </button>
+          <span style={{ color: '#A78BFA' }}>›</span>
+          <span style={{ fontWeight: 700 }}>{innerPage.name}</span>
+          <span style={{ color: '#7C3AED', fontSize: 11 }}>inside compacted view</span>
+        </div>
+      )}
       {/* Compact usage hint, bottom-left clear of tldraw's zoom controls.
           pointerEvents:none so it never intercepts canvas interaction. */}
       <div
