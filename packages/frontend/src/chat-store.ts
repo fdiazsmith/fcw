@@ -23,7 +23,10 @@ export interface ChatView {
   streamingText: string | null;
   error: string | null;
   settings: ChatSettings;
+  /** Head of the queue — what the permission banner shows. */
   pendingPermission: PendingPermission | null;
+  /** All unresolved permission prompts for this chat, oldest first. */
+  pendingPermissionQueue: PendingPermission[];
 }
 
 export interface Capabilities {
@@ -51,6 +54,7 @@ function viewFrom(chat: ChatNode): ChatView {
     error: null,
     settings: chat.settings ?? { engine: 'api' },
     pendingPermission: null,
+    pendingPermissionQueue: [],
   };
 }
 
@@ -58,7 +62,14 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
   if (msg.type === 'chat_snapshot') {
     const chats: Record<string, ChatView> = {};
     for (const chat of Object.values(msg.graph.chats)) {
-      chats[chat.id] = viewFrom(chat);
+      // Permission prompts are runtime state, not graph state — a resync
+      // must not drop a banner the server is still waiting on.
+      const prev = state.chats[chat.id];
+      chats[chat.id] = {
+        ...viewFrom(chat),
+        pendingPermission: prev?.pendingPermission ?? null,
+        pendingPermissionQueue: prev?.pendingPermissionQueue ?? [],
+      };
     }
     return { ...state, chats, edges: [...msg.graph.edges] };
   }
@@ -101,14 +112,19 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
       return update({ messages: [...existing.messages, msg.message] });
     case 'chat_settings_changed':
       return update({ settings: msg.settings });
-    case 'chat_permission_requested':
-      return update({
-        pendingPermission: { requestId: msg.requestId, toolName: msg.toolName, input: msg.input },
-      });
-    case 'chat_permission_resolved':
-      return existing.pendingPermission?.requestId === msg.requestId
-        ? update({ pendingPermission: null })
-        : state;
+    case 'chat_permission_requested': {
+      if (existing.pendingPermissionQueue.some((p) => p.requestId === msg.requestId)) return state;
+      const queue = [
+        ...existing.pendingPermissionQueue,
+        { requestId: msg.requestId, toolName: msg.toolName, input: msg.input },
+      ];
+      return update({ pendingPermissionQueue: queue, pendingPermission: queue[0] });
+    }
+    case 'chat_permission_resolved': {
+      if (!existing.pendingPermissionQueue.some((p) => p.requestId === msg.requestId)) return state;
+      const queue = existing.pendingPermissionQueue.filter((p) => p.requestId !== msg.requestId);
+      return update({ pendingPermissionQueue: queue, pendingPermission: queue[0] ?? null });
+    }
     case 'chat_stream_started':
       return update({ streamingText: '', error: null });
     case 'chat_stream_delta':

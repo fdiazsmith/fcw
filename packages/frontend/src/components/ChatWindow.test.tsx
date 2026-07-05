@@ -13,6 +13,7 @@ const view = (over: Partial<ChatView> = {}): ChatView => ({
   error: null,
   settings: { engine: 'api' },
   pendingPermission: null,
+  pendingPermissionQueue: [],
   ...over,
 });
 
@@ -233,6 +234,44 @@ describe('ChatWindow', () => {
     expect(input.value).toBe('/review ');
   });
 
+  it('Enter selects the highlighted command instead of submitting when the popup is open', () => {
+    const onSend = vi.fn();
+    render(
+      <ChatWindow
+        chat={view()}
+        capabilities={caps({
+          commands: [
+            { name: 'review', description: '' },
+            { name: 'refactor', description: '' },
+          ],
+        })}
+        onSend={onSend}
+      />,
+    );
+    const input = screen.getByPlaceholderText(/message/i) as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: '/re' } });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onSend).not.toHaveBeenCalled();
+    expect(input.value).toBe('/refactor ');
+  });
+
+  it('Enter with the popup open picks the first command by default', () => {
+    const onSend = vi.fn();
+    render(
+      <ChatWindow
+        chat={view()}
+        capabilities={caps({ commands: [{ name: 'review', description: '' }] })}
+        onSend={onSend}
+      />,
+    );
+    const input = screen.getByPlaceholderText(/message/i) as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: '/rev' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onSend).not.toHaveBeenCalled();
+    expect(input.value).toBe('/review ');
+  });
+
   it('uploads an attachment, renders a chip, and sends its id', async () => {
     const onSend = vi.fn();
     const uploadAttachment = vi
@@ -249,6 +288,31 @@ describe('ChatWindow', () => {
     fireEvent.change(input, { target: { value: 'about this' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(onSend).toHaveBeenCalledWith('about this', ['a1']));
+  });
+
+  it('shows an error when an upload fails instead of swallowing it', async () => {
+    const uploadAttachment = vi.fn().mockRejectedValue(new Error('upload failed: 500'));
+    render(<ChatWindow chat={view()} onSend={() => {}} uploadAttachment={uploadAttachment} />);
+    const fileInput = screen.getByLabelText('File input') as HTMLInputElement;
+    const file = new File(['x'], 'pic.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await screen.findByText(/upload failed: 500/);
+    expect(screen.queryByTestId('attachment-chip')).toBeNull();
+  });
+
+  it('clears the upload error on the next successful upload', async () => {
+    const uploadAttachment = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('upload failed: 500'))
+      .mockResolvedValueOnce({ id: 'a1', name: 'pic.png', mediaType: 'image/png', path: '/d/a1.png' });
+    render(<ChatWindow chat={view()} onSend={() => {}} uploadAttachment={uploadAttachment} />);
+    const fileInput = screen.getByLabelText('File input') as HTMLInputElement;
+    const file = new File(['x'], 'pic.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await screen.findByText(/upload failed: 500/);
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    await screen.findByTestId('attachment-chip');
+    expect(screen.queryByText(/upload failed: 500/)).toBeNull();
   });
 
   it('renders a tool message with its name and collapsed input', () => {

@@ -68,6 +68,9 @@ export function viewFromShape(shape: ChatShape): ChatView {
     error: shape.props.error || null,
     settings: parseJson<ChatSettings>(shape.props.settingsJson, { engine: 'api' }),
     pendingPermission: parseJson<PendingPermission | null>(shape.props.pendingPermissionJson, null),
+    // The shape only carries the head prompt (what the banner shows); the full
+    // queue is authoritative in the store, not this render projection.
+    pendingPermissionQueue: [],
   };
 }
 

@@ -48,6 +48,8 @@ export function ChatWindow({
 }: ChatWindowProps) {
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [cmdIndex, setCmdIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const streaming = chat.streamingText !== null;
@@ -69,6 +71,14 @@ export function ChatWindow({
     if (el) el.scrollTop = el.scrollHeight;
   }, [chat.messages.length, chat.streamingText]);
 
+  // Reset the popup highlight whenever the matches change (i.e. the draft edits).
+  useEffect(() => setCmdIndex(0), [draft]);
+
+  const selectCommand = (name: string) => {
+    setDraft(`/${name} `);
+    setCmdIndex(0);
+  };
+
   const submit = () => {
     const content = draft.trim();
     if (!content || streaming) return;
@@ -80,9 +90,14 @@ export function ChatWindow({
 
   const addFiles = async (files: FileList | File[]) => {
     if (!uploadAttachment) return;
+    setUploadError(null);
     for (const file of Array.from(files)) {
-      const att = await uploadAttachment(file);
-      setAttachments((prev) => [...prev, att]);
+      try {
+        const att = await uploadAttachment(file);
+        setAttachments((prev) => [...prev, att]);
+      } catch (err) {
+        setUploadError(err instanceof Error ? err.message : String(err));
+      }
     }
   };
 
@@ -373,12 +388,13 @@ export function ChatWindow({
               zIndex: 10,
             }}
           >
-            {commandMatches.map((c) => (
+            {commandMatches.map((c, i) => (
               <button
                 key={c.name}
                 type="button"
-                onClick={() => setDraft(`/${c.name} `)}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '4px 8px', border: 'none', background: '#fff', cursor: 'pointer', fontSize: 12 }}
+                onMouseEnter={() => setCmdIndex(i)}
+                onClick={() => selectCommand(c.name)}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '4px 8px', border: 'none', background: i === cmdIndex ? '#EEF2FF' : '#fff', cursor: 'pointer', fontSize: 12 }}
               >
                 <strong>/{c.name}</strong>
                 {c.description ? <span style={{ color: '#64748B' }}> — {c.description}</span> : null}
@@ -387,6 +403,14 @@ export function ChatWindow({
           </div>
         )}
 
+        {uploadError && (
+          <div
+            data-testid="upload-error"
+            style={{ color: '#B91C1C', background: '#FEF2F2', borderRadius: 6, padding: '4px 8px', marginBottom: 6, fontSize: 11 }}
+          >
+            {uploadError}
+          </div>
+        )}
         {attachments.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
             {attachments.map((a) => (
@@ -447,6 +471,28 @@ export function ChatWindow({
               }
             }}
             onKeyDown={(e) => {
+              if (commandMatches.length > 0) {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setCmdIndex((i) => Math.min(i + 1, commandMatches.length - 1));
+                  return;
+                }
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setCmdIndex((i) => Math.max(i - 1, 0));
+                  return;
+                }
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  selectCommand((commandMatches[cmdIndex] ?? commandMatches[0]).name);
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setDraft('');
+                  return;
+                }
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 submit();

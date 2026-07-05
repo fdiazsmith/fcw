@@ -39,8 +39,11 @@ export class ChatSessionManager extends EventEmitter {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   /** In-flight turns keyed by chat, so stop() can abort them. */
   private readonly controllers = new Map<string, AbortController>();
-  /** requestId -> resolver for pending agent permission prompts. */
-  private readonly pendingPermissions = new Map<string, (d: PermissionDecision) => void>();
+  /** requestId -> pending agent permission prompt (chatId lets stop() deny per chat). */
+  private readonly pendingPermissions = new Map<
+    string,
+    { chatId: string; resolve: (d: PermissionDecision) => void }
+  >();
 
   constructor(
     title = 'Untitled',
@@ -115,10 +118,10 @@ export class ChatSessionManager extends EventEmitter {
 
   /** Resolve a pending agent permission prompt and notify clients. */
   resolvePermission(chatId: string, requestId: string, decision: PermissionDecision): void {
-    const resolve = this.pendingPermissions.get(requestId);
-    if (!resolve) return;
+    const pending = this.pendingPermissions.get(requestId);
+    if (!pending) return;
     this.pendingPermissions.delete(requestId);
-    resolve(decision);
+    pending.resolve(decision);
     this.emit('message', { type: 'chat_permission_resolved', chatId, requestId });
   }
 
@@ -268,16 +271,27 @@ export class ChatSessionManager extends EventEmitter {
           resolve({ behavior: 'deny', message: 'permission request timed out' });
         }
       }, PERMISSION_TIMEOUT_MS);
-      this.pendingPermissions.set(requestId, (decision) => {
-        clearTimeout(timer);
-        resolve(decision);
+      this.pendingPermissions.set(requestId, {
+        chatId,
+        resolve: (decision) => {
+          clearTimeout(timer);
+          resolve(decision);
+        },
       });
     });
   }
 
-  /** Stops the in-flight turn for a chat; the loop breaks and settles the turn. */
+  /** Stops the in-flight turn for a chat; the loop breaks and settles the turn.
+   *  Pending permission prompts are denied so the adapter never hangs on a
+   *  turn the user already abandoned. */
   stop(chatId: string): void {
     this.controllers.get(chatId)?.abort();
+    for (const [requestId, pending] of this.pendingPermissions) {
+      if (pending.chatId !== chatId) continue;
+      this.pendingPermissions.delete(requestId);
+      pending.resolve({ behavior: 'deny', message: 'stopped by user' });
+      this.emit('message', { type: 'chat_permission_resolved', chatId, requestId });
+    }
   }
 
   /** Re-runs the last turn: drops a trailing assistant message and streams again. */

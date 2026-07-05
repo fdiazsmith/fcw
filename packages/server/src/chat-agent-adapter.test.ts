@@ -102,6 +102,29 @@ describe('createAgentTurnStream options', () => {
     expect(text).toContain('child q');
     expect(text).toContain('inherited');
   });
+
+  it('keeps trailing tool messages in the preamble without duplicating the prompt', async () => {
+    // After regenerate, the discarded turn's tool messages trail the user prompt.
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
+    const turn = createAgentTurnStream(fakeQuery([], cap));
+    await collect(
+      turn(
+        ctx({
+          context: [
+            msg('user', 'list the files'),
+            { role: 'tool', content: '→ Bash', createdAt: 'now' } as ChatMessage,
+            { role: 'tool', content: 'a.txt b.txt', createdAt: 'now' } as ChatMessage,
+          ],
+          latest: 'list the files',
+          sessionId: undefined,
+        }),
+      ),
+    );
+    const first = cap.promptMessages[0] as { message: { content: Array<{ type: string; text?: string }> } };
+    const text = first.message.content.find((b) => b.type === 'text')!.text!;
+    expect(text).toContain('a.txt b.txt');
+    expect(text.match(/list the files/g)).toHaveLength(1);
+  });
 });
 
 describe('createAgentTurnStream message mapping', () => {

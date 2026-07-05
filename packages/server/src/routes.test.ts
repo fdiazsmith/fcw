@@ -163,4 +163,40 @@ describe('HTTP Attachments API', () => {
     const res = await fetch(`http://localhost:${port}/attachments/nope`);
     expect(res.status).toBe(404);
   });
+
+  it('a new store over the same dir still resolves previously saved attachments', () => {
+    const att = store.save('note.txt', 'text/plain', Buffer.from('persisted'));
+    const reopened = new AttachmentStore(storageDir, { maxBytes: 10 });
+    expect(reopened.get(att.id)).toEqual(att);
+    expect(reopened.read(att.id)?.toString()).toBe('persisted');
+  });
+
+  // The frontend (vite, :8008) is a different origin than the server (:8009),
+  // so the browser preflights POST /attachments and blocks it without CORS.
+  it('answers OPTIONS preflight with 204 and CORS headers', async () => {
+    const port = (server.address() as { port: number }).port;
+    const res = await fetch(`http://localhost:${port}/attachments`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'http://localhost:8008',
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type',
+      },
+    });
+    expect(res.status).toBe(204);
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(res.headers.get('access-control-allow-methods')).toContain('POST');
+    expect(res.headers.get('access-control-allow-headers')?.toLowerCase()).toContain('content-type');
+  });
+
+  it('sends access-control-allow-origin on regular responses', async () => {
+    const port = (server.address() as { port: number }).port;
+    const res = await fetch(`http://localhost:${port}/attachments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'hi.txt', mediaType: 'text/plain', data: Buffer.from('hi').toString('base64') }),
+    });
+    expect(res.status).toBe(201);
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+  });
 });

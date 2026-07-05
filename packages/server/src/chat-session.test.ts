@@ -299,6 +299,25 @@ describe('ChatSessionManager.prompt with streaming', () => {
     expect(sessions.graph.chats[id].messages.at(-1)).toMatchObject({ content: 'after' });
   });
 
+  it('stop() denies pending permissions for that chat and emits chat_permission_resolved', async () => {
+    let decision: unknown;
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* (ctx) {
+        yield { type: 'permission_request', requestId: 'r9', toolName: 'Bash', input: { cmd: 'rm' } } as TurnEvent;
+        decision = await ctx.waitForPermission('r9');
+      },
+    });
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    sessions.updateSettings(id, { engine: 'agent' });
+    const events = collect(sessions);
+    const done = sessions.prompt(id, 'hi');
+    await new Promise((r) => setTimeout(r, 0));
+    sessions.stop(id);
+    await done;
+    expect(decision).toEqual({ behavior: 'deny', message: expect.stringContaining('stopped') });
+    expect(events.some((e) => e.type === 'chat_permission_resolved')).toBe(true);
+  });
+
   it('auto-titles an untitled chat from the first user message when the stream completes', async () => {
     const sessions = new ChatSessionManager('T', { api: textTurn(() => fakeStream()) });
     const id = sessions.createChat({ x: 0, y: 0 }); // title ''

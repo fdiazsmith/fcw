@@ -73,6 +73,19 @@ export function createRouter(
     const url = req.url ?? '/';
     const method = req.method ?? 'GET';
 
+    // The vite frontend runs on a different origin, so browsers preflight
+    // non-simple requests (e.g. JSON POST /attachments) and block them
+    // without these headers.
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      res.end();
+      return;
+    }
+
     // POST /attachments — store a base64-encoded file, return its metadata
     if (attachments && method === 'POST' && url === '/attachments') {
       const body = await readBody(req);

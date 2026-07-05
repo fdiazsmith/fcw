@@ -19,12 +19,22 @@ const EXT_BY_TYPE: Record<string, string> = {
 export class AttachmentStore {
   readonly maxBytes: number;
   private readonly dir: string;
+  private readonly indexPath: string;
   private readonly byId = new Map<string, Attachment>();
 
   constructor(baseDir: string, options?: { maxBytes?: number }) {
     this.dir = join(baseDir, 'attachments');
     this.maxBytes = options?.maxBytes ?? DEFAULT_MAX_BYTES;
     mkdirSync(this.dir, { recursive: true });
+    // Metadata survives restarts via an index sidecar; persisted graphs
+    // reference attachments by id long after the process that saved them.
+    this.indexPath = join(this.dir, 'index.json');
+    try {
+      const list = JSON.parse(readFileSync(this.indexPath, 'utf-8')) as Attachment[];
+      for (const att of list) this.byId.set(att.id, att);
+    } catch {
+      // fresh dir or unreadable index — start empty
+    }
   }
 
   /** Persist a buffer and return its metadata. */
@@ -35,6 +45,7 @@ export class AttachmentStore {
     writeFileSync(path, data);
     const att: Attachment = { id, name, mediaType, path };
     this.byId.set(id, att);
+    writeFileSync(this.indexPath, JSON.stringify([...this.byId.values()]));
     return att;
   }
 

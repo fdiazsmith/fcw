@@ -12,9 +12,12 @@ import type { StreamTurnFn, TurnContext, TurnEvent } from './turn-events.js';
 /** Injectable for tests; defaults to the real SDK query(). */
 export type QueryFn = (params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }) => Query;
 
-/** Serialize inherited context (everything but the final user prompt) as a preamble. */
+/** Serialize inherited context (everything but the latest user prompt) as a preamble. */
 function preambleFrom(context: ChatMessage[]): string {
-  const prior = context.slice(0, -1); // drop the latest user prompt
+  // Drop only the latest user message — it is re-sent as the turn's real prompt.
+  // Messages after it (a regenerated turn's tool trail) stay in the preamble.
+  const lastUser = context.map((m) => m.role).lastIndexOf('user');
+  const prior = context.filter((_, i) => i !== lastUser);
   if (prior.length === 0) return '';
   const lines = prior.map((m) => {
     const who = m.role === 'assistant' ? 'Assistant' : m.role === 'tool' ? 'Tool' : 'User';

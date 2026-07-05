@@ -196,6 +196,35 @@ describe('applyChatMessage — agent features', () => {
     expect(s.chats.c1.pendingPermission?.requestId).toBe('r2');
   });
 
+  it('queues concurrent permission requests; resolving the first surfaces the next', () => {
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_permission_requested', chatId: 'c1', requestId: 'r1', toolName: 'Bash', input: {} },
+      { type: 'chat_permission_requested', chatId: 'c1', requestId: 'r2', toolName: 'Read', input: {} },
+    );
+    expect(s.chats.c1.pendingPermission?.requestId).toBe('r1');
+    s = apply(s, { type: 'chat_permission_resolved', chatId: 'c1', requestId: 'r1' });
+    expect(s.chats.c1.pendingPermission?.requestId).toBe('r2');
+    s = apply(s, { type: 'chat_permission_resolved', chatId: 'c1', requestId: 'r2' });
+    expect(s.chats.c1.pendingPermission).toBeNull();
+  });
+
+  it('chat_snapshot preserves an in-flight permission prompt', () => {
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_permission_requested', chatId: 'c1', requestId: 'r1', toolName: 'Bash', input: {} },
+    );
+    const graph = {
+      id: 'g', version: 2 as const,
+      meta: { title: 't', created: 't0' },
+      chats: { c1: chat('c1') }, edges: [],
+    };
+    s = apply(s, { type: 'chat_snapshot', graph });
+    expect(s.chats.c1.pendingPermission?.requestId).toBe('r1');
+  });
+
   it('chat_tool_message appends a tool message to the transcript', () => {
     const toolMsg = {
       role: 'tool' as const,

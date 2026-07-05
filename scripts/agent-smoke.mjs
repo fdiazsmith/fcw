@@ -28,6 +28,7 @@ async function smokeTurn() {
   let text = '';
   let events = 0;
   for await (const ev of stream(ctx)) {
+    events += 1;
     if (ev.type === 'session') sawSession = true;
     if (ev.type === 'text_delta') text += ev.text;
     if (events > 50_000) throw new Error('runaway stream — >50k events');
