@@ -1,5 +1,6 @@
 // FCW v2 chat-graph: node = chat window, edges = context inheritance.
 import type { Position } from './types.js';
+import type { Compaction } from './compaction.js';
 
 export type ChatRole = 'user' | 'assistant' | 'tool';
 
@@ -60,6 +61,8 @@ export interface ChatGraph {
   meta: { title: string; created: string };
   chats: Record<string, ChatNode>;
   edges: ContextEdge[];
+  /** Chats folded behind editable document nodes. Absent in pre-compaction docs. */
+  compactions: Record<string, Compaction>;
 }
 
 let graphCounter = 0;
@@ -72,6 +75,7 @@ export function createChatGraph(title: string): ChatGraph {
     meta: { title, created: new Date().toISOString() },
     chats: {},
     edges: [],
+    compactions: {},
   };
 }
 

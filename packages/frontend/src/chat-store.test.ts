@@ -114,7 +114,7 @@ describe('applyChatMessage', () => {
     let s = apply(emptyChatState(), { type: 'chat_created', chat: chat('old') });
     const graph = {
       id: 'g1',
-      version: 2 as const,
+      version: 2 as const, compactions: {},
       meta: { title: 'T', created: 't0' },
       chats: {
         a: { ...chat('a'), messages: [{ role: 'user' as const, content: 'hi', createdAt: 't1' }] },
@@ -155,7 +155,7 @@ describe('applyChatMessage — agent features', () => {
   it('chat_snapshot carries per-chat settings', () => {
     const node = { ...chat('c1'), settings: { engine: 'agent' as const } };
     const graph = {
-      id: 'g', version: 2 as const,
+      id: 'g', version: 2 as const, compactions: {},
       meta: { title: 't', created: 't0' },
       chats: { c1: node }, edges: [],
     };
@@ -217,7 +217,7 @@ describe('applyChatMessage — agent features', () => {
       { type: 'chat_permission_requested', chatId: 'c1', requestId: 'r1', toolName: 'Bash', input: {} },
     );
     const graph = {
-      id: 'g', version: 2 as const,
+      id: 'g', version: 2 as const, compactions: {},
       meta: { title: 't', created: 't0' },
       chats: { c1: chat('c1') }, edges: [],
     };

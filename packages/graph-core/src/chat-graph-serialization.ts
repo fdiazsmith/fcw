@@ -13,5 +13,13 @@ export function chatGraphFromJSON(json: string): ChatGraph {
     if (!parsed.chats[edge.from]) throw new Error(`edge references unknown chat: ${edge.from}`);
     if (!parsed.chats[edge.to]) throw new Error(`edge references unknown chat: ${edge.to}`);
   }
+  parsed.compactions ??= {}; // pre-compaction documents
+  for (const compaction of Object.values(parsed.compactions)) {
+    for (const memberId of compaction.memberIds) {
+      if (!parsed.chats[memberId]) {
+        throw new Error(`compaction ${compaction.id} references unknown chat: ${memberId}`);
+      }
+    }
+  }
   return parsed;
 }

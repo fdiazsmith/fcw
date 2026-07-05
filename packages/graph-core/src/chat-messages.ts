@@ -1,5 +1,6 @@
 // v2 WebSocket protocol: chat-graph messages (shared server <-> frontend language).
 import type { ChatGraph, ChatMessage, ChatNode, ContextEdge, ChatSettings } from './chat-graph.js';
+import type { Compaction, CompactionStatus } from './compaction.js';
 import type { Position } from './types.js';
 
 export interface CapabilityModel {
@@ -28,7 +29,9 @@ export type ChatServerMessage =
   | { type: 'chat_tool_message'; chatId: string; message: ChatMessage }
   | { type: 'chat_capabilities'; models: CapabilityModel[]; commands: CapabilityCommand[] }
   | { type: 'chat_permission_requested'; chatId: string; requestId: string; toolName: string; input: unknown }
-  | { type: 'chat_permission_resolved'; chatId: string; requestId: string };
+  | { type: 'chat_permission_resolved'; chatId: string; requestId: string }
+  | { type: 'chat_compaction_created'; compaction: Compaction }
+  | { type: 'chat_compaction_document'; compactionId: string; document: string; sourceDigest: string; status: CompactionStatus };
 
 // Client -> Server
 export type ChatClientMessage =
@@ -41,4 +44,8 @@ export type ChatClientMessage =
   | { type: 'chat_stop_requested'; chatId: string }
   | { type: 'chat_regenerate_requested'; chatId: string }
   | { type: 'chat_settings_updated'; chatId: string; settings: Partial<ChatSettings> }
-  | { type: 'chat_permission_decision'; chatId: string; requestId: string; behavior: 'allow' | 'deny'; message?: string };
+  | { type: 'chat_permission_decision'; chatId: string; requestId: string; behavior: 'allow' | 'deny'; message?: string }
+  | { type: 'chat_compact_requested'; chatIds: string[] }
+  | { type: 'chat_compaction_regenerate_requested'; compactionId: string }
+  | { type: 'chat_compaction_document_updated'; compactionId: string; document: string }
+  | { type: 'chat_compaction_move_requested'; compactionId: string; position: Position };

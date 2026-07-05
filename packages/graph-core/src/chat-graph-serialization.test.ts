@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createChatGraph, addChat, appendMessage, addContextEdge } from './chat-graph.js';
+import { addCompaction, completeCompactionGeneration } from './compaction.js';
 import { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
 
 describe('chat-graph serialization', () => {
@@ -59,6 +60,28 @@ describe('chat-graph serialization', () => {
     expect(g.chats.chat_1.settings).toBeUndefined();
     expect(g.chats.chat_1.sessionId).toBeUndefined();
     expect(g.chats.chat_1.messages[0].attachments).toBeUndefined();
+    expect(g.compactions).toEqual({});
+  });
+
+  it('round-trips compactions', () => {
+    const g = createChatGraph('Compact');
+    const a = addChat(g, { title: 'root' });
+    appendMessage(g, a, 'user', 'hi');
+    const id = addCompaction(g, [a]);
+    completeCompactionGeneration(g, id, '# Doc', 'digest-1');
+
+    const restored = chatGraphFromJSON(chatGraphToJSON(g));
+    expect(restored).toEqual(g);
+  });
+
+  it('rejects compactions referencing missing chats', () => {
+    const g = createChatGraph('Bad');
+    const a = addChat(g);
+    const b = addChat(g);
+    addCompaction(g, [a, b]);
+    const json = JSON.parse(chatGraphToJSON(g));
+    delete json.chats[b];
+    expect(() => chatGraphFromJSON(JSON.stringify(json))).toThrow(/unknown chat/i);
   });
 
   it('rejects documents without version 2', () => {

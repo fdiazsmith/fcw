@@ -27,6 +27,7 @@ function graphFromState(state: ChatState): ChatGraph {
     meta: { title: '', created: '' },
     chats,
     edges: state.edges.map((e) => ({ ...e })),
+    compactions: {},
   };
 }
 
