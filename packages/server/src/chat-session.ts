@@ -12,8 +12,15 @@ import {
   removeLastMessage,
   updateChatSettings,
   markSessionStale,
+  addCompaction,
+  compactionDigest,
+  completeCompactionGeneration,
+  setCompactionDocument,
+  setCompactionStatus,
+  setCompactionPosition,
 } from '@fcw/graph-core';
 import type { ChatGraph, ChatMessage, Position, ChatSettings, Attachment } from '@fcw/graph-core';
+import { structuralCompactionDocument, type GenerateCompactionDoc } from './compaction-doc.js';
 import type { StreamTurnFn, TurnContext, PermissionDecision } from './turn-events.js';
 
 /** Per-engine turn streams, selected by chat.settings.engine. */
@@ -50,6 +57,8 @@ export class ChatSessionManager extends EventEmitter {
     private readonly streams: ManagerStreams = {},
     initialGraph?: ChatGraph,
     private readonly attachmentResolver?: AttachmentResolver,
+    private readonly generateCompactionDoc: GenerateCompactionDoc = async (members) =>
+      structuralCompactionDocument(members),
   ) {
     super();
     this.graph = initialGraph ?? createChatGraph(title);
@@ -307,6 +316,64 @@ export class ChatSessionManager extends EventEmitter {
     this.emit('message', { type: 'chat_last_message_removed', chatId });
     this.scheduleSave();
     await this.runStream(chatId);
+  }
+
+  /** Fold chats behind a new compaction node and synthesize its document. */
+  async compact(chatIds: string[]): Promise<string> {
+    const id = addCompaction(this.graph, chatIds);
+    // Snapshot copy: generation mutates the live object right after this emit.
+    const c = this.graph.compactions[id];
+    this.emit('message', {
+      type: 'chat_compaction_created',
+      compaction: { ...c, memberIds: [...c.memberIds] },
+    });
+    this.scheduleSave();
+    await this.generateInto(id);
+    return id;
+  }
+
+  /** Re-synthesize the document from the members' current transcripts. */
+  async regenerateCompaction(id: string): Promise<void> {
+    setCompactionStatus(this.graph, id, 'generating');
+    this.emitCompactionDocument(id);
+    await this.generateInto(id);
+  }
+
+  /** User edit of the document — the generation digest is untouched. */
+  updateCompactionDocument(id: string, document: string): void {
+    setCompactionDocument(this.graph, id, document);
+    this.emitCompactionDocument(id);
+    this.scheduleSave();
+  }
+
+  moveCompaction(id: string, position: Position): void {
+    setCompactionPosition(this.graph, id, position);
+    this.scheduleSave();
+  }
+
+  /** Generate the document for a compaction, pinning the digest to the
+   *  transcripts the generator actually saw. */
+  private async generateInto(id: string): Promise<void> {
+    const compaction = this.graph.compactions[id];
+    const members = compaction.memberIds.map((m) => this.graph.chats[m]);
+    const digest = compactionDigest(members);
+    const document = await this.generateCompactionDoc(members).catch(() =>
+      structuralCompactionDocument(members),
+    );
+    completeCompactionGeneration(this.graph, id, document, digest);
+    this.emitCompactionDocument(id);
+    this.scheduleSave();
+  }
+
+  private emitCompactionDocument(id: string): void {
+    const c = this.graph.compactions[id];
+    this.emit('message', {
+      type: 'chat_compaction_document',
+      compactionId: id,
+      document: c.document,
+      sourceDigest: c.sourceDigest,
+      status: c.status,
+    });
   }
 
   private maybeAutoTitle(chatId: string): void {
