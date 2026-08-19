@@ -41,7 +41,7 @@ the target doc is never degraded.
 
 ## Two Structures, Not One
 
-The hand-drawn sequence sketches (2026-08-11) revealed the real architecture:
+The hand-drawn sequence sketches (`docs/sketches/`) revealed the real architecture:
 
 - **Nesting is a tree.** Canvas → box → child canvas → deeper. The home icon walks back up.
 - **References are a graph.** One doc (e.g. Frontend Architecture) is *placed* on many
@@ -68,6 +68,27 @@ Regenerating Mermaid from the graph is useful for exactly two things:
    instead of every document body.
 
 Neither reaches back and overwrites human edits. There is no bidirectional sync to build.
+
+## Rendering Stack: What We Deliberately Are Not Using
+
+How Obsidian's graph view actually works, and why we diverge:
+
+| Stage | Obsidian | FCW |
+|---|---|---|
+| Parse | scan `.md` for `[[wikilinks]]` → edges | same idea (`parseWikilinks`) |
+| Layout | **d3-force** simulation in a Web Worker | tldraw + dagre |
+| Render | **PIXI.js / WebGL**, 10k+ nodes at 50+ FPS | tldraw shapes |
+
+Obsidian needs d3-force and a GPU pipeline because it renders one enormous global graph.
+FCW's canvases are **scoped** — a few dozen shapes each — and tldraw already owns layout
+and rendering. So **we add neither d3-force nor PIXI.js.** The transferable insight from
+Obsidian is that the graph is *data* and the diagram is *rendering*, cleanly separable:
+90% of the value is in the parser, which is why `graph-core` owns the parsing and the
+frontend owns nothing but shapes.
+
+One place this may need revisiting: the global "how it all meshed together" view
+(sketch 04). If that view ever holds thousands of nodes, a force layout becomes relevant
+again — but only for that one view, and only once it exists.
 
 ## Storage Path (deferred, not blocked)
 

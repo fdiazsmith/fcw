@@ -23,6 +23,13 @@ it, or dive in and hold a focused conversation about what sign-in actually requi
 referencing the Frontend Architecture doc you already wrote. Dive into *that*, and you
 find the diagrams and notes where those decisions were captured.
 
+The point of the whole thing: **a tool for thinking through complex problems**, where the
+structure of the thinking is visible and navigable instead of buried in a scroll.
+
+> **Start here:** `docs/sketches/` holds the four hand-drawn frames this design came from,
+> annotated. When a decision below seems arbitrary, the answer is usually in one of them.
+> Full rationale in `MERMAID-DOCS.md`.
+
 ## Two structures, not one
 
 - **Nesting is a tree.** Canvas → box → child canvas → deeper.
@@ -60,8 +67,14 @@ Full rationale in `MERMAID-DOCS.md`. In short:
 - **Mermaid is input and export, never a live sync target** — your edits are truth;
   regenerating Mermaid is for getting structure *out* (GitHub, Notion) or as cheap
   context for the model
-- **Chats live on canvases too** — a doc-builder chat inherits the doc's references as
-  context, recursively with a token budget; it writes the body only on **explicit apply**
+- **Chats live on canvases too** — two flavours, one pipeline: a **doc-builder chat**
+  inherits its doc's references as context (recursively, with a token budget) and writes
+  the body only on **explicit apply**; a **canvas chat** is fed by everything placed on
+  the canvas, so you can talk to the whole surface. Docs contribute context blocks where
+  v2 chats contribute transcripts — generalizing v2's `ContextEdge`, not competing with it
+- **No d3-force, no PIXI.js** — Obsidian needs both for one giant global graph; our
+  canvases are scoped and tldraw already owns layout and rendering. We take only the
+  separable-parser insight (`MERMAID-DOCS.md` § Rendering Stack)
 - **Spatial zoom-in** navigation (⚠ highest-risk choice — prototype with a kill criterion)
 - Storage embedded in `.fcw.json` for the PoC; `.md` file export later, at which point
   `parseWikilinks` earns its keep
