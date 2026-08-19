@@ -12,6 +12,7 @@ import {
   removeLastMessage,
   updateChatSettings,
   markSessionStale,
+  addTurnUsage,
   addCompaction,
   compactionDigest,
   completeCompactionGeneration,
@@ -210,6 +211,19 @@ export class ChatSessionManager extends EventEmitter {
               input: ev.input,
             });
             break;
+          case 'usage': {
+            addTurnUsage(this.graph, chatId, ev.usage);
+            const contextChats = this.graph.edges.filter(
+              (e) => e.to === chatId && e.enabled,
+            ).length;
+            this.emit('message', {
+              type: 'chat_usage_updated',
+              chatId,
+              usage: this.graph.chats[chatId].usage,
+              contextChats,
+            });
+            break;
+          }
         }
       }
       if (!emittedAny && text === '') {

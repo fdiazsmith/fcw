@@ -8,6 +8,7 @@ import type {
   CapabilityModel,
   CapabilityCommand,
   Compaction,
+  TokenUsage,
 } from '@fcw/graph-core';
 import { compactionDigest } from '@fcw/graph-core';
 
@@ -29,6 +30,10 @@ export interface ChatView {
   pendingPermission: PendingPermission | null;
   /** All unresolved permission prompts for this chat, oldest first. */
   pendingPermissionQueue: PendingPermission[];
+  /** Accumulated token usage across turns, or null before the first turn. */
+  usage: TokenUsage | null;
+  /** Enabled incoming context edges at the last usage update. */
+  contextChats: number;
 }
 
 export interface Capabilities {
@@ -68,6 +73,8 @@ function viewFrom(chat: ChatNode): ChatView {
     settings: chat.settings ?? { engine: 'api' },
     pendingPermission: null,
     pendingPermissionQueue: [],
+    usage: chat.usage ?? null,
+    contextChats: 0,
   };
 }
 
@@ -154,6 +161,8 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
       return update({ messages: [...existing.messages, msg.message] });
     case 'chat_settings_changed':
       return update({ settings: msg.settings });
+    case 'chat_usage_updated':
+      return update({ usage: msg.usage, contextChats: msg.contextChats });
     case 'chat_permission_requested': {
       if (existing.pendingPermissionQueue.some((p) => p.requestId === msg.requestId)) return state;
       const queue = [

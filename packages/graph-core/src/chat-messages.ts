@@ -1,5 +1,5 @@
 // v2 WebSocket protocol: chat-graph messages (shared server <-> frontend language).
-import type { ChatGraph, ChatMessage, ChatNode, ContextEdge, ChatSettings } from './chat-graph.js';
+import type { ChatGraph, ChatMessage, ChatNode, ContextEdge, ChatSettings, TokenUsage } from './chat-graph.js';
 import type { Compaction, CompactionStatus } from './compaction.js';
 import type { Position } from './types.js';
 
@@ -26,6 +26,7 @@ export type ChatServerMessage =
   | { type: 'chat_last_message_removed'; chatId: string }
   | { type: 'chat_error'; chatId: string; message: string }
   | { type: 'chat_settings_changed'; chatId: string; settings: ChatSettings }
+  | { type: 'chat_usage_updated'; chatId: string; usage: TokenUsage; contextChats: number }
   | { type: 'chat_tool_message'; chatId: string; message: ChatMessage }
   | { type: 'chat_capabilities'; models: CapabilityModel[]; commands: CapabilityCommand[] }
   | { type: 'chat_permission_requested'; chatId: string; requestId: string; toolName: string; input: unknown }

@@ -62,4 +62,59 @@ describe('createChatStreamText', () => {
     ]);
     expect(captured.system).toContain('canvas');
   });
+
+  it('emits usage assembled from message_start and message_delta events', async () => {
+    const captured: { messages?: unknown; system?: string } = {};
+    const client = fakeClient(
+      [
+        {
+          type: 'message_start',
+          message: {
+            usage: {
+              input_tokens: 1200,
+              output_tokens: 1,
+              cache_read_input_tokens: 900,
+              cache_creation_input_tokens: 100,
+            },
+          },
+        },
+        { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hi' } },
+        { type: 'message_delta', usage: { output_tokens: 340 } },
+        { type: 'message_stop' },
+      ],
+      captured,
+    );
+    const streamTurn = createChatStreamText(client);
+    const events: TurnEvent[] = [];
+    for await (const ev of streamTurn(turnCtx([msg('user', 'q')])) as AsyncIterable<TurnEvent>) {
+      events.push(ev);
+    }
+    expect(events).toContainEqual({
+      type: 'usage',
+      usage: {
+        inputTokens: 1200,
+        outputTokens: 340,
+        cacheReadInputTokens: 900,
+        cacheCreationInputTokens: 100,
+        costUSD: 0,
+      },
+    });
+  });
+
+  it('emits no usage event when the stream carries no usage data', async () => {
+    const captured: { messages?: unknown; system?: string } = {};
+    const client = fakeClient(
+      [
+        { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hi' } },
+        { type: 'message_stop' },
+      ],
+      captured,
+    );
+    const streamTurn = createChatStreamText(client);
+    const events: TurnEvent[] = [];
+    for await (const ev of streamTurn(turnCtx([msg('user', 'q')])) as AsyncIterable<TurnEvent>) {
+      events.push(ev);
+    }
+    expect(events.filter((e) => e.type === 'usage')).toHaveLength(0);
+  });
 });

@@ -53,11 +53,42 @@ export function createChatStreamText(client: ClaudeClient): StreamTurnFn {
     }));
 
     const stream = client.stream(messages, SYSTEM_PROMPT);
+    // Usage arrives split across the stream: input/cache counts on
+    // message_start, the final output count on message_delta.
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let cacheReadInputTokens = 0;
+    let cacheCreationInputTokens = 0;
+    let sawUsage = false;
     for await (const event of stream) {
       if (ctx.signal.aborted) break;
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
         yield { type: 'text_delta', text: event.delta.text };
+      } else if (event.type === 'message_start') {
+        const usage = event.message?.usage;
+        if (usage) {
+          sawUsage = true;
+          inputTokens = usage.input_tokens ?? 0;
+          cacheReadInputTokens = usage.cache_read_input_tokens ?? 0;
+          cacheCreationInputTokens = usage.cache_creation_input_tokens ?? 0;
+        }
+      } else if (event.type === 'message_delta' && event.usage) {
+        sawUsage = true;
+        outputTokens = event.usage.output_tokens ?? outputTokens;
       }
+    }
+    if (sawUsage && !ctx.signal.aborted) {
+      yield {
+        type: 'usage',
+        usage: {
+          inputTokens,
+          outputTokens,
+          cacheReadInputTokens,
+          cacheCreationInputTokens,
+          // The raw API reports no cost; priced client-side if ever needed.
+          costUSD: 0,
+        },
+      };
     }
   };
 }

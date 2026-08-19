@@ -9,7 +9,8 @@ import {
 } from 'tldraw';
 import { ChatWindow } from '../components/ChatWindow';
 import type { ChatView, Capabilities, PendingPermission } from '../chat-store';
-import type { ChatSettings, Attachment } from '@fcw/graph-core';
+import type { ChatSettings, Attachment, TokenUsage } from '@fcw/graph-core';
+import type { DirListing } from '../components/FolderPicker';
 import { collapseToggle } from '../collapse-pill';
 
 // Chat data rides in shape props (JSON), following the v1 GraphNodeShape pattern:
@@ -28,6 +29,8 @@ export type ChatShapeProps = {
   settingsJson: string;
   pendingPermissionJson: string; // '' means no pending permission
   capabilitiesJson: string; // '' means capabilities not loaded yet
+  usageJson: string; // '' means no usage recorded yet
+  contextChats: number;
 };
 
 export type ChatShape = TLBaseShape<'chat-node', ChatShapeProps>;
@@ -40,6 +43,8 @@ export interface ChatActions {
   updateSettings: (chatId: string, patch: Partial<ChatSettings>) => void;
   permissionDecision: (chatId: string, requestId: string, behavior: 'allow' | 'deny') => void;
   uploadAttachment: (file: File) => Promise<Attachment>;
+  /** Browse local server directories for the cwd picker. */
+  listDirs: (path?: string) => Promise<DirListing>;
   compact: (chatIds: string[]) => void;
   regenerateCompaction: (compactionId: string) => void;
   updateCompactionDocument: (compactionId: string, document: string) => void;
@@ -81,6 +86,8 @@ export function viewFromShape(shape: ChatShape): ChatView {
     // The shape only carries the head prompt (what the banner shows); the full
     // queue is authoritative in the store, not this render projection.
     pendingPermissionQueue: [],
+    usage: parseJson<TokenUsage | null>(shape.props.usageJson, null),
+    contextChats: shape.props.contextChats,
   };
 }
 
@@ -107,6 +114,8 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
     settingsJson: T.string,
     pendingPermissionJson: T.string,
     capabilitiesJson: T.string,
+    usageJson: T.string,
+    contextChats: T.number,
   };
 
   override getDefaultProps(): ChatShapeProps {
@@ -124,6 +133,8 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
       settingsJson: '{"engine":"api"}',
       pendingPermissionJson: '',
       capabilitiesJson: '',
+      usageJson: '',
+      contextChats: 0,
     };
   }
 
@@ -236,6 +247,11 @@ export class ChatShapeUtil extends BaseBoxShapeUtil<ChatShape> {
             uploadAttachment={(file) =>
               registeredActions
                 ? registeredActions.uploadAttachment(file)
+                : Promise.reject(new Error('not connected'))
+            }
+            listDirs={(path) =>
+              registeredActions
+                ? registeredActions.listDirs(path)
                 : Promise.reject(new Error('not connected'))
             }
           />

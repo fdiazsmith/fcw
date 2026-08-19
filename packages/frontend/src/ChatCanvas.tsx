@@ -73,6 +73,14 @@ async function uploadAttachment(file: File): Promise<import('@fcw/graph-core').A
   return res.json();
 }
 
+/** Browse server-side directories for the cwd folder picker. */
+async function listDirs(path?: string): Promise<import('./components/FolderPicker').DirListing> {
+  const qs = path ? `?path=${encodeURIComponent(path)}` : '';
+  const res = await fetch(`${HTTP_URL}/fs/dirs${qs}`);
+  if (!res.ok) throw new Error(`listing failed: ${res.status}`);
+  return res.json();
+}
+
 /** Find any arrow representing the context edge from->to (created by us or
  *  adopted), on whichever page it lives. */
 function findCtxArrow(editor: Editor, from: string, to: string): TLShape | undefined {
@@ -201,6 +209,8 @@ export default function ChatCanvas() {
       settingsJson: JSON.stringify(view.settings),
       pendingPermissionJson: view.pendingPermission ? JSON.stringify(view.pendingPermission) : '',
       capabilitiesJson: hasCaps ? JSON.stringify(caps) : '',
+      usageJson: view.usage ? JSON.stringify(view.usage) : '',
+      contextChats: view.contextChats,
     };
     const targetPage = pageForChat(editor, view.id);
     syncingRef.current = true;
@@ -415,6 +425,7 @@ export default function ChatCanvas() {
       permissionDecision: (chatId, requestId, behavior) =>
         send({ type: 'chat_permission_decision', chatId, requestId, behavior }),
       uploadAttachment: (file) => uploadAttachment(file),
+      listDirs: (path) => listDirs(path),
       compact: (chatIds) => send({ type: 'chat_compact_requested', chatIds }),
       regenerateCompaction: (compactionId) =>
         send({ type: 'chat_compaction_regenerate_requested', compactionId }),

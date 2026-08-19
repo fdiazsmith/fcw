@@ -25,6 +25,16 @@ export interface ChatMessage {
   toolInputTruncated?: boolean;
 }
 
+/** Accumulated token usage for a chat. One entry per completed turn. */
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens: number;
+  cacheCreationInputTokens: number;
+  costUSD: number;
+  turns: number;
+}
+
 /** Per-chat engine configuration. `engine: 'api'` is the default. */
 export interface ChatSettings {
   engine: 'api' | 'agent';
@@ -46,6 +56,8 @@ export interface ChatNode {
   sessionId?: string;
   /** When true, the next prompt starts a fresh session with a re-assembled preamble. */
   sessionStale?: boolean;
+  /** Accumulated token usage across this chat's turns. */
+  usage?: TokenUsage;
 }
 
 export interface ContextEdge {
@@ -139,6 +151,32 @@ export function markSessionStale(graph: ChatGraph, chatId: string): void {
       if (e.from === current) stack.push(e.to);
     }
   }
+}
+
+/** Accumulate one turn's token usage onto a chat. */
+export function addTurnUsage(
+  graph: ChatGraph,
+  chatId: string,
+  turn: Omit<TokenUsage, 'turns'>,
+): void {
+  const chat = graph.chats[chatId];
+  if (!chat) throw new Error(`unknown chat: ${chatId}`);
+  const prev = chat.usage ?? {
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+    costUSD: 0,
+    turns: 0,
+  };
+  chat.usage = {
+    inputTokens: prev.inputTokens + turn.inputTokens,
+    outputTokens: prev.outputTokens + turn.outputTokens,
+    cacheReadInputTokens: prev.cacheReadInputTokens + turn.cacheReadInputTokens,
+    cacheCreationInputTokens: prev.cacheCreationInputTokens + turn.cacheCreationInputTokens,
+    costUSD: prev.costUSD + turn.costUSD,
+    turns: prev.turns + 1,
+  };
 }
 
 export function setChatPosition(graph: ChatGraph, chatId: string, position: Position): void {

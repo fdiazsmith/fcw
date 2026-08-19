@@ -56,6 +56,7 @@ export type {
   ChatGraph,
   ChatSettings,
   Attachment,
+  TokenUsage,
 } from './chat-graph.js';
 export {
   createChatGraph,
@@ -68,6 +69,7 @@ export {
   removeLastMessage,
   updateChatSettings,
   markSessionStale,
+  addTurnUsage,
 } from './chat-graph.js';
 export type { Compaction, CompactionStatus, CompactionMember } from './compaction.js';
 export {

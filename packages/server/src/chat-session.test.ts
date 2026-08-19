@@ -226,6 +226,63 @@ describe('ChatSessionManager.prompt with streaming', () => {
     expect(sessions.graph.chats[id].sessionStale).toBe(false);
   });
 
+  it('accumulates turn usage on the chat and emits chat_usage_updated with the module count', async () => {
+    const turnUsage = {
+      inputTokens: 1200,
+      outputTokens: 340,
+      cacheReadInputTokens: 900,
+      cacheCreationInputTokens: 100,
+      costUSD: 0.042,
+    };
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* () {
+        yield { type: 'text_delta', text: 'ok' } as TurnEvent;
+        yield { type: 'usage', usage: turnUsage } as TurnEvent;
+      },
+    });
+    const parentA = sessions.createChat({ x: 0, y: 0 });
+    const parentB = sessions.createChat({ x: 0, y: 0 });
+    const id = sessions.createChat({ x: 0, y: 0 });
+    sessions.connect(parentA, id);
+    sessions.connect(parentB, id);
+    sessions.updateSettings(id, { engine: 'agent' });
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+    expect(sessions.graph.chats[id].usage).toEqual({ ...turnUsage, turns: 1 });
+    expect(events).toContainEqual({
+      type: 'chat_usage_updated',
+      chatId: id,
+      usage: { ...turnUsage, turns: 1 },
+      contextChats: 2,
+    });
+  });
+
+  it('counts only enabled incoming edges as context modules', async () => {
+    const turnUsage = {
+      inputTokens: 1,
+      outputTokens: 1,
+      cacheReadInputTokens: 0,
+      cacheCreationInputTokens: 0,
+      costUSD: 0,
+    };
+    const sessions = new ChatSessionManager('T', {
+      agent: async function* () {
+        yield { type: 'text_delta', text: 'ok' } as TurnEvent;
+        yield { type: 'usage', usage: turnUsage } as TurnEvent;
+      },
+    });
+    const parent = sessions.createChat({ x: 0, y: 0 });
+    const id = sessions.createChat({ x: 0, y: 0 });
+    sessions.connect(parent, id);
+    sessions.graph.edges[0].enabled = false;
+    sessions.updateSettings(id, { engine: 'agent' });
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+    const usageEvents = events.filter((e) => e.type === 'chat_usage_updated');
+    expect(usageEvents).toHaveLength(1);
+    expect(usageEvents[0]).toMatchObject({ contextChats: 0 });
+  });
+
   it('appends tool messages and emits chat_tool_message', async () => {
     const sessions = new ChatSessionManager('T', {
       agent: async function* () {

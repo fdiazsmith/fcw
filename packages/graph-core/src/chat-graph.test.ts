@@ -10,6 +10,7 @@ import {
   removeLastMessage,
   updateChatSettings,
   markSessionStale,
+  addTurnUsage,
 } from './chat-graph.js';
 
 describe('createChatGraph', () => {
@@ -244,5 +245,42 @@ describe('markSessionStale', () => {
   it('throws for an unknown chat', () => {
     const g = createChatGraph('S');
     expect(() => markSessionStale(g, 'nope')).toThrow(/unknown chat/i);
+  });
+});
+
+describe('addTurnUsage', () => {
+  const turn = {
+    inputTokens: 100,
+    outputTokens: 50,
+    cacheReadInputTokens: 10,
+    cacheCreationInputTokens: 5,
+    costUSD: 0.01,
+  };
+
+  it('sets usage on first turn with turns=1', () => {
+    const g = createChatGraph('U');
+    const id = addChat(g);
+    addTurnUsage(g, id, turn);
+    expect(g.chats[id].usage).toEqual({ ...turn, turns: 1 });
+  });
+
+  it('accumulates across turns', () => {
+    const g = createChatGraph('U');
+    const id = addChat(g);
+    addTurnUsage(g, id, turn);
+    addTurnUsage(g, id, turn);
+    expect(g.chats[id].usage).toEqual({
+      inputTokens: 200,
+      outputTokens: 100,
+      cacheReadInputTokens: 20,
+      cacheCreationInputTokens: 10,
+      costUSD: 0.02,
+      turns: 2,
+    });
+  });
+
+  it('throws for an unknown chat', () => {
+    const g = createChatGraph('U');
+    expect(() => addTurnUsage(g, 'nope', turn)).toThrow(/unknown chat/i);
   });
 });

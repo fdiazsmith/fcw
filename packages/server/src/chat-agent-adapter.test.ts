@@ -167,6 +167,50 @@ describe('createAgentTurnStream message mapping', () => {
     expect(events).toContainEqual({ type: 'tool_use', toolUseId: 'tu1', name: 'Read', input: { path: '/x' } });
     expect(events).toContainEqual({ type: 'tool_result', toolUseId: 'tu1', content: 'file body' });
   });
+
+  it('emits usage from the result message', async () => {
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
+    const turn = createAgentTurnStream(
+      fakeQuery(
+        [
+          { type: 'system', subtype: 'init', session_id: 'sess_new' },
+          {
+            type: 'result',
+            subtype: 'success',
+            session_id: 'sess_new',
+            total_cost_usd: 0.042,
+            usage: {
+              input_tokens: 1200,
+              output_tokens: 340,
+              cache_read_input_tokens: 900,
+              cache_creation_input_tokens: 100,
+            },
+          },
+        ],
+        cap,
+      ),
+    );
+    const events = await collect(turn(ctx()));
+    expect(events).toContainEqual({
+      type: 'usage',
+      usage: {
+        inputTokens: 1200,
+        outputTokens: 340,
+        cacheReadInputTokens: 900,
+        cacheCreationInputTokens: 100,
+        costUSD: 0.042,
+      },
+    });
+  });
+
+  it('emits no usage event when the result message lacks usage', async () => {
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
+    const turn = createAgentTurnStream(
+      fakeQuery([{ type: 'result', subtype: 'success', session_id: 's' }], cap),
+    );
+    const events = await collect(turn(ctx()));
+    expect(events.filter((e) => e.type === 'usage')).toHaveLength(0);
+  });
 });
 
 describe('createAgentTurnStream permissions', () => {

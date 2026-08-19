@@ -200,6 +200,22 @@ function mapMessage(msg: SDKMessage, queue: ReturnType<typeof createQueue<TurnEv
     }
     return;
   }
+  if (msg.type === 'result') {
+    const usage = (msg as { usage?: Record<string, number> }).usage;
+    if (usage) {
+      queue.push({
+        type: 'usage',
+        usage: {
+          inputTokens: usage.input_tokens ?? 0,
+          outputTokens: usage.output_tokens ?? 0,
+          cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
+          cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
+          costUSD: (msg as { total_cost_usd?: number }).total_cost_usd ?? 0,
+        },
+      });
+    }
+    return;
+  }
   if (msg.type === 'user') {
     const content = msg.message.content;
     if (!Array.isArray(content)) return;

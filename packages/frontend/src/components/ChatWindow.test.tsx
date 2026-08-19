@@ -14,6 +14,8 @@ const view = (over: Partial<ChatView> = {}): ChatView => ({
   settings: { engine: 'api' },
   pendingPermission: null,
   pendingPermissionQueue: [],
+  usage: null,
+  contextChats: 0,
   ...over,
 });
 
@@ -21,6 +23,66 @@ const caps = (over: Partial<Capabilities> = {}): Capabilities => ({
   models: [{ id: 'claude-opus-4-8', displayName: 'Claude Opus 4.8' }],
   commands: [{ name: 'review', description: 'review a PR' }],
   ...over,
+});
+
+describe('ChatWindow usage', () => {
+  it('shows nothing before the first turn', () => {
+    render(<ChatWindow chat={view()} onSend={() => {}} />);
+    expect(screen.queryByTestId('usage-badge')).toBeNull();
+  });
+
+  it('shows tokens, cost, and connected module count', () => {
+    render(
+      <ChatWindow
+        chat={view({
+          usage: {
+            inputTokens: 1200,
+            outputTokens: 340,
+            cacheReadInputTokens: 900,
+            cacheCreationInputTokens: 100,
+            costUSD: 0.042,
+            turns: 2,
+          },
+          contextChats: 3,
+        })}
+        onSend={() => {}}
+      />,
+    );
+    const badge = screen.getByTestId('usage-badge');
+    expect(badge.textContent).toContain('1.2k'); // input tokens
+    expect(badge.textContent).toContain('340'); // output tokens
+    expect(badge.textContent).toContain('$0.042');
+    expect(badge.textContent).toContain('3'); // connected modules
+  });
+});
+
+describe('ChatWindow folder picker', () => {
+  it('uses the FolderPicker for cwd when listDirs is provided (agent engine)', async () => {
+    const onUpdateSettings = vi.fn();
+    const listDirs = vi
+      .fn()
+      .mockResolvedValue({ path: '/repos', parent: '/', dirs: [{ name: 'fcw', path: '/repos/fcw' }] });
+    render(
+      <ChatWindow
+        chat={view({ settings: { engine: 'agent', cwd: '/repos' } })}
+        onSend={() => {}}
+        onUpdateSettings={onUpdateSettings}
+        listDirs={listDirs}
+      />,
+    );
+    expect(screen.queryByPlaceholderText('cwd')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /working directory/i }));
+    await waitFor(() => screen.getByRole('button', { name: /use this folder/i }));
+    fireEvent.click(screen.getByRole('button', { name: /use this folder/i }));
+    expect(onUpdateSettings).toHaveBeenCalledWith({ cwd: '/repos' });
+  });
+
+  it('falls back to the raw cwd input without listDirs', () => {
+    render(
+      <ChatWindow chat={view({ settings: { engine: 'agent' } })} onSend={() => {}} />,
+    );
+    expect(screen.getByPlaceholderText('cwd')).toBeTruthy();
+  });
 });
 
 describe('ChatWindow', () => {

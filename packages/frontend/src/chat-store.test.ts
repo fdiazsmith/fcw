@@ -153,6 +153,43 @@ describe('applyChatMessage — agent features', () => {
     expect(s.chats.c1.settings).toEqual({ engine: 'agent', model: 'claude-opus-4-8' });
   });
 
+  it('chat_usage_updated stores usage and contextChats on the view', () => {
+    const usage = {
+      inputTokens: 1200,
+      outputTokens: 340,
+      cacheReadInputTokens: 900,
+      cacheCreationInputTokens: 100,
+      costUSD: 0.042,
+      turns: 1,
+    };
+    const s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'chat_usage_updated', chatId: 'c1', usage, contextChats: 2 },
+    );
+    expect(s.chats.c1.usage).toEqual(usage);
+    expect(s.chats.c1.contextChats).toBe(2);
+  });
+
+  it('chat_snapshot carries per-chat usage', () => {
+    const usage = {
+      inputTokens: 10,
+      outputTokens: 5,
+      cacheReadInputTokens: 0,
+      cacheCreationInputTokens: 0,
+      costUSD: 0.001,
+      turns: 3,
+    };
+    const node = { ...chat('c1'), usage };
+    const graph = {
+      id: 'g', version: 2 as const, compactions: {},
+      meta: { title: 't', created: 't0' },
+      chats: { c1: node }, edges: [],
+    };
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph });
+    expect(s.chats.c1.usage).toEqual(usage);
+  });
+
   it('chat_snapshot carries per-chat settings', () => {
     const node = { ...chat('c1'), settings: { engine: 'agent' as const } };
     const graph = {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createServer } from 'node:http';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import { createRouter } from './routes.js';
 import { StateManager } from './state-manager.js';
@@ -198,5 +198,72 @@ describe('HTTP Attachments API', () => {
     });
     expect(res.status).toBe(201);
     expect(res.headers.get('access-control-allow-origin')).toBe('*');
+  });
+});
+
+describe('GET /fs/dirs', () => {
+  let storageDir: string;
+  let browseRoot: string;
+  let manager: StateManager;
+  let server: ReturnType<typeof createServer>;
+
+  beforeEach(async () => {
+    storageDir = mkdtempSync(join(tmpdir(), 'fcw-test-'));
+    browseRoot = mkdtempSync(join(tmpdir(), 'fcw-browse-'));
+    mkdirSync(join(browseRoot, 'projects'));
+    mkdirSync(join(browseRoot, 'zeta'));
+    mkdirSync(join(browseRoot, '.hidden'));
+    writeFileSync(join(browseRoot, 'file.txt'), 'x');
+    manager = new StateManager();
+    const router = createRouter(manager, storageDir);
+    server = createServer(router);
+    await startServer(server);
+  });
+
+  afterEach(async () => {
+    manager.destroy();
+    await stopServer(server);
+    rmSync(storageDir, { recursive: true, force: true });
+    rmSync(browseRoot, { recursive: true, force: true });
+  });
+
+  it('lists subdirectories sorted, skipping hidden dirs and files', async () => {
+    const { status, data } = await makeRequest(
+      server,
+      'GET',
+      `/fs/dirs?path=${encodeURIComponent(browseRoot)}`,
+    );
+    expect(status).toBe(200);
+    const body = data as { path: string; parent: string; dirs: { name: string; path: string }[] };
+    expect(body.path).toBe(browseRoot);
+    expect(body.parent).toBe(join(browseRoot, '..'));
+    expect(body.dirs.map((d) => d.name)).toEqual(['projects', 'zeta']);
+    expect(body.dirs[0].path).toBe(join(browseRoot, 'projects'));
+  });
+
+  it('defaults to the home directory without a path param', async () => {
+    const { status, data } = await makeRequest(server, 'GET', '/fs/dirs');
+    expect(status).toBe(200);
+    expect((data as { path: string }).path).toBe(homedir());
+  });
+
+  it('404s for a missing or non-directory path', async () => {
+    const missing = await makeRequest(
+      server,
+      'GET',
+      `/fs/dirs?path=${encodeURIComponent(join(browseRoot, 'nope'))}`,
+    );
+    expect(missing.status).toBe(404);
+    const file = await makeRequest(
+      server,
+      'GET',
+      `/fs/dirs?path=${encodeURIComponent(join(browseRoot, 'file.txt'))}`,
+    );
+    expect(file.status).toBe(404);
+  });
+
+  it('rejects relative paths', async () => {
+    const { status } = await makeRequest(server, 'GET', '/fs/dirs?path=..%2Fetc');
+    expect(status).toBe(400);
   });
 });

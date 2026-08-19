@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { ChatSettings, Attachment } from '@fcw/graph-core';
 import type { ChatView, Capabilities } from '../chat-store';
+import { FolderPicker, type DirListing } from './FolderPicker';
 
 export interface ChatWindowProps {
   chat: ChatView;
@@ -12,6 +13,8 @@ export interface ChatWindowProps {
   onUpdateSettings?: (patch: Partial<ChatSettings>) => void;
   onPermissionDecision?: (requestId: string, behavior: 'allow' | 'deny') => void;
   uploadAttachment?: (file: File) => Promise<Attachment>;
+  /** Server-backed directory listing; enables the cwd folder picker. */
+  listDirs?: (path?: string) => Promise<DirListing>;
 }
 
 const EFFORTS: ChatSettings['effort'][] = ['low', 'medium', 'high', 'xhigh', 'max'];
@@ -24,6 +27,11 @@ const PERMISSION_MODES: NonNullable<ChatSettings['permissionMode']>[] = [
 /** Prefixes text as a markdown blockquote: '> line' per line, then a blank line. */
 function asBlockquote(content: string): string {
   return content.split('\n').map((line) => `> ${line}`).join('\n') + '\n\n';
+}
+
+/** 1234 -> '1.2k', 950 -> '950'. */
+function fmtTokens(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n);
 }
 
 const selectStyle: React.CSSProperties = {
@@ -45,6 +53,7 @@ export function ChatWindow({
   onUpdateSettings,
   onPermissionDecision,
   uploadAttachment,
+  listDirs,
 }: ChatWindowProps) {
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -207,14 +216,38 @@ export function ChatWindow({
               ))}
             </select>
 
-            <input
-              aria-label="Working directory"
-              placeholder="cwd"
-              value={settings.cwd ?? ''}
-              onChange={(e) => update({ cwd: e.target.value })}
-              style={{ ...selectStyle, width: 110 }}
-            />
+            {listDirs ? (
+              <FolderPicker
+                value={settings.cwd}
+                onSelect={(path) => update({ cwd: path })}
+                listDirs={listDirs}
+              />
+            ) : (
+              <input
+                aria-label="Working directory"
+                placeholder="cwd"
+                value={settings.cwd ?? ''}
+                onChange={(e) => update({ cwd: e.target.value })}
+                style={{ ...selectStyle, width: 110 }}
+              />
+            )}
           </>
+        )}
+
+        {chat.usage && (
+          <span
+            data-testid="usage-badge"
+            title={`${chat.usage.turns} turns · cache read ${fmtTokens(chat.usage.cacheReadInputTokens)} · cache write ${fmtTokens(chat.usage.cacheCreationInputTokens)}`}
+            style={{
+              marginLeft: 'auto',
+              fontSize: 11,
+              color: '#64748B',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ↑{fmtTokens(chat.usage.inputTokens)} ↓{fmtTokens(chat.usage.outputTokens)} · $
+            {chat.usage.costUSD.toFixed(3)} · ⛓{chat.contextChats}
+          </span>
         )}
       </div>
 

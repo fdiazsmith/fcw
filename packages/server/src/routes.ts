@@ -1,6 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { readdir, readFile, writeFile, unlink } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, isAbsolute, dirname } from 'node:path';
+import { homedir } from 'node:os';
 import { fromJSON, toJSON, createDocument } from '@fcw/graph-core';
 import type { GraphDocument } from '@fcw/graph-core';
 import { StateManager } from './state-manager.js';
@@ -122,6 +123,27 @@ export function createRouter(
       const ext = (att.path.match(/\.[^.]+$/)?.[0] ?? '').toLowerCase();
       res.writeHead(200, { 'Content-Type': MIME_BY_EXT[ext] ?? att.mediaType });
       res.end(bytes);
+      return;
+    }
+
+    // GET /fs/dirs?path=/abs — browse local directories for the cwd picker
+    if (method === 'GET' && url.startsWith('/fs/dirs')) {
+      const query = new URL(url, 'http://localhost').searchParams;
+      const path = query.get('path') ?? homedir();
+      if (!isAbsolute(path)) {
+        sendJSON(res, 400, { error: 'path must be absolute' });
+        return;
+      }
+      try {
+        const entries = await readdir(path, { withFileTypes: true });
+        const dirs = entries
+          .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
+          .map((e) => ({ name: e.name, path: join(path, e.name) }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        sendJSON(res, 200, { path, parent: dirname(path), dirs });
+      } catch {
+        sendJSON(res, 404, { error: 'Not a directory' });
+      }
       return;
     }
 
