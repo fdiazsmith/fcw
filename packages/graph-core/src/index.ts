@@ -22,6 +22,23 @@ export {
   deleteNode,
 } from './operations.js';
 
+// ── structure-first: diagrams generate documents (see MERMAID-DOCS.md) ──
+
+// Wikilinks
+export { parseWikilinks } from './wikilinks.js';
+
+// Mermaid → graph
+export { parseMermaid } from './mermaid.js';
+export type { MermaidNode, MermaidEdge, MermaidGraph } from './mermaid.js';
+
+// Docs: box = doc, canvases hold placements not documents
+export { createWorkspace, createDoc, placeDoc, updateDocBody } from './docs.js';
+export type { Doc, DocCanvas, DocPlacement, DocEdge, DocWorkspace } from './docs.js';
+
+// Doc-builder chat context: recursive over references, cycle-safe, budgeted
+export { assembleDocContext } from './doc-context.js';
+export type { DocContextBlock, DocContextOptions } from './doc-context.js';
+
 // Edges
 export {
   createEdge,

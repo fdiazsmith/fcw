@@ -1,50 +1,82 @@
-# Branch: `compacting`
+# Branch: `mermaid-docs`
 
 > Checkpoint branch. Each branch in this repo captures a distinct architectural
 > idea or stage. **These branches are not meant to merge back into each other** —
 > some explore genuinely different architectures. `BRANCH.md` tells you which one
 > you're standing in.
 
-## What this checkpoint is
+## The idea: structure first
 
-Builds on the **v2 chat-graph** model (node = chat window, edges = context
-inheritance — see `PROJECT-V2.md`) and adds **compaction**: the ability to collapse
-one or more chats into a generated document node that stands in for them as context.
+v1 and v2 both start with a **conversation** and let structure emerge from it.
+This branch inverts that again: **start with structure, then fill it in.**
 
-## What's here
+You ask for the shape of a problem, an LLM answers with a Mermaid diagram, and every
+box in that diagram is a real document you can write into — or open as its own canvas
+and keep thinking inside.
 
-**Compaction** (committed earlier in this branch)
+```
+prompt → Mermaid text → boxes on canvas → each box IS a Markdown doc → expand with text
+```
 
-- `graph-core`: compaction model, digest-based staleness detection, WS protocol types
-- `server`: document generator with structural fallback, session manager ops
-  (compact / regenerate / edit / move), WS routing
-- `frontend`: `CompactShape` with a TipTap markdown editor, store state + staleness
-  helper, canvas pages with dive-in navigation and breadcrumb, compact button
-- Smoke gate against a real server, plus a nested-dependency check fix
+Sketch out a sign-in page. Select the "Sign in" box. Either write documentation into
+it, or dive in and hold a focused conversation about what sign-in actually requires —
+referencing the Frontend Architecture doc you already wrote. Dive into *that*, and you
+find the diagrams and notes where those decisions were captured.
 
-**Token usage + folder picker** (this commit — work in flight when the checkpoint was taken)
+## Two structures, not one
 
-- `TokenUsage` type and `addTurnUsage` in `graph-core/chat-graph.ts` — per-turn input,
-  output, cache-read and cache-creation tokens, cost, and turn count accumulated per chat
-- Chat state carries `usage` and `contextChats`, surfaced through server routes,
-  turn events, and the chat window UI
-- `FolderPicker` component + directory-listing route, so a local working folder can be
-  chosen from the UI (groundwork for running FCW against a real project directory)
+- **Nesting is a tree.** Canvas → box → child canvas → deeper.
+- **References are a graph.** One doc is *placed* on many canvases. One entity, one
+  body: edit it anywhere, every canvas sees it.
 
-## State
+So **canvases contain placements, not documents** — a placement is `{docId, position}`,
+and docs live in one global table. The payoff: the top-level "how it all meshes" map is
+never drawn or maintained. Every doc is a node, every reference an edge — the global
+graph is a *query*, not a document. (Obsidian's graph view, except the nodes hold
+conversations and diagrams, not just text.)
 
-Committed as a checkpoint, not as finished work. The compaction feature is built out
-across all three packages; the token-usage and folder-picker work was mid-flight and is
-captured here so the branch is a complete, restorable snapshot.
+## What's implemented
+
+All pure logic in `graph-core`, strict Red-Green-Refactor per `CLAUDE.md`. **10 tests, all
+green**, clean under `strict: true`.
+
+| Module | What it does |
+|---|---|
+| `wikilinks.ts` | `parseWikilinks` — extracts `[[targets]]` from Markdown |
+| `mermaid.ts` | `parseMermaid` — flowchart text → `{nodes, edges}`; labels, `-->` edges, bare re-references, first-seen ordering |
+| `docs.ts` | Uniform `Doc` (title, body, child canvas); `placeDoc` routes by id so one doc on two canvases stays one entity |
+| `doc-context.ts` | `assembleDocContext` — BFS over references, deepest-first, cycle-safe, budget degrades distant docs to title-only; target never degrades |
 
 ```bash
-npm test          # all workspaces
-npm run dev       # server + frontend
+cd packages/graph-core && npx vitest run
 ```
+
+## Decisions locked
+
+Full rationale in `MERMAID-DOCS.md`. In short:
+
+- **Many shapes, one per box** — the diagram *is* the graph, not a picture of one
+- **Box = doc from birth** — no promotion step, one entity type
+- **Mermaid is input and export, never a live sync target** — your edits are truth;
+  regenerating Mermaid is for getting structure *out* (GitHub, Notion) or as cheap
+  context for the model
+- **Chats live on canvases too** — a doc-builder chat inherits the doc's references as
+  context, recursively with a token budget; it writes the body only on **explicit apply**
+- **Spatial zoom-in** navigation (⚠ highest-risk choice — prototype with a kill criterion)
+- Storage embedded in `.fcw.json` for the PoC; `.md` file export later, at which point
+  `parseWikilinks` earns its keep
+
+## What is NOT here
+
+No UI. Nothing renders on the canvas, no chat panel, the server doesn't know about any
+of this yet. Running the app looks exactly like the parent branch. This checkpoint is the
+engine underneath — the pieces that are painful to change once UI depends on them.
+
+Next, in order: `mermaidToDocNodes` (join parser to doc model), `applyToDoc`, dagre
+positions, then the frontend slice.
 
 ## Related branches
 
-- `v2` — the chat-graph inversion this branch builds on
-- `mermaid-docs` — structure-first direction: diagrams generate documents (different
-  architecture, does not merge with this one)
+- `compacting` — parent; v2 chat-graph plus compaction (see its own `BRANCH.md`)
+- `v2` — the chat-graph inversion: node = chat window, edges = context inheritance
 - `main`, `agent-chat-windows`, `collapse-system`, `phase5-chat-features`, `phase7-polish`
