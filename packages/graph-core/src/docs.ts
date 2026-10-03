@@ -71,3 +71,10 @@ export function placeDoc(
 export function updateDocBody(ws: DocWorkspace, docId: string, body: string): DocWorkspace {
   return { docs: { ...ws.docs, [docId]: { ...ws.docs[docId], body } } };
 }
+
+/** Explicit write-back: replace one doc's body; everything else is untouched. */
+export function applyToDoc<W extends DocWorkspace>(ws: W, docId: string, body: string): W {
+  const doc = ws.docs[docId];
+  if (!doc) throw new Error(`applyToDoc: unknown doc "${docId}"`);
+  return { ...ws, docs: { ...ws.docs, [docId]: { ...doc, body } } };
+}

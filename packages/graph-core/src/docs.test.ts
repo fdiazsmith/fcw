@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createWorkspace, createDoc, placeDoc, updateDocBody } from './docs.js';
+import { createWorkspace, createDoc, placeDoc, updateDocBody, applyToDoc } from './docs.js';
 
 it('creates a uniform doc: title, empty body, empty child canvas', () => {
   const [, doc] = createDoc(createWorkspace(), 'Sign in');
@@ -25,4 +25,30 @@ it('one doc placed on two canvases stays one entity', () => {
   // edit once, visible from every canvas that references it
   ws = updateDocBody(ws, arch.id, '# Atoms, Molecules, Cells');
   expect(ws.docs[arch.id].body).toBe('# Atoms, Molecules, Cells');
+});
+
+it('applyToDoc replaces only the target body, preserving everything else', () => {
+  let ws = createWorkspace();
+  let a, b;
+  [ws, a] = createDoc(ws, 'A');
+  [ws, b] = createDoc(ws, 'B');
+  ws = updateDocBody(ws, a.id, 'old');
+  ws = { docs: { ...ws.docs, [a.id]: { ...ws.docs[a.id], generated: true } as (typeof ws.docs)[string] } };
+  const bigger = { ...ws, extra: 42 };
+  const before = bigger.docs[a.id];
+
+  const next = applyToDoc(bigger, a.id, 'proposed');
+
+  expect(next.docs[a.id].body).toBe('proposed');
+  expect(next.docs[a.id].title).toBe('A');
+  expect(next.docs[a.id].canvas).toBe(before.canvas);
+  expect((next.docs[a.id] as unknown as { generated: boolean }).generated).toBe(true);
+  expect(next.docs[b.id]).toBe(bigger.docs[b.id]);
+  expect(next.extra).toBe(42);
+  expect(bigger.docs[a.id]).toBe(before);
+  expect(before.body).toBe('old');
+});
+
+it('applyToDoc throws on unknown docId', () => {
+  expect(() => applyToDoc(createWorkspace(), 'nope', 'x')).toThrow();
 });
