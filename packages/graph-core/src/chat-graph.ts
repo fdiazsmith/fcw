@@ -73,7 +73,12 @@ export interface ContextEdge {
 export interface ChatGraph {
   id: string;
   version: 2;
-  meta: { title: string; created: string };
+  meta: {
+    title: string;
+    created: string;
+    /** Project defaults inherited by new chats. */
+    settings?: { cwd?: string; model?: string; effort?: ChatSettings['effort'] };
+  };
   chats: Record<string, ChatNode>;
   edges: ContextEdge[];
   /** Chats folded behind editable document nodes. Absent in pre-compaction docs. */

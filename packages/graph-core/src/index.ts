@@ -101,6 +101,8 @@ export { compactChats, compactionDigest, docIsStale, migrateCompactions } from '
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';
 export { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
+export { projectSummary } from './project.js';
+export type { ProjectSummary } from './project.js';
 export { ROOT_CANVAS_ID } from './chat-messages.js';
 export type {
   ChatServerMessage,
