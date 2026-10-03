@@ -1,10 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createChatGraph, addChat, appendMessage } from './chat-graph.js';
-import { addCompaction } from './compaction.js';
+import type { Compaction } from './compaction.js';
 import { compactChats, compactionDigest, docIsStale, migrateCompactions } from './doc-compaction.js';
 import { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
 import type { Doc } from './docs.js';
+import type { ChatGraph } from './chat-graph.js';
+
+/** A pre-structure-first compaction, as old .fcw.json files hold them. */
+function legacyCompaction(g: ChatGraph, memberIds: string[], fields: Partial<Compaction> = {}): string {
+  const id = `cmp_${Object.keys(g.compactions).length + 1}`;
+  g.compactions[id] = {
+    id,
+    title: 'Legacy',
+    memberIds,
+    document: '',
+    sourceDigest: '',
+    position: { x: 0, y: 0 },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    status: 'generating',
+    ...fields,
+  };
+  return id;
+}
 
 function graphWithChats(n: number) {
   const g = createChatGraph('T');
@@ -112,7 +130,7 @@ describe('compactChats', () => {
 
   it('throws when a chat is in a legacy compaction', () => {
     const { g, ids } = graphWithChats(2);
-    addCompaction(g, [ids[0]]);
+    legacyCompaction(g, [ids[0]]);
     expect(() => compactChats(g, ids)).toThrow(/already compacted/);
   });
 
@@ -189,8 +207,8 @@ describe('docIsStale', () => {
 describe('migrateCompactions', () => {
   function legacyGraph() {
     const { g, ids } = graphWithChats(3);
-    const cmp = addCompaction(g, [ids[0], ids[1]], { title: 'Legacy', position: { x: 7, y: 8 } });
-    Object.assign(g.compactions[cmp], {
+    const cmp = legacyCompaction(g, [ids[0], ids[1]], {
+      position: { x: 7, y: 8 },
       document: '# generated',
       sourceDigest: 'dig-1',
       status: 'idle',

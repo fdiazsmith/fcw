@@ -97,14 +97,6 @@ export {
 } from './chat-graph.js';
 export type { Compaction, CompactionStatus } from './compaction.js';
 export type { CompactionMember } from './doc-compaction.js';
-export {
-  addCompaction,
-  isCompactionStale,
-  setCompactionDocument,
-  completeCompactionGeneration,
-  setCompactionStatus,
-  setCompactionPosition,
-} from './compaction.js';
 export { compactChats, compactionDigest, docIsStale, migrateCompactions } from './doc-compaction.js';
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';

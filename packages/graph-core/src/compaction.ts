@@ -1,9 +1,7 @@
-// Compaction: one or more chats folded behind a single editable document node.
-// Members keep their full transcripts and edges — a compaction is a view +
-// generated document, never a destructive merge.
-import type { ChatGraph } from './chat-graph.js';
+// Legacy Compaction entity (pre structure-first). Only its shape survives:
+// migrateCompactions reads it from old .fcw.json files and the deprecated
+// chat_compaction_* messages carry it until M3 deletes that path.
 import type { Position } from './types.js';
-import { compactionDigest } from './doc-compaction.js';
 
 export type CompactionStatus = 'generating' | 'idle';
 
@@ -19,79 +17,4 @@ export interface Compaction {
   position: Position;
   createdAt: string;
   status: CompactionStatus;
-}
-
-let compactionCounter = 0;
-
-export function addCompaction(
-  graph: ChatGraph,
-  memberIds: string[],
-  options?: { title?: string; position?: Position },
-): string {
-  if (memberIds.length === 0) throw new Error('compaction needs at least one member chat');
-  for (const chatId of memberIds) {
-    if (!graph.chats[chatId]) throw new Error(`unknown chat: ${chatId}`);
-  }
-  for (const existing of Object.values(graph.compactions)) {
-    const taken = memberIds.find((m) => existing.memberIds.includes(m));
-    if (taken) throw new Error(`chat already compacted: ${taken} (in ${existing.id})`);
-  }
-
-  const members = memberIds.map((m) => graph.chats[m]);
-  const position = options?.position ?? {
-    x: members.reduce((sum, c) => sum + c.position.x, 0) / members.length,
-    y: members.reduce((sum, c) => sum + c.position.y, 0) / members.length,
-  };
-
-  const id = `cmp_${Date.now()}_${++compactionCounter}`;
-  graph.compactions[id] = {
-    id,
-    title: options?.title ?? members[0].title,
-    memberIds: [...memberIds],
-    document: '',
-    sourceDigest: '',
-    position,
-    createdAt: new Date().toISOString(),
-    status: 'generating',
-  };
-  return id;
-}
-
-function getCompaction(graph: ChatGraph, id: string) {
-  const compaction = graph.compactions[id];
-  if (!compaction) throw new Error(`unknown compaction: ${id}`);
-  return compaction;
-}
-
-/** True when a member transcript changed since the document was generated. */
-export function isCompactionStale(graph: ChatGraph, id: string): boolean {
-  const compaction = getCompaction(graph, id);
-  const members = compaction.memberIds.map((m) => graph.chats[m]).filter(Boolean);
-  return compactionDigest(members) !== compaction.sourceDigest;
-}
-
-/** User edit: replace the document, keeping the generation digest. */
-export function setCompactionDocument(graph: ChatGraph, id: string, document: string): void {
-  getCompaction(graph, id).document = document;
-}
-
-/** Generation finished: store the document with the digest of its inputs. */
-export function completeCompactionGeneration(
-  graph: ChatGraph,
-  id: string,
-  document: string,
-  sourceDigest: string,
-): void {
-  const compaction = getCompaction(graph, id);
-  compaction.document = document;
-  compaction.sourceDigest = sourceDigest;
-  compaction.status = 'idle';
-}
-
-export function setCompactionStatus(graph: ChatGraph, id: string, status: CompactionStatus): void {
-  getCompaction(graph, id).status = status;
-}
-
-export function setCompactionPosition(graph: ChatGraph, id: string, position: Position): void {
-  getCompaction(graph, id).position = position;
 }
