@@ -1,7 +1,7 @@
 // v2 WebSocket protocol: chat-graph messages (shared server <-> frontend language).
 import type { ChatGraph, ChatMessage, ChatNode, ContextEdge, ChatSettings, TokenUsage } from './chat-graph.js';
 import type { Compaction, CompactionStatus } from './compaction.js';
-import type { Doc, DocPlacement } from './docs.js';
+import type { Doc, DocEdge, DocPlacement } from './docs.js';
 import type { Position } from './types.js';
 
 /** Canvas address of graph.rootCanvas. Any other canvasId is a docId: that doc's child canvas. */
@@ -44,7 +44,9 @@ export type ChatServerMessage =
   | { type: 'doc_placed'; canvasId: string; placement: DocPlacement }
   | { type: 'doc_unplaced'; canvasId: string; kind: DocPlacement['kind']; id: string }
   | { type: 'doc_moved'; canvasId: string; kind: DocPlacement['kind']; id: string; position: Position }
-  | { type: 'doc_linked'; canvasId: string; placedDocId: string; existingDocId: string };
+  | { type: 'doc_linked'; canvasId: string; placedDocId: string; existingDocId: string }
+  // After the per-box doc_created/doc_placed; the client lays the boxes out (M3.4).
+  | { type: 'diagram_created'; canvasId: string; docIds: string[]; edges: DocEdge[]; error?: string };
 
 // Client -> Server
 export type ChatClientMessage =

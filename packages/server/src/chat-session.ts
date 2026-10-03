@@ -17,6 +17,8 @@ import {
   compactChats,
   createDoc,
   linkPlacement,
+  mermaidToDocNodes,
+  newDocId,
   ROOT_CANVAS_ID,
 } from '@fcw/graph-core';
 import type {
@@ -30,6 +32,7 @@ import type {
   DocPlacement,
 } from '@fcw/graph-core';
 import { structuralCompactionDocument, type GenerateCompactionDoc } from './compaction-doc.js';
+import { createDiagramGenerator, type GenerateDiagram } from './diagram-gen.js';
 import type { StreamTurnFn, TurnContext, PermissionDecision } from './turn-events.js';
 
 /** Per-engine turn streams, selected by chat.settings.engine. */
@@ -44,6 +47,7 @@ export type AttachmentResolver = (id: string) => Attachment | undefined;
 export type SaveHandler = (graph: ChatGraph) => Promise<void>;
 
 const SAVE_DEBOUNCE_MS = 500;
+const DIAGRAM_GRID_COLS = 4;
 /** Auto-deny a permission prompt after this long so a turn never hangs forever. */
 const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
 /** Cap toolInput size in emitted WS tool messages (full input stays on disk). */
@@ -68,6 +72,8 @@ export class ChatSessionManager extends EventEmitter {
     private readonly attachmentResolver?: AttachmentResolver,
     private readonly generateCompactionDoc: GenerateCompactionDoc = async (members) =>
       structuralCompactionDocument(members),
+    // Keyless default still handles pasted Mermaid (M2.5 decision).
+    private readonly generateDiagram: GenerateDiagram = createDiagramGenerator({}).generate,
   ) {
     super();
     this.graph = initialGraph ?? createChatGraph(title);
@@ -482,6 +488,33 @@ export class ChatSessionManager extends EventEmitter {
       delete this.graph.docs[placedDocId];
     }
     this.emit('message', { type: 'doc_linked', canvasId, placedDocId, existingDocId });
+    this.scheduleSave();
+  }
+
+  /** Generate a diagram onto a canvas: one doc per box, edges on the canvas.
+   *  Positions are a provisional grid; the client lays out (M3.4). */
+  async requestDiagram(canvasId: string, prompt: string): Promise<void> {
+    const canvas = this.canvasById(canvasId);
+    const result = await this.generateDiagram(prompt);
+    if (!result.ok) return;
+    // Mermaid ids are diagram-local; namespace them per generation.
+    const { docs, edges } = mermaidToDocNodes(result.graph, { idPrefix: `${newDocId()}_` });
+    docs.forEach((doc, i) => {
+      doc.createdAt = new Date().toISOString();
+      this.graph.docs[doc.id] = doc;
+      const position = { x: (i % DIAGRAM_GRID_COLS) * 240, y: Math.floor(i / DIAGRAM_GRID_COLS) * 160 };
+      const placement: DocPlacement = { kind: 'doc', id: doc.id, position };
+      canvas.placements.push(placement);
+      this.emit('message', { type: 'doc_created', doc: structuredClone(doc) });
+      this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement, position: { ...position } } });
+    });
+    canvas.edges.push(...edges);
+    this.emit('message', {
+      type: 'diagram_created',
+      canvasId,
+      docIds: docs.map((d) => d.id),
+      edges: edges.map((e) => ({ ...e })),
+    });
     this.scheduleSave();
   }
 

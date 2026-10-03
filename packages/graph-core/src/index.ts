@@ -39,7 +39,7 @@ export { mermaidToDocNodes } from './mermaid-docs.js';
 export type { MermaidDocNodes, MermaidToDocNodesOptions } from './mermaid-docs.js';
 
 // Docs: box = doc, canvases hold placements not documents
-export { createWorkspace, createDoc, placeDoc, updateDocBody, applyToDoc, findDocsByTitle, linkPlacement } from './docs.js';
+export { newDocId, createWorkspace, createDoc, placeDoc, updateDocBody, applyToDoc, findDocsByTitle, linkPlacement } from './docs.js';
 export type { Doc, DocCanvas, DocPlacement, DocEdge, DocWorkspace } from './docs.js';
 
 // Doc-builder chat context: recursive over references, cycle-safe, budgeted
