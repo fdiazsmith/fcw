@@ -31,14 +31,14 @@ Each milestone ends in a **gate**. Never start a milestone until the previous ga
 
 Compaction becomes a Doc. Placements become polymorphic. Everything here is pure functions.
 
-- [ ] **M1.1** `DocPlacement` → `{ kind: 'doc' | 'chat', id, position }`. Update `docs.ts`, `doc-context.ts` (chat placements contribute nothing yet), `mermaid-docs.ts`.
-- [ ] **M1.2** `Doc.generated?: { sourceDigest: string; status: 'generating' | 'idle' }`. A doc with `generated` is a compaction-style doc.
-- [ ] **M1.3** `ChatGraph` gains `docs: Record<string, Doc>` and `rootCanvas: DocCanvas`. Chats on the root canvas stay where they are (`ChatNode.position`), so v2 graphs load unchanged.
-- [ ] **M1.4** `compactChats(graph, chatIds, opts)` → creates a generated Doc, places the chats on its child canvas, and places the doc on the canvas the chats came from. Same invariants as `addCompaction` (≥1 member, known ids, no chat in two compactions).
-- [ ] **M1.5** `docIsStale(doc, members)`: reuse the digest logic from `compaction.ts`.
-- [ ] **M1.6** Migration `migrateCompactions(graph)`: old `graph.compactions` → generated Docs. Idempotent. Round-trip through `chat-graph-serialization`.
-- [ ] **M1.7** `applyToDoc(ws, docId, body)`: explicit write-back. Clears nothing else.
-- [ ] **M1.8** `findDocsByTitle(ws, title)`: case- and whitespace-insensitive match for the "link instead?" chip.
+- [~] **M1.1** `DocPlacement` → `{ kind: 'doc' | 'chat', id, position }`. Update `docs.ts`, `doc-context.ts` (chat placements contribute nothing yet), `mermaid-docs.ts`.
+- [~] **M1.2** `Doc.generated?: { sourceDigest: string; status: 'generating' | 'idle' }`. A doc with `generated` is a compaction-style doc.
+- [~] **M1.3** `ChatGraph` gains `docs: Record<string, Doc>` and `rootCanvas: DocCanvas`. Chats on the root canvas stay where they are (`ChatNode.position`), so v2 graphs load unchanged.
+- [~] **M1.4** `compactChats(graph, chatIds, opts)` → creates a generated Doc, places the chats on its child canvas, and places the doc on the canvas the chats came from. Same invariants as `addCompaction` (≥1 member, known ids, no chat in two compactions).
+- [~] **M1.5** `docIsStale(doc, members)`: reuse the digest logic from `compaction.ts`.
+- [~] **M1.6** Migration `migrateCompactions(graph)`: old `graph.compactions` → generated Docs. Idempotent. Round-trip through `chat-graph-serialization`.
+- [x] **M1.7** `applyToDoc(ws, docId, body)`: explicit write-back. Clears nothing else.
+- [~] **M1.8** `findDocsByTitle(ws, title)`: case- and whitespace-insensitive match for the "link instead?" chip.
 - [ ] **M1.9** `linkPlacement(ws, canvas, placementId, existingDocId)`: swap a generated box for a placement of an existing doc. Edges on that canvas re-point.
 - [ ] **M1.10** `graphToMermaid(canvas, ws)`: export direction. Round-trips through `parseMermaid` for the supported subset.
 - [ ] **M1.11** Remove `compaction.ts` exports once nothing imports them (last item of M1, after M2 has migrated callers; may move to M2).
@@ -109,4 +109,6 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 |---|---|---|---|---|
 
 ## Blockers / notes
+
+- 2026-10-03: `isolation: worktree` sub-agents branch off `main`, not `structure-first-app`. Briefs must tell them to `git reset --hard structure-first-app` first.
 
