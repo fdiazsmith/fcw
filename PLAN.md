@@ -122,5 +122,7 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 
 - 2026-10-03: `isolation: worktree` sub-agents branch off `main`, not `structure-first-app`. Briefs must tell them to `git reset --hard structure-first-app` first.
 - Frontend `tsc --noEmit` has **27 pre-existing errors** at baseline (App.tsx, GraphNodeShape, SearchBar, ImportMeta.env, ChatView test fixtures). Verification rule: no *new* errors. Fixing them is a candidate item, not done ad hoc.
+- `compaction-doc.ts` hard-codes model `claude-sonnet-5`; current ids are e.g. `claude-sonnet-5-5`. If invalid, the LLM path silently falls back to the structural doc. Verify at a keyed smoke; not changed (out of scope).
+- Playwright is not configured in the repo; browsers are cached locally (`~/Library/Caches/ms-playwright`). Gate M3 adds `@playwright/test` + an `e2e/` dir.
 - Proto localStorage (`fcw-proto-v1`) holds old `{docId}` placements; a stored proto session misbehaves after M1.1. Throwaway, deleted in M6.2.
 
