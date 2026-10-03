@@ -11,6 +11,10 @@ export interface DocContextBlock {
   degraded: boolean; // true when reduced to title-only by the budget
 }
 
+/** Max chars of doc bodies in a chat's preamble (~6k tokens); past it the most
+ *  distant references degrade to title-only. */
+export const DEFAULT_DOC_CONTEXT_BUDGET = 24_000;
+
 function block(ws: DocWorkspace, docId: string): DocContextBlock {
   const doc = ws.docs[docId];
   return { docId, title: doc.title, body: doc.body, degraded: false };

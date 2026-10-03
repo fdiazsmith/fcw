@@ -43,7 +43,7 @@ export { newDocId, createWorkspace, createDoc, placeDoc, updateDocBody, applyToD
 export type { Doc, DocCanvas, DocPlacement, DocEdge, DocWorkspace } from './docs.js';
 
 // Doc-builder chat context: recursive over references, cycle-safe, budgeted
-export { assembleDocContext } from './doc-context.js';
+export { assembleDocContext, DEFAULT_DOC_CONTEXT_BUDGET } from './doc-context.js';
 export type { DocContextBlock, DocContextOptions } from './doc-context.js';
 
 // Edges
