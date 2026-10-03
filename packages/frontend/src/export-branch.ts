@@ -28,6 +28,8 @@ function graphFromState(state: ChatState): ChatGraph {
     chats,
     edges: state.edges.map((e) => ({ ...e })),
     compactions: {},
+    docs: {},
+    rootCanvas: { placements: [], edges: [] },
   };
 }
 

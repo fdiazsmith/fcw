@@ -12,6 +12,7 @@ import {
   markSessionStale,
   addTurnUsage,
 } from './chat-graph.js';
+import type { DocWorkspace } from './docs.js';
 
 describe('createChatGraph', () => {
   it('returns an empty versioned chat graph', () => {
@@ -26,6 +27,23 @@ describe('createChatGraph', () => {
 
   it('generates unique graph ids', () => {
     expect(createChatGraph('A').id).not.toBe(createChatGraph('B').id);
+  });
+
+  it('starts with an empty doc table and an empty root canvas', () => {
+    const g = createChatGraph('Docs');
+    expect(g.docs).toEqual({});
+    expect(g.rootCanvas).toEqual({ placements: [], edges: [] });
+  });
+
+  it('is structurally usable as a DocWorkspace', () => {
+    const ws: DocWorkspace = createChatGraph('Workspace');
+    expect(ws.docs).toEqual({});
+  });
+
+  it('chats added to the graph get no root-canvas placement (on root = placed nowhere)', () => {
+    const g = createChatGraph('Root');
+    addChat(g, { position: { x: 3, y: 4 } });
+    expect(g.rootCanvas.placements).toEqual([]);
   });
 });
 

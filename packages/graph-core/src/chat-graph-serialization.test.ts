@@ -61,6 +61,23 @@ describe('chat-graph serialization', () => {
     expect(g.chats.chat_1.sessionId).toBeUndefined();
     expect(g.chats.chat_1.messages[0].attachments).toBeUndefined();
     expect(g.compactions).toEqual({});
+    expect(g.docs).toEqual({});
+    expect(g.rootCanvas).toEqual({ placements: [], edges: [] });
+  });
+
+  it('round-trips docs and the root canvas', () => {
+    const g = createChatGraph('Docs');
+    const a = addChat(g, { title: 'a', position: { x: 1, y: 2 } });
+    g.docs.d1 = {
+      id: 'd1',
+      title: 'Doc',
+      body: '# body',
+      canvas: { placements: [{ kind: 'chat', id: a, position: { x: 1, y: 2 } }], edges: [] },
+      generated: { sourceDigest: 'x-1', status: 'idle' },
+    };
+    g.rootCanvas.placements.push({ kind: 'doc', id: 'd1', position: { x: 9, y: 9 } });
+
+    expect(chatGraphFromJSON(chatGraphToJSON(g))).toEqual(g);
   });
 
   it('round-trips compactions', () => {
