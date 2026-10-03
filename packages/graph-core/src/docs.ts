@@ -106,6 +106,11 @@ export function linkPlacement(
   placedDocId: string,
   existingDocId: string,
 ): DocCanvas {
+  if (placedDocId === existingDocId) throw new Error('linkPlacement: ids are equal');
+  if (!ws.docs[existingDocId]) throw new Error(`linkPlacement: unknown doc "${existingDocId}"`);
+  if (!canvas.placements.some((p) => p.kind === 'doc' && p.id === placedDocId)) {
+    throw new Error(`linkPlacement: doc "${placedDocId}" is not placed on this canvas`);
+  }
   const alreadyPlaced = canvas.placements.some((p) => p.kind === 'doc' && p.id === existingDocId);
   const placements: DocPlacement[] = [];
   for (const p of canvas.placements) {

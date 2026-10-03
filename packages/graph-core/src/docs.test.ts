@@ -129,6 +129,14 @@ it('linkPlacement dedupes edges and drops self-loops', () => {
   expect(out.edges).toEqual([{ from: a, to: d }]);
 });
 
+it('linkPlacement throws on unknown existing doc, unplaced doc, or equal ids', () => {
+  const { ws, a, b, d } = linkWs();
+  const canvas = { placements: [P(a), P(b)], edges: [] };
+  expect(() => linkPlacement(ws, canvas, b, 'nope')).toThrow();
+  expect(() => linkPlacement(ws, canvas, d, a)).toThrow();
+  expect(() => linkPlacement(ws, canvas, b, b)).toThrow();
+});
+
 it('linkPlacement removes the swapped placement when the existing doc is already placed', () => {
   const { ws, a, b, d } = linkWs();
   const canvas = { placements: [P(a, 1), P(b, 2), P(d, 3)], edges: [{ from: a, to: b }] };
