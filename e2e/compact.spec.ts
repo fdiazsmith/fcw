@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { E2E_WS_URL } from './ports';
 
 // M3.8: Compact folds the selected chats into a generated DocShape on the
 // canvas they were selected on (root, or a doc's child canvas).
@@ -8,9 +9,9 @@ const chatCards = (page: Page) => page.locator('.tl-shape[data-shape-type="chat-
 
 /** Send client messages straight to the server (cleanup only). */
 async function sendToServer(page: Page, msgs: object[]) {
-  await page.evaluate(async (payload) => {
+  await page.evaluate(async ({ payload, wsUrl }) => {
     await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket('ws://localhost:8009');
+      const ws = new WebSocket(wsUrl);
       ws.onopen = () => {
         for (const m of payload) ws.send(JSON.stringify(m));
         setTimeout(() => {
@@ -20,7 +21,7 @@ async function sendToServer(page: Page, msgs: object[]) {
       };
       ws.onerror = () => reject(new Error('ws error'));
     });
-  }, msgs);
+  }, { payload: msgs, wsUrl: E2E_WS_URL });
 }
 
 async function addChats(page: Page, n: number) {

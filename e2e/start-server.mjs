@@ -26,10 +26,10 @@ async function* scriptedTurn(ctx) {
 }
 
 const app = createApp({
-  port: 8009,
+  port: Number(process.env.E2E_SERVER_PORT ?? 8109),
   storageDir,
   title: 'e2e',
   engines: { api: scriptedTurn },
 });
 await app.start();
-console.log(`[e2e] FCW server on 8009, storage ${storageDir}`);
+console.log(`[e2e] FCW server on ${process.env.E2E_SERVER_PORT ?? 8109}, storage ${storageDir}`);

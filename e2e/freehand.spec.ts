@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { E2E_WS_URL } from './ports';
 
 // M3.7: the store owns doc boxes; tldraw owns everything else. A freehand
 // drawing on root must survive diving into a box and coming back.
@@ -7,9 +8,9 @@ const HOST = 'Freehand host';
 
 /** Send client messages straight to the server (setup/cleanup only). */
 async function sendToServer(page: Page, msgs: object[]) {
-  await page.evaluate(async (payload) => {
+  await page.evaluate(async ({ payload, wsUrl }) => {
     await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket('ws://localhost:8009');
+      const ws = new WebSocket(wsUrl);
       ws.onopen = () => {
         for (const m of payload) ws.send(JSON.stringify(m));
         setTimeout(() => {
@@ -19,7 +20,7 @@ async function sendToServer(page: Page, msgs: object[]) {
       };
       ws.onerror = () => reject(new Error('ws error'));
     });
-  }, msgs);
+  }, { payload: msgs, wsUrl: E2E_WS_URL });
 }
 
 test('a freehand drawing on root survives diving into a box and coming back', async ({ page }) => {
