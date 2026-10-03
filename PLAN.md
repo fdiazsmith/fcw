@@ -39,14 +39,14 @@ Compaction becomes a Doc. Placements become polymorphic. Everything here is pure
 - [x] **M1.6** Migration `migrateCompactions(graph)`: old `graph.compactions` → generated Docs. Idempotent. Round-trip through `chat-graph-serialization`.
 - [x] **M1.7** `applyToDoc(ws, docId, body)`: explicit write-back. Clears nothing else.
 - [x] **M1.8** `findDocsByTitle(ws, title)`: case- and whitespace-insensitive match for the "link instead?" chip.
-- [~] **M1.9** `linkPlacement(ws, canvas, placementId, existingDocId)`: swap a generated box for a placement of an existing doc. Edges on that canvas re-point.
-- [~] **M1.10** `graphToMermaid(canvas, ws)`: export direction. Round-trips through `parseMermaid` for the supported subset.
-- [~] **M1.12** Data integrity follow-ups from M1.6: `Doc.createdAt?` preserved by `migrateCompactions` (no field dropped) and set by `compactChats`; `createDoc` ids unique across restarts (no module-counter collisions with persisted docs).
-- [ ] **M1.11** Remove `compaction.ts` exports once nothing imports them (last item of M1, after M2 has migrated callers; may move to M2).
+- [x] **M1.9** `linkPlacement(ws, canvas, placementId, existingDocId)`: swap a generated box for a placement of an existing doc. Edges on that canvas re-point.
+- [x] **M1.10** `graphToMermaid(canvas, ws)`: export direction. Round-trips through `parseMermaid` for the supported subset.
+- [x] **M1.12** Data integrity follow-ups from M1.6: `Doc.createdAt?` preserved by `migrateCompactions` (no field dropped) and set by `compactChats`; `createDoc` ids unique across restarts (no module-counter collisions with persisted docs).
+- [ ] **M1.11** Remove `compaction.ts` exports once nothing imports them (last item of M1, after M2 has migrated callers; may move to M2). _Moved to end of M2 (server still imports them)._
 
 Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
 
-**Gate M1:** graph-core suite green; `tsc --noEmit` clean under `strict`; old `.fcw.json` fixtures with compactions load and migrate.
+**Gate M1:** graph-core suite green; `tsc --noEmit` clean under `strict`; old `.fcw.json` fixtures with compactions load and migrate. **Passed 2026-10-03**: graph-core 192/192, tsc strict clean, `compacting-v2.fcw.json` fixture migrates losslessly (createdAt included). M1.10 label sanitising: `[`→`(`, `]`→`)`, `-->`→`->`.
 
 ## M2: Server
 
@@ -111,6 +111,7 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 | 2026-10-03 | M1.3 | A chat is "on the root canvas" iff no doc canvas places it; root keeps using `ChatNode.position`, `rootCanvas` holds only doc placements for now. | v2 graphs load unchanged with zero rewriting. | Yes |
 | 2026-10-03 | M1.4 | `compactChats` mutates the graph in place and returns the doc id (like `addCompaction`), unlike the immutable `docs.ts` fns. Ids `doc_<ts>_<n>`. | Server code already mutates ChatGraph in place; keeps M2 diff small. | Yes |
 | 2026-10-03 | M1.6 | Migration keeps old compaction ids as doc ids and is not yet wired into `chatGraphFromJSON` (M2.1 does it). | Ids referenced by clients stay stable. | Yes |
+| 2026-10-03 | M1.12 | Added item: `Doc.createdAt?` + shared `newDocId()` (`doc_<ts>_<n>`). | Migration was dropping `Compaction.createdAt`; module-counter ids collided across restarts. | Yes |
 | 2026-10-03 | M1.9 | `linkPlacement` returns the new canvas only; deleting the now-unplaced generated doc is the server's call (M2.2 `doc_linked`), only when it's empty and placed nowhere. | Keeps the pure fn free of deletion policy; no silent data loss. | Yes |
 
 ## Blockers / notes
