@@ -8,6 +8,9 @@ import type {
   CapabilityModel,
   CapabilityCommand,
   Compaction,
+  Doc,
+  DocCanvas,
+  DocEdge,
   TokenUsage,
 } from '@fcw/graph-core';
 import { compactionDigest } from '@fcw/graph-core';
@@ -46,10 +49,26 @@ export interface ChatState {
   edges: ContextEdge[];
   capabilities: Capabilities;
   compactions: Record<string, Compaction>;
+  /** The global doc table — mirrors the server's ChatGraph.docs. */
+  docs: Record<string, Doc>;
+  rootCanvas: DocCanvas;
+  /** docId -> its doc-chat (chats with `docId`; never rendered on a canvas). */
+  docChats: Record<string, string>;
+  /** Diagram boxes awaiting layout; the canvas UI consumes via clearPendingLayout. */
+  pendingLayout: { canvasId: string; docIds: string[]; edges: DocEdge[] }[];
 }
 
 export function emptyChatState(): ChatState {
-  return { chats: {}, edges: [], capabilities: { models: [], commands: [] }, compactions: {} };
+  return {
+    chats: {},
+    edges: [],
+    capabilities: { models: [], commands: [] },
+    compactions: {},
+    docs: {},
+    rootCanvas: { placements: [], edges: [] },
+    docChats: {},
+    pendingLayout: [],
+  };
 }
 
 /** True when a member transcript changed since the document was generated. */
@@ -91,9 +110,16 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
         pendingPermissionQueue: prev?.pendingPermissionQueue ?? [],
       };
     }
+    const docChats: Record<string, string> = {};
+    for (const chat of Object.values(msg.graph.chats)) {
+      if (chat.docId) docChats[chat.docId] = chat.id;
+    }
     return {
       ...state,
       chats,
+      docs: { ...(msg.graph.docs ?? {}) },
+      rootCanvas: msg.graph.rootCanvas ?? { placements: [], edges: [] },
+      docChats,
       edges: [...msg.graph.edges],
       compactions: { ...(msg.graph.compactions ?? {}) },
     };

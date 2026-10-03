@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { ChatServerMessage, ChatNode } from '@fcw/graph-core';
-import { compactionDigest } from '@fcw/graph-core';
+import type { ChatServerMessage, ChatNode, Doc } from '@fcw/graph-core';
+import { compactionDigest, createChatGraph } from '@fcw/graph-core';
 import { emptyChatState, applyChatMessage, compactionIsStale, ChatState } from './chat-store';
 
 const chat = (id: string): ChatNode => ({
@@ -362,5 +362,43 @@ describe('applyChatMessage — compactions', () => {
       message: { role: 'user', content: 'changed', createdAt: 't1' },
     });
     expect(compactionIsStale(s, 'k1')).toBe(true);
+  });
+});
+
+const mkDoc = (id: string, over: Partial<Doc> = {}): Doc => ({
+  id,
+  title: id,
+  body: '',
+  canvas: { placements: [], edges: [] },
+  ...over,
+});
+
+describe('doc state: snapshot', () => {
+  it('starts empty', () => {
+    const s = emptyChatState();
+    expect(s.docs).toEqual({});
+    expect(s.rootCanvas).toEqual({ placements: [], edges: [] });
+    expect(s.docChats).toEqual({});
+    expect(s.pendingLayout).toEqual([]);
+  });
+
+  it('chat_snapshot loads docs, rootCanvas and derives docChats', () => {
+    const graph = {
+      ...createChatGraph('t'),
+      chats: { c1: { ...chat('c1'), docId: 'd1' }, c2: chat('c2') },
+      docs: { d1: mkDoc('d1') },
+      rootCanvas: { placements: [{ kind: 'doc' as const, id: 'd1', position: { x: 1, y: 2 } }], edges: [] },
+    };
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph });
+    expect(s.docs.d1.id).toBe('d1');
+    expect(s.rootCanvas.placements).toHaveLength(1);
+    expect(s.docChats).toEqual({ d1: 'c1' });
+  });
+
+  it('chat_snapshot from an old server defaults docs and rootCanvas', () => {
+    const { docs: _d, rootCanvas: _r, ...old } = createChatGraph('t');
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph: old as any });
+    expect(s.docs).toEqual({});
+    expect(s.rootCanvas).toEqual({ placements: [], edges: [] });
   });
 });
