@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { createChatGraph, addChat, appendMessage } from './chat-graph.js';
 import { addCompaction, compactionDigest } from './compaction.js';
-import { compactChats, docIsStale } from './doc-compaction.js';
+import { compactChats, docIsStale, migrateCompactions } from './doc-compaction.js';
+import { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
 import type { Doc } from './docs.js';
 
 function graphWithChats(n: number) {
@@ -148,5 +150,100 @@ describe('docIsStale', () => {
 
   it('a freshly compacted doc (empty digest) is stale until generated', () => {
     expect(docIsStale(doc({ sourceDigest: '', status: 'generating' }), members)).toBe(true);
+  });
+});
+
+describe('migrateCompactions', () => {
+  function legacyGraph() {
+    const { g, ids } = graphWithChats(3);
+    const cmp = addCompaction(g, [ids[0], ids[1]], { title: 'Legacy', position: { x: 7, y: 8 } });
+    Object.assign(g.compactions[cmp], {
+      document: '# generated',
+      sourceDigest: 'dig-1',
+      status: 'idle',
+    });
+    return { g, ids, cmp };
+  }
+
+  it('turns each compaction into a generated doc with the same id, placed on root', () => {
+    const { g, ids, cmp } = legacyGraph();
+    migrateCompactions(g);
+
+    expect(g.compactions).toEqual({});
+    expect(g.docs[cmp]).toEqual({
+      id: cmp,
+      title: 'Legacy',
+      body: '# generated',
+      canvas: {
+        placements: [
+          { kind: 'chat', id: ids[0], position: { x: 0, y: 0 } },
+          { kind: 'chat', id: ids[1], position: { x: 100, y: 50 } },
+        ],
+        edges: [],
+      },
+      generated: { sourceDigest: 'dig-1', status: 'idle' },
+    });
+    expect(g.rootCanvas.placements).toEqual([{ kind: 'doc', id: cmp, position: { x: 7, y: 8 } }]);
+  });
+
+  it('is idempotent', () => {
+    const { g } = legacyGraph();
+    migrateCompactions(g);
+    const once = JSON.stringify(g);
+    migrateCompactions(g);
+    expect(JSON.stringify(g)).toBe(once);
+  });
+
+  it('does not duplicate placements if a compaction reappears for an already migrated doc', () => {
+    const { g, cmp } = legacyGraph();
+    const legacy = structuredClone(g.compactions);
+    migrateCompactions(g);
+    const once = JSON.stringify(g);
+    g.compactions = legacy;
+    migrateCompactions(g);
+    expect(JSON.stringify(g)).toBe(once);
+    expect(g.rootCanvas.placements.filter((p) => p.id === cmp)).toHaveLength(1);
+  });
+
+  it('round-trips through JSON', () => {
+    const { g } = legacyGraph();
+    migrateCompactions(g);
+    expect(chatGraphFromJSON(chatGraphToJSON(g))).toEqual(g);
+  });
+
+  it('migrates a compacting-branch .fcw.json without losing data', () => {
+    const json = readFileSync(new URL('./__fixtures__/compacting-v2.fcw.json', import.meta.url), 'utf8');
+    const g = chatGraphFromJSON(json);
+    const before = structuredClone(g);
+    expect(Object.keys(before.compactions)).toHaveLength(2);
+
+    migrateCompactions(g);
+
+    expect(g.compactions).toEqual({});
+    expect(g.chats).toEqual(before.chats);
+    expect(g.edges).toEqual(before.edges);
+    expect(g.meta).toEqual(before.meta);
+    for (const c of Object.values(before.compactions)) {
+      const doc = g.docs[c.id];
+      expect(doc.title).toBe(c.title);
+      expect(doc.body).toBe(c.document);
+      expect(doc.generated).toEqual({ sourceDigest: c.sourceDigest, status: c.status });
+      expect(doc.canvas.placements).toEqual(
+        c.memberIds.map((m) => ({ kind: 'chat', id: m, position: before.chats[m].position })),
+      );
+      expect(g.rootCanvas.placements).toContainEqual({ kind: 'doc', id: c.id, position: c.position });
+    }
+    expect(g.rootCanvas.placements).toHaveLength(2);
+
+    // the stored digest still matches the untouched transcripts
+    const token = g.docs.cmp_1773900100000_1;
+    const members = token.canvas.placements.map((p) => g.chats[p.id]);
+    expect(docIsStale(token, members)).toBe(false);
+
+    // migrated members stay compacted; the rest are free
+    expect(() => compactChats(g, ['chat_1773900000000_1'])).toThrow(/already compacted/);
+    expect(() => compactChats(g, ['chat_1773900000000_4'])).not.toThrow();
+
+    expect(chatGraphFromJSON(chatGraphToJSON(g))).toEqual(g);
   });
 });

@@ -75,3 +75,28 @@ export function docIsStale(doc: Doc, members: CompactionMember[]): boolean {
   if (!doc.generated) return false;
   return compactionDigest(members) !== doc.generated.sourceDigest;
 }
+
+/** Old graph.compactions → generated docs (same id) placed on the root
+ *  canvas, members placed on each doc's child canvas. Idempotent: an
+ *  already-migrated doc is left as is and never placed twice. */
+export function migrateCompactions(graph: ChatGraph): void {
+  for (const c of Object.values(graph.compactions)) {
+    if (graph.docs[c.id]) continue;
+    graph.docs[c.id] = {
+      id: c.id,
+      title: c.title,
+      body: c.document,
+      canvas: {
+        placements: c.memberIds.map((m) => ({
+          kind: 'chat',
+          id: m,
+          position: { ...graph.chats[m].position },
+        })),
+        edges: [],
+      },
+      generated: { sourceDigest: c.sourceDigest, status: c.status },
+    };
+    graph.rootCanvas.placements.push({ kind: 'doc', id: c.id, position: { ...c.position } });
+  }
+  graph.compactions = {};
+}

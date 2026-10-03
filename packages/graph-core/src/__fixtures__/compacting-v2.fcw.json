@@ -1,0 +1,103 @@
+{
+  "id": "cg_1773900000000_1",
+  "version": 2,
+  "meta": {
+    "title": "Auth research",
+    "created": "2026-03-19T06:40:00.000Z"
+  },
+  "chats": {
+    "chat_1773900000000_1": {
+      "id": "chat_1773900000000_1",
+      "title": "Token storage",
+      "messages": [
+        {
+          "role": "user",
+          "content": "How should auth tokens be stored?",
+          "createdAt": "2026-03-19T06:40:10.000Z"
+        },
+        {
+          "role": "assistant",
+          "content": "Use httpOnly cookies for refresh tokens; keep access tokens in memory.",
+          "createdAt": "2026-03-19T06:40:20.000Z"
+        }
+      ],
+      "position": { "x": 120, "y": 80 },
+      "createdAt": "2026-03-19T06:40:05.000Z",
+      "settings": { "engine": "agent", "model": "claude-opus-4-8", "effort": "high" },
+      "sessionId": "sess_abc123",
+      "usage": {
+        "inputTokens": 1200,
+        "outputTokens": 340,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 800,
+        "costUSD": 0.021,
+        "turns": 1
+      }
+    },
+    "chat_1773900000000_2": {
+      "id": "chat_1773900000000_2",
+      "title": "Token rotation",
+      "messages": [
+        {
+          "role": "user",
+          "content": "What about token rotation?",
+          "createdAt": "2026-03-19T06:41:10.000Z"
+        },
+        {
+          "role": "assistant",
+          "content": "Rotate refresh tokens on every use and detect reuse.",
+          "createdAt": "2026-03-19T06:41:20.000Z"
+        }
+      ],
+      "position": { "x": 520, "y": 80 },
+      "createdAt": "2026-03-19T06:41:05.000Z"
+    },
+    "chat_1773900000000_3": {
+      "id": "chat_1773900000000_3",
+      "title": "Session UI",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Draft a session-expired banner.",
+          "createdAt": "2026-03-19T06:42:10.000Z"
+        }
+      ],
+      "position": { "x": 320, "y": 480 },
+      "createdAt": "2026-03-19T06:42:05.000Z",
+      "summary": "banner copy"
+    },
+    "chat_1773900000000_4": {
+      "id": "chat_1773900000000_4",
+      "title": "Unrelated",
+      "messages": [],
+      "position": { "x": 900, "y": 900 },
+      "createdAt": "2026-03-19T06:43:05.000Z"
+    }
+  },
+  "edges": [
+    { "from": "chat_1773900000000_1", "to": "chat_1773900000000_2", "enabled": true, "priority": 0 },
+    { "from": "chat_1773900000000_2", "to": "chat_1773900000000_3", "enabled": false, "priority": 2 }
+  ],
+  "compactions": {
+    "cmp_1773900100000_1": {
+      "id": "cmp_1773900100000_1",
+      "title": "Token handling",
+      "memberIds": ["chat_1773900000000_1", "chat_1773900000000_2"],
+      "document": "# Token handling\n\n- Refresh tokens in httpOnly cookies.\n- Access tokens in memory.\n- Rotate refresh tokens on every use; detect reuse.\n",
+      "sourceDigest": "3c692dda-100",
+      "position": { "x": 320, "y": 60 },
+      "createdAt": "2026-03-19T06:45:00.000Z",
+      "status": "idle"
+    },
+    "cmp_1773900200000_2": {
+      "id": "cmp_1773900200000_2",
+      "title": "Session UI",
+      "memberIds": ["chat_1773900000000_3"],
+      "document": "",
+      "sourceDigest": "",
+      "position": { "x": 320, "y": 500 },
+      "createdAt": "2026-03-19T06:46:00.000Z",
+      "status": "generating"
+    }
+  }
+}
