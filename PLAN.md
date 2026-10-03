@@ -78,16 +78,16 @@ Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate p
 - [x] **M3.6** Multi-select chats → Compact (existing MultiNodeActions) now produces a DocShape.
 - [x] **M3.7** Freehand / user shapes coexist with doc shapes and survive navigation (proto `sync.ts` rule: store owns docs, tldraw owns the rest).
 
-- [~] **M3.8** (added) e2e for Compact on a doc canvas → DocShape there (M3.6 shipped with only a throwaway check — TDD gap).
-- [~] **M3.9** (added) Deleting a doc box / chat card on a canvas sends `doc_unplace_requested` (today it reappears on next sync). Deleting never destroys the doc itself (it stays in the global table).
+- [x] **M3.8** (added) e2e for Compact on a doc canvas → DocShape there (M3.6 shipped with only a throwaway check — TDD gap).
+- [x] **M3.9** (added) Deleting a doc box / chat card on a canvas sends `doc_unplace_requested` (today it reappears on next sync). Deleting never destroys the doc itself (it stays in the global table).
 
 **Gate M3:** frontend suite green; manual-equivalent Playwright check: generate diagram → dive into a box → breadcrumb back → reference shows 🔗 on both canvases. **Passed 2026-10-03**: graph-core 181, server 335, frontend 208 (tsc baseline 27); smoke:compaction ✓; `npm run e2e` 3/3 (smoke, freehand, gate-m3; gate spec unchanged since written red).
 
 ## M4: Doc panel
 
-- [~] **M4.0** (added) Gate M4 spec written first (red) + deterministic chat engine injected into the e2e server via a `createApp` option (no env flag), so the gate is free and repeatable.
+- [x] **M4.0** (added) Gate M4 spec written first (red) + deterministic chat engine injected into the e2e server via a `createApp` option (no env flag), so the gate is free and repeatable.
 - [~] **M4.1** Side panel opens on doc select: TipTap body editor (reuse the `CompactShape` editor), debounced `doc_updated`.
-- [ ] **M4.2** Mount the real `ChatWindow` in the panel, bound to a doc-chat (M2.6): models, effort, attachments all work.
+- [~] **M4.2** Mount the real `ChatWindow` in the panel, bound to a doc-chat (M2.6): models, effort, attachments all work.
 - [~] **M4.3** "Apply to doc" on assistant messages; the body changes only on press.
 - [~] **M4.4** Context inspector: references list + budget readout from `assembleDocContext` (proto `DocPanel` had this).
 
@@ -135,6 +135,7 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 | 2026-10-03 | M3 | UI glue in `ChatCanvas.tsx` is covered by the Playwright gate spec (written first, red); logic goes in pure, unit-tested modules (like `compaction-view.ts`). | tldraw interaction isn't testable in jsdom; keeps strict TDD honest. | Yes |
 | 2026-10-03 | M3.3 | Only the current canvas is synced to tldraw; doc shape ids are per canvas (`doc-<canvasId>-<docId>`); breadcrumb = navigation stack, rebuilt with `pathToRoot` if the page changes another way. | One page per canvas without cross-page bookkeeping. | Yes |
 | 2026-10-03 | M4.0 | e2e server gets a scripted chat engine through a `createApp` injection point; production wiring unchanged. | Gate M4 needs an assistant reply; keyless + deterministic beats spending API money per run. | Yes |
+| 2026-10-03 | M4.0 | `createApp({ engines: { api?, agent? } })` replaces engine streams for every chat; `createApp` also returns `chatSessions`. e2e engine replies `Drafted: <prompt>`. | Smallest seam; production wiring unchanged. | Yes |
 | 2026-10-03 | M1.9 | `linkPlacement` returns the new canvas only; deleting the now-unplaced generated doc is the server's call (M2.2 `doc_linked`), only when it's empty and placed nowhere. | Keeps the pure fn free of deletion policy; no silent data loss. | Yes |
 
 ## Blockers / notes
@@ -148,5 +149,7 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 - `npm run e2e` (root): Playwright 1.63, server :8009 keyless on temp storage + Vite :8008; `reuseExistingServer:false` so stop `npm run dev` first. Dev StrictMode opens 2 WS; the first closing logs one `[ws] error` (tolerated by the smoke spec).
 - `App.tsx` (v1 surface, unmounted) has a stale `ws://localhost:8080` default and most of the 27 baseline tsc errors. Candidate cleanup, not done.
 - Known gaps from M3: prompt-bar chats match incoming `chat_created` in order (another client's chat could be adopted); double-click-to-create-chat only on root; tldraw's page menu lists every visited canvas page; keyless compaction docs get an empty title when chats are untitled; `MultiNodeActions` only used by dead `App.tsx`.
+- e2e specs share one server per run and rely on ordering + cleanup (gate-m3 expects exactly 3 boxes on root). Fragile; a per-spec fresh server or a reset endpoint would fix it. Not done.
+- No chat-delete exists: deleting a root chat card reappears on next sync (pre-existing behaviour, unchanged).
 - Proto localStorage (`fcw-proto-v1`) holds old `{docId}` placements; a stored proto session misbehaves after M1.1. Throwaway, deleted in M6.2.
 
