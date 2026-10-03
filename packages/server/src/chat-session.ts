@@ -389,6 +389,8 @@ export class ChatSessionManager extends EventEmitter {
       chatIds,
       canvasId === ROOT_CANVAS_ID ? undefined : { sourceCanvasDocId: canvasId },
     );
+    // The chats now sit on a doc canvas: their doc context changed.
+    for (const chatId of chatIds) this.graph.chats[chatId].sessionStale = true;
     // Snapshot copy: generation mutates the live doc right after this emit.
     this.emit('message', { type: 'doc_created', doc: structuredClone(this.graph.docs[id]) });
     for (const p of before) {

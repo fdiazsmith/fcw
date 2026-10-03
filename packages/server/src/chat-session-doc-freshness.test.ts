@@ -94,6 +94,16 @@ describe('doc context freshness (M2.8)', () => {
     expect(stale(w.sessions, w.refChat)).toBe(false);
   });
 
+  it("compacting moves chats onto the new doc's canvas: those chats are marked", async () => {
+    const w = world();
+
+    await w.sessions.compact([w.hosted], w.host);
+
+    expect(stale(w.sessions, w.hosted)).toBe(true);
+    expect(stale(w.sessions, w.unrelated)).toBe(false);
+    expect(stale(w.sessions, w.otherChat)).toBe(false);
+  });
+
   it('unplacing a chat from a doc canvas marks that chat only', () => {
     const w = world();
 
