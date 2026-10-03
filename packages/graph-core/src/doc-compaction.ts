@@ -51,6 +51,7 @@ export function compactChats(
     id,
     title: options?.title ?? graph.chats[chatIds[0]].title,
     body: '',
+    createdAt: new Date().toISOString(),
     canvas: {
       placements: chatIds.map((c, i) => ({ kind: 'chat', id: c, position: { ...positions[i] } })),
       edges: [],
@@ -86,6 +87,7 @@ export function migrateCompactions(graph: ChatGraph): void {
       id: c.id,
       title: c.title,
       body: c.document,
+      createdAt: c.createdAt,
       canvas: {
         placements: c.memberIds.map((m) => ({
           kind: 'chat',

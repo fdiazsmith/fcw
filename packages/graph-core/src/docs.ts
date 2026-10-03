@@ -30,6 +30,7 @@ export interface Doc {
   id: string;
   title: string;
   body: string; // markdown
+  createdAt?: string; // ISO; set on compaction docs, carried over from legacy compactions
   canvas: DocCanvas;
   // Present when the body is generated from the chats placed on its canvas
   // (a compaction-style doc). sourceDigest fingerprints those transcripts at
