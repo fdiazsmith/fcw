@@ -1,13 +1,17 @@
 // M7.3: ProjectHost — one ChatSessionManager per open project, last-opened
 // remembered in <dir>/.fcw-state.json, first launch yields a "Sandbox".
 import { describe, it, expect, vi } from 'vitest';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { ProjectHost } from './project-host.js';
 import { createProject, listProjects, loadProject } from './chat-graph-store.js';
 import { ChatSessionManager } from './chat-session.js';
 import type { StreamTurnFn } from './turn-events.js';
+import { StateManager } from './state-manager.js';
+import { toJSON } from '@fcw/graph-core';
+
+const FIXTURE = resolve(__dirname, '..', '..', 'graph-core', 'src', '__fixtures__', 'compacting-v2.fcw.json');
 
 function tempDir(): string {
   return mkdtempSync(join(tmpdir(), 'fcw-host-'));
@@ -37,6 +41,30 @@ describe('ProjectHost first launch', () => {
       expect(host.open(newest.id).graph.meta.title).toBe(expected);
       expect(loadProject(dir, old.id).meta.title).toBe('Older');
     }
+  });
+
+  it('a copy of a real data folder with v1 .fcw.json files + one .fcw2.json opens as Sandbox with all chats/docs intact', () => {
+    const dir = tempDir();
+    const raw = JSON.parse(readFileSync(FIXTURE, 'utf-8'));
+    raw.meta.title = 'Untitled';
+    writeFileSync(join(dir, `${raw.id}.fcw2.json`), JSON.stringify(raw));
+    const v1 = toJSON(new StateManager('Old canvas').document);
+    writeFileSync(join(dir, 'doc_1773774334218_1.fcw.json'), v1);
+    writeFileSync(join(dir, 'doc_1773774517328_1.fcw.json'), v1);
+    mkdirSync(join(dir, 'attachments'));
+
+    const host = new ProjectHost({ storageDir: dir });
+    expect(host.defaultProjectId()).toBe(raw.id);
+    expect(host.list().map((p) => p.title)).toEqual(['Sandbox']);
+    const graph = host.open(raw.id).graph;
+    expect(graph.meta.title).toBe('Sandbox');
+    expect(graph.chats).toEqual(raw.chats);
+    expect(graph.edges).toEqual(raw.edges);
+    expect(Object.keys(graph.docs).sort()).toEqual(Object.keys(raw.compactions).sort());
+    expect(readFileSync(join(dir, 'doc_1773774334218_1.fcw.json'), 'utf-8')).toBe(v1);
+    expect(readdirSync(dir).sort()).toEqual(
+      ['.fcw-state.json', `${raw.id}.fcw2.json`, 'attachments', 'doc_1773774334218_1.fcw.json', 'doc_1773774517328_1.fcw.json'].sort(),
+    );
   });
 
   it('the createApp title option also counts as a default title', async () => {
