@@ -99,6 +99,24 @@ Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate p
 - [x] **M5.2** Global graph view (sketch 04): every doc a node, every placement an edge. Graduate proto `GlobalGraph.tsx` (no d3-force).
 - [~] **M5.3** Proto parity checklist: every row of `src/proto/README.md` "What to click" works in the real app.
 
+  Parity table (`e2e/parity.spec.ts`, one serial test per row, sketch scenario built with the real UI; all passed first run, no production change needed):
+
+  | README row | Spec test | ✓ | Real app differs by design |
+  |---|---|---|---|
+  | Look at the root canvas | `Look at the root canvas: the sign-in flow is real shapes, one per Mermaid box, each a doc` | ✓ | Scenario is built by pasting sketch 01's Mermaid, not seeded. |
+  | `⤢ Canvas · 4` on Sign in | `⤢ Canvas · 4 on Sign in: a scoped canvas holding references, prose and room to sketch` | ✓ | Built via Doc mode + a diagram on Frontend Architecture + "Link instead?" chip (no "place existing" action). |
+  | `Write` on API calls | `Write on API calls: one doc on two canvases; edit the body, both canvases show it` | ✓ | "Write" = select the box → `doc-panel` → `doc-body-editor`. Reference titled "Parity API calls" in the spec only: the shared e2e server already has gate-m3's "API calls" and the chip links the first title match. |
+  | Drag the budget slider down | `Drag the budget slider down: references degrade to title-only, the target never does` | ✓ | Slider lives in the panel's collapsed Context section; inspection only (server budget unchanged). |
+  | Type in the chat → `Apply to doc` | `Type in the chat → Apply to doc: the draft waits for the button, chats never silently write` | ✓ | Real `ChatWindow` doc-chat in the side panel (`doc-apply`). |
+  | Global graph | `Global graph: every doc a node, every placement an edge; picking one navigates` | ✓ | Synthetic root node; snapshot on open; picking navigates via `pathToRoot` (M5.2). |
+  | Draw with the pencil, navigate away and back | `Draw with the pencil, then navigate away and back: freehand survives` | ✓ | Checked on a doc canvas (Sign in); `freehand.spec.ts` covers root. |
+  | Prompt bar → paste any Mermaid | `Prompt bar → paste any Mermaid (graph TD / flowchart, chains); anything else → one raw fallback box` | ✓ | Diagram mode (no `⌥`). Non-Mermaid keyless → **one raw fallback box** (M2.5), not the proto's 5-box generic scaffold; with a key the model writes the diagram. |
+
+  Not carried over (by design):
+  - `Reset · sketches` / `Reset · empty` — the proto's state is throwaway `localStorage`; the real app's state is the server's `.fcw.json`. The scenario is reproducible by the parity spec (and M6.1).
+  - Spatial zoom (`SpatialCanvas.tsx`) — parked in MERMAID-DOCS.md § Decisions (Navigation = view-swap).
+  - Keyword-matched canned diagrams (`seed.ts` "LLM") — the real app pastes Mermaid or asks the model.
+
 - [x] **M5.4** (added) Blank doc boxes: prompt bar gets a third mode `prompt-mode-doc` → `doc_create_requested { canvasId, title: <input>, position: viewport centre }`. Needed for sketch 02 ("Design.md", "Page Structure") and M6.1.
 
 **Gate M5:** suites green; parity checklist all ✓.
