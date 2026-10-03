@@ -5,6 +5,10 @@ import { createWsServer } from './ws-server.js';
 import { StateManager } from './state-manager.js';
 import { ChatSessionManager } from './chat-session.js';
 import { ROOT_CANVAS_ID } from '@fcw/graph-core';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ProjectHost } from './project-host.js';
 
 function startServer(
   httpServer: ReturnType<typeof createServer>,
@@ -231,5 +235,161 @@ describe('WebSocket Server', () => {
     expect(secondMsg.type).toBe('node_auto_collapsed');
     expect(secondMsg.nodeId).toBe(nodeId);
     ws.close();
+  });
+});
+
+// M7.4: per-connection project routing.
+describe('WebSocket Server project routing', () => {
+  let httpServer: ReturnType<typeof createServer>;
+  let wss: WebSocketServer;
+  let host: ProjectHost;
+  let port: number;
+  const sockets: WebSocket[] = [];
+
+  beforeEach(async () => {
+    host = new ProjectHost({ storageDir: mkdtempSync(join(tmpdir(), 'fcw-ws-proj-')) });
+    httpServer = createServer();
+    wss = createWsServer(httpServer, new StateManager(), { projects: host });
+    await startServer(httpServer);
+    port = (httpServer.address() as { port: number }).port;
+  });
+
+  afterEach(async () => {
+    for (const ws of sockets.splice(0)) ws.close();
+    await new Promise<void>((resolve) => wss.close(() => resolve()));
+    await stopServer(httpServer);
+  });
+
+  type Msg = Record<string, any>;
+  async function client(query = ''): Promise<{ ws: WebSocket; received: Msg[] }> {
+    const ws = new WebSocket(`ws://localhost:${port}${query}`);
+    sockets.push(ws);
+    const received: Msg[] = [];
+    ws.on('message', (data) => received.push(JSON.parse(data.toString())));
+    await new Promise<void>((resolve, reject) => {
+      ws.on('open', () => resolve());
+      ws.on('error', reject);
+    });
+    return { ws, received };
+  }
+  async function until(received: Msg[], pred: (m: Msg) => boolean): Promise<Msg> {
+    for (let i = 0; i < 200; i++) {
+      const found = received.find(pred);
+      if (found) return found;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    throw new Error(`timed out; got ${received.map((m) => m.type).join(', ')}`);
+  }
+
+  it('binds a plain connection to the default project: project_opened, project_list, then its snapshot', async () => {
+    const { received } = await client();
+    await until(received, (m) => m.type === 'chat_snapshot');
+    expect(received.map((m) => m.type)).toEqual(['project_opened', 'project_list', 'chat_snapshot']);
+    const id = host.defaultProjectId();
+    expect(received[0].project).toMatchObject({ id, title: 'Sandbox' });
+    expect(received[1].projects.map((p: Msg) => p.id)).toEqual([id]);
+    expect(received[2].graph.id).toBe(id);
+  });
+
+  it('?project=<id> binds to that project; an unknown id falls back to the default', async () => {
+    const other = await host.create('Other');
+    const a = await client(`/?project=${other.id}`);
+    expect((await until(a.received, (m) => m.type === 'chat_snapshot')).graph.id).toBe(other.id);
+    expect(a.received[0].project.id).toBe(other.id);
+
+    const fallback = host.defaultProjectId();
+    const b = await client('/?project=cg_nope');
+    expect((await until(b.received, (m) => m.type === 'chat_snapshot')).graph.id).toBe(fallback);
+  });
+
+  it('two clients on two projects: chat messages go to the bound manager, events stay in their project', async () => {
+    const sandbox = host.defaultProjectId();
+    const other = await host.create('Other');
+    const a = await client();
+    const b = await client(`/?project=${other.id}`);
+    await until(b.received, (m) => m.type === 'chat_snapshot');
+
+    a.ws.send(JSON.stringify({ type: 'chat_create_requested', position: { x: 0, y: 0 }, title: 'in A' }));
+    b.ws.send(JSON.stringify({ type: 'doc_create_requested', canvasId: 'root', title: 'in B', position: { x: 0, y: 0 } }));
+    await until(a.received, (m) => m.type === 'chat_created');
+    await until(b.received, (m) => m.type === 'doc_created');
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(a.received.some((m) => m.type === 'doc_created')).toBe(false);
+    expect(b.received.some((m) => m.type === 'chat_created')).toBe(false);
+    expect(Object.values(host.open(sandbox).graph.chats).map((c) => c.title)).toEqual(['in A']);
+    expect(Object.values(host.open(other.id).graph.docs).map((d) => d.title)).toEqual(['in B']);
+    expect(host.open(sandbox).graph.docs).toEqual({});
+  });
+
+  it('project_open_requested rebinds the socket and makes it the last-opened project', async () => {
+    const other = await host.create('Other');
+    const a = await client();
+    await until(a.received, (m) => m.type === 'chat_snapshot');
+    a.received.length = 0;
+
+    a.ws.send(JSON.stringify({ type: 'project_open_requested', id: other.id }));
+    expect((await until(a.received, (m) => m.type === 'chat_snapshot')).graph.id).toBe(other.id);
+    expect(a.received.map((m) => m.type)).toEqual(['project_opened', 'project_list', 'chat_snapshot']);
+    expect(a.received[0].project.id).toBe(other.id);
+    expect(host.defaultProjectId()).toBe(other.id);
+
+    a.ws.send(JSON.stringify({ type: 'chat_create_requested', position: { x: 0, y: 0 } }));
+    await until(a.received, (m) => m.type === 'chat_created');
+    expect(Object.keys(host.open(other.id).graph.chats)).toHaveLength(1);
+
+    a.ws.send(JSON.stringify({ type: 'project_open_requested', id: 'cg_nope' }));
+    expect((await until(a.received, (m) => m.type === 'error')).message).toMatch(/unknown project/);
+
+    a.received.length = 0;
+    a.ws.send(JSON.stringify({ type: 'project_list_requested' }));
+    expect((await until(a.received, (m) => m.type === 'project_list')).projects).toHaveLength(2);
+  });
+
+  it('create / rename / settings broadcast project_list to every socket', async () => {
+    const other = await host.create('Other');
+    const a = await client();
+    const b = await client(`/?project=${other.id}`);
+    await until(a.received, (m) => m.type === 'chat_snapshot');
+    await until(b.received, (m) => m.type === 'chat_snapshot');
+    const lists = (r: Msg[]) => r.filter((m) => m.type === 'project_list');
+    const titles = (m: Msg) => m.projects.map((p: Msg) => p.title).sort();
+
+    a.ws.send(JSON.stringify({ type: 'project_create_requested', title: 'New' }));
+    await until(b.received, () => lists(b.received).length === 2);
+    expect(titles(lists(b.received)[1])).toEqual(['New', 'Other', 'Sandbox']);
+
+    a.ws.send(JSON.stringify({ type: 'project_rename_requested', id: other.id, title: 'Renamed' }));
+    await until(b.received, () => lists(b.received).length === 3);
+    expect(titles(lists(b.received)[2])).toEqual(['New', 'Renamed', 'Sandbox']);
+    expect(host.open(other.id).graph.meta.title).toBe('Renamed');
+
+    a.ws.send(JSON.stringify({ type: 'project_settings_requested', id: other.id, settings: { cwd: '/tmp', effort: 'low' } }));
+    await until(a.received, () => lists(a.received).length === 4);
+    expect(host.open(other.id).graph.meta.settings).toEqual({ cwd: '/tmp', effort: 'low' });
+  });
+
+  it('trash: sockets on it get project_closed then the default project; everyone gets the new list', async () => {
+    const sandbox = host.defaultProjectId();
+    const doomed = await host.create('Doomed');
+    const a = await client();
+    const b = await client(`/?project=${doomed.id}`);
+    await until(a.received, (m) => m.type === 'chat_snapshot');
+    await until(b.received, (m) => m.type === 'chat_snapshot');
+    a.received.length = 0;
+    b.received.length = 0;
+
+    a.ws.send(JSON.stringify({ type: 'project_trash_requested', id: doomed.id }));
+    await until(b.received, (m) => m.type === 'chat_snapshot');
+    const list = await until(a.received, (m) => m.type === 'project_list');
+    expect(list.projects.map((p: Msg) => p.id)).toEqual([sandbox]);
+    expect(b.received.slice(0, 4).map((m) => m.type)).toEqual(['project_closed', 'project_opened', 'project_list', 'chat_snapshot']);
+    expect(b.received[0]).toEqual({ type: 'project_closed', id: doomed.id, reason: 'trashed' });
+    expect(b.received[1].project.id).toBe(sandbox);
+    expect(a.received.some((m) => m.type === 'project_closed')).toBe(false);
+
+    // b now talks to the sandbox manager.
+    b.ws.send(JSON.stringify({ type: 'chat_create_requested', position: { x: 0, y: 0 } }));
+    await until(a.received, (m) => m.type === 'chat_created');
   });
 });

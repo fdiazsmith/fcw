@@ -21,7 +21,7 @@ import { createCapabilitiesProvider } from './capabilities.js';
 import { createCompactionDocGenerator } from './compaction-doc.js';
 import { createDiagramGenerator } from './diagram-gen.js';
 import { AttachmentStore } from './attachments.js';
-import { loadLatestChatGraph, saveChatGraph } from './chat-graph-store.js';
+import { ProjectHost } from './project-host.js';
 
 export { StateManager } from './state-manager.js';
 export { createRouter } from './routes.js';
@@ -40,6 +40,7 @@ export { createLlmSummary } from './llm-summary.js';
 export type { LlmSummaryOptions } from './llm-summary.js';
 // v2 chat-graph
 export { ChatSessionManager } from './chat-session.js';
+export { ProjectHost } from './project-host.js';
 export type { ManagerStreams, AttachmentResolver } from './chat-session.js';
 export type { StreamTurnFn, TurnEvent, TurnContext, PermissionDecision } from './turn-events.js';
 export { createChatStreamText } from './chat-claude-adapter.js';
@@ -102,31 +103,25 @@ export function createApp(options: ServerOptions = {}) {
     }
   });
 
-  // v2 chat-graph sessions: chats as nodes, edges as context inheritance.
-  // Load the most recent .fcw2.json so restarts keep the canvas.
-  let initialGraph;
-  try {
-    initialGraph = loadLatestChatGraph(storageDir);
-    if (initialGraph) console.log('[init] loaded chat-graph:', initialGraph.id);
-  } catch (err) {
-    console.error('[init] failed to load chat-graph, starting fresh:', err);
-  }
-
-  const chatSessions = new ChatSessionManager(
-    title,
-    {
-      api: engines?.api ?? (claudeClient ? createChatStreamText(claudeClient) : undefined),
-      agent: engines?.agent ?? createAgentTurnStream(),
-    },
-    initialGraph,
-    (id) => attachmentStore.get(id),
-    createCompactionDocGenerator({ apiKey }),
-    createDiagramGenerator({ apiKey }).generate,
-  );
-  chatSessions.setSaveHandler((graph) => saveChatGraph(storageDir, graph));
+  // v2 chat-graph sessions, one manager per open project (M7.3). The default
+  // (last-opened) project's manager is returned as chatSessions for back-compat.
+  const streams: ManagerStreams = {
+    api: engines?.api ?? (claudeClient ? createChatStreamText(claudeClient) : undefined),
+    agent: engines?.agent ?? createAgentTurnStream(),
+  };
+  const compactionGen = createCompactionDocGenerator({ apiKey });
+  const diagramGen = createDiagramGenerator({ apiKey }).generate;
+  const projects = new ProjectHost({
+    storageDir,
+    defaultTitle: title,
+    createManager: (graph) =>
+      new ChatSessionManager(title, streams, graph, (id) => attachmentStore.get(id), compactionGen, diagramGen),
+  });
+  const chatSessions = projects.open(projects.defaultProjectId());
+  console.log('[init] default project:', chatSessions.graph.id);
 
   const capabilities = createCapabilitiesProvider();
-  const wss = createWsServer(httpServer, manager, { claudeClient, chatSessions, capabilities });
+  const wss = createWsServer(httpServer, manager, { claudeClient, projects, capabilities });
 
   function start(): Promise<void> {
     return new Promise((resolve) => httpServer.listen(port, resolve));
@@ -140,7 +135,7 @@ export function createApp(options: ServerOptions = {}) {
     });
   }
 
-  return { manager, chatSessions, httpServer, wss, start, stop };
+  return { manager, chatSessions, projects, httpServer, wss, start, stop };
 }
 
 // Run if called directly

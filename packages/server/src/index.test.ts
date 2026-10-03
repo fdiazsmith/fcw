@@ -47,3 +47,30 @@ describe('createApp engines override', () => {
     expect(last).toMatchObject({ role: 'assistant', content: 'Drafted: hello' });
   });
 });
+
+describe('createApp projects (M7.4)', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns the ProjectHost; chatSessions is the default project manager; engines reach every project', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const fake: StreamTurnFn = async function* (ctx) {
+      yield { type: 'text_delta', text: `Drafted: ${ctx.latest}` };
+    };
+    const app = createApp({
+      storageDir: mkdtempSync(join(tmpdir(), 'fcw-idx-')),
+      anthropicApiKey: '',
+      title: 'Smoke',
+      engines: { api: fake },
+    });
+    const defaultId = app.projects.defaultProjectId();
+    expect(app.chatSessions).toBe(app.projects.open(defaultId));
+    expect(app.chatSessions.graph.meta.title).toBe('Sandbox');
+
+    const other = app.projects.open((await app.projects.create('Other')).id);
+    const id = other.createChat({ x: 0, y: 0 });
+    await other.prompt(id, 'hi');
+    app.manager.destroy();
+    app.wss.close();
+    expect(other.graph.chats[id].messages.at(-1)).toMatchObject({ content: 'Drafted: hi' });
+  });
+});
