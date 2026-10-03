@@ -102,6 +102,7 @@ export {
   setCompactionStatus,
   setCompactionPosition,
 } from './compaction.js';
+export { compactChats } from './doc-compaction.js';
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';
 export { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
