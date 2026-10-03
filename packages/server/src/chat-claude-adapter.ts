@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Attachment } from '@fcw/graph-core';
 import type { ClaudeClient } from './claude-client.js';
+import { renderDocContext } from './chat-agent-adapter.js';
 import type { StreamTurnFn, TurnContext, TurnEvent } from './turn-events.js';
 
 const SYSTEM_PROMPT = [
@@ -52,7 +53,9 @@ export function createChatStreamText(client: ClaudeClient): StreamTurnFn {
           : m.content,
     }));
 
-    const stream = client.stream(messages, SYSTEM_PROMPT);
+    // Same doc section as the agent preamble; the api engine has no preamble.
+    const docs = renderDocContext(ctx.docContext ?? []);
+    const stream = client.stream(messages, docs ? `${SYSTEM_PROMPT}\n\n${docs}` : SYSTEM_PROMPT);
     // Usage arrives split across the stream: input/cache counts on
     // message_start, the final output count on message_delta.
     let inputTokens = 0;

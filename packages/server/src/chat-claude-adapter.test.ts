@@ -35,6 +35,21 @@ const msg = (role: 'user' | 'assistant', content: string): ChatMessage => ({
 });
 
 describe('createChatStreamText', () => {
+  it('appends the doc blocks section to the system prompt (M2.4)', async () => {
+    const captured: { messages?: unknown; system?: string } = {};
+    const streamTurn = createChatStreamText(fakeClient([], captured));
+    const ctx = turnCtx([msg('user', 'q')]);
+    ctx.docContext = [{ docId: 'h', title: 'Host', body: 'host body', degraded: false }];
+    for await (const _ of streamTurn(ctx)) { /* drain */ }
+    expect(captured.system).toContain('Flow Canvas');
+    expect(captured.system).toContain('Documents in scope');
+    expect(captured.system).toContain('## Host\nhost body');
+
+    const plain: { messages?: unknown; system?: string } = {};
+    for await (const _ of createChatStreamText(fakeClient([], plain))(turnCtx([msg('user', 'q')]))) { /* drain */ }
+    expect(plain.system).not.toContain('Documents in scope');
+  });
+
   it('maps context to API messages and yields only text deltas', async () => {
     const captured: { messages?: unknown; system?: string } = {};
     const client = fakeClient(
