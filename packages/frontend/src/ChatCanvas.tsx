@@ -375,6 +375,10 @@ export default function ChatCanvas() {
         return;
       }
       const center = editorRef.current?.getViewportPageBounds().center ?? { x: 0, y: 0 };
+      if (mode === 'doc') {
+        send({ type: 'doc_create_requested', canvasId, title: text.trim(), position: center });
+        return;
+      }
       const position = { x: center.x - 180, y: center.y - 210 };
       pendingPromptsRef.current.push({ content: text, canvasId, position });
       send({ type: 'chat_create_requested', position });
