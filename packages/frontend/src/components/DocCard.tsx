@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import type { DocCardModel } from '../doc-view';
 
 export interface DocCardProps extends DocCardModel {
@@ -22,6 +23,20 @@ const button: React.CSSProperties = {
   background: '#fff',
   color: '#475569',
   whiteSpace: 'nowrap',
+};
+
+// Compact type scale for card-sized markdown: headings barely above body text.
+const tight = (extra: React.CSSProperties = {}): React.CSSProperties => ({ margin: '8px 0', ...extra });
+const previewMarkdown = {
+  p: (props: React.HTMLAttributes<HTMLElement>) => <p style={tight()} {...props} />,
+  h1: (props: React.HTMLAttributes<HTMLElement>) => <h1 style={tight({ fontSize: 14, fontWeight: 700 })} {...props} />,
+  h2: (props: React.HTMLAttributes<HTMLElement>) => <h2 style={tight({ fontSize: 13, fontWeight: 700 })} {...props} />,
+  h3: (props: React.HTMLAttributes<HTMLElement>) => <h3 style={tight({ fontSize: 12, fontWeight: 700 })} {...props} />,
+  ul: (props: React.HTMLAttributes<HTMLElement>) => <ul style={tight({ paddingLeft: 18 })} {...props} />,
+  ol: (props: React.HTMLAttributes<HTMLElement>) => <ol style={tight({ paddingLeft: 18 })} {...props} />,
+  pre: (props: React.HTMLAttributes<HTMLElement>) => (
+    <pre style={tight({ fontSize: 11, background: '#F8FAFC', padding: 6, borderRadius: 4, overflow: 'hidden' })} {...props} />
+  ),
 };
 
 export function DocCard(p: DocCardProps) {
@@ -79,11 +94,23 @@ export function DocCard(p: DocCardProps) {
         {p.linkChip}
       </div>
 
-      <div style={{ flex: 1, padding: '8px 9px', fontSize: 12, lineHeight: 1.45, overflow: 'hidden' }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          padding: '0 9px',
+          fontSize: 12,
+          lineHeight: 1.45,
+          color: '#334155',
+          overflow: 'hidden',
+          // Clipped bodies fade out instead of cutting a line in half.
+          maskImage: 'linear-gradient(to bottom, #000 calc(100% - 24px), transparent)',
+        }}
+      >
         {p.preview ? (
-          <span style={{ color: '#334155', whiteSpace: 'pre-wrap' }}>{p.preview}</span>
+          <ReactMarkdown components={previewMarkdown}>{p.preview}</ReactMarkdown>
         ) : (
-          <span style={{ color: '#94A3B8', fontStyle: 'italic' }}>empty document</span>
+          <p style={{ margin: '8px 0', color: '#94A3B8', fontStyle: 'italic' }}>empty document</p>
         )}
       </div>
 

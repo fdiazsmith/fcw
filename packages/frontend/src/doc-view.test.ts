@@ -23,19 +23,18 @@ describe('docCardModel', () => {
     expect(docCardModel(doc(), ctx).preview).toBe('');
   });
 
-  it('strips light markdown from the preview', () => {
-    const body = '# Heading\n\nSome **bold** and _it_ and `code` and [link](http://x.y).\n- item';
-    expect(docCardModel(doc({ body }), ctx).preview).toBe('Heading Some bold and it and code and link. item');
+  it('keeps the markdown so the card can render it', () => {
+    const body = '# Heading\n\nSome **bold** text.\n\n- item';
+    expect(docCardModel(doc({ body }), ctx).preview).toBe(body);
   });
 
-  it('truncates the preview to ~200 chars with an ellipsis', () => {
-    const p = docCardModel(doc({ body: 'a'.repeat(500) }), ctx).preview;
-    expect(p.length).toBe(201);
-    expect(p.endsWith('…')).toBe(true);
+  it('drops the editor\'s &nbsp; blank paragraphs', () => {
+    const body = 'one\n\n\n\n&nbsp;\n\n&nbsp;\n\ntwo';
+    expect(docCardModel(doc({ body }), ctx).preview).toBe('one\n\ntwo');
   });
 
-  it('does not truncate short bodies', () => {
-    expect(docCardModel(doc({ body: 'a'.repeat(200) }), ctx).preview).toBe('a'.repeat(200));
+  it('a body of only blank paragraphs is empty', () => {
+    expect(docCardModel(doc({ body: '&nbsp;\n\n&nbsp;\n' }), ctx).preview).toBe('');
   });
 
   it('childCount counts placements on its canvas', () => {

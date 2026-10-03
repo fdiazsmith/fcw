@@ -3,8 +3,6 @@
 import { docIsStale } from '@fcw/graph-core';
 import type { CompactionMember, Doc } from '@fcw/graph-core';
 
-const PREVIEW_CHARS = 200;
-
 export interface DocCardContext {
   /** How many canvases this doc is placed on. */
   placedOnCount: number;
@@ -15,6 +13,7 @@ export interface DocCardContext {
 export interface DocCardModel {
   docId: string;
   title: string;
+  /** The body as markdown for the card to render, minus the editor's blank paragraphs. */
   preview: string;
   childCount: number;
   isReference: boolean;
@@ -23,22 +22,20 @@ export interface DocCardModel {
   stale: boolean;
 }
 
-function stripMarkdown(md: string): string {
+/** TipTap saves an empty paragraph as a lone `&nbsp;`; drop those and collapse the gaps. */
+function previewMarkdown(md: string): string {
   return md
-    .replace(/```/g, '')
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/^\s{0,3}(#{1,6}|[-*+]|>|\d+\.)\s+/gm, '')
-    .replace(/(\*\*|__|\*|_|`)/g, '')
-    .replace(/\s+/g, ' ')
+    .split(/\n{2,}/)
+    .filter((para) => para.replace(/&nbsp;|\u00a0/g, '').trim() !== '')
+    .join('\n\n')
     .trim();
 }
 
 export function docCardModel(doc: Doc, ctx: DocCardContext): DocCardModel {
-  const text = stripMarkdown(doc.body);
   return {
     docId: doc.id,
     title: doc.title,
-    preview: text.length > PREVIEW_CHARS ? `${text.slice(0, PREVIEW_CHARS)}…` : text,
+    preview: previewMarkdown(doc.body),
     childCount: doc.canvas.placements.length,
     isReference: ctx.placedOnCount > 1,
     refCount: ctx.placedOnCount,

@@ -28,6 +28,13 @@ describe('DocCard', () => {
     expect(screen.getByText('Use OAuth.')).toBeDefined();
   });
 
+  it('renders the preview as markdown: paragraphs and emphasis, not raw syntax', () => {
+    render(<DocCard {...props({ preview: 'Some **bold** text.\n\nSecond paragraph.' })} />);
+    expect(screen.getByText('bold').tagName).toBe('STRONG');
+    expect(screen.getByText('Second paragraph.').tagName).toBe('P');
+    expect(screen.getByTestId('doc-shape').textContent).not.toContain('**');
+  });
+
   it('open-canvas button shows the child count and calls back', () => {
     const onOpenCanvas = vi.fn();
     render(<DocCard {...props({ onOpenCanvas })} />);
