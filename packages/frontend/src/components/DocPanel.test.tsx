@@ -139,3 +139,12 @@ describe('DocPanel apply', () => {
     expect(p.onBodyChange).not.toHaveBeenCalled();
   });
 });
+
+describe('DocPanel context inspector', () => {
+  it('mounts the context inspector for the doc', () => {
+    render(<DocPanel {...props()} />);
+    const inspector = screen.getByTestId('doc-context-inspector');
+    expect(within(inspector).getByText('Auth')).toBeTruthy();
+    expect(within(inspector).getByText('10 chars')).toBeTruthy();
+  });
+});

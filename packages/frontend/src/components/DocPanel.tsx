@@ -3,6 +3,7 @@ import type { ChatState } from '../chat-store';
 import { docChatBinding } from '../doc-panel-model';
 import { chatActions } from '../shapes/ChatShape';
 import { ChatWindow } from './ChatWindow';
+import { DocContextInspector } from './DocContextInspector';
 import { MarkdownEditor } from './MarkdownEditor';
 
 export interface DocPanelProps {
@@ -76,6 +77,10 @@ export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat, o
           <MarkdownEditor key={docId} markdown={doc.body} editable onChange={onBodyChange} />
         </div>
       </section>
+      <details style={{ padding: '6px 12px', borderTop: '1px solid #E2E8F0', fontSize: 12 }}>
+        <summary style={{ cursor: 'pointer', color: '#64748B', fontWeight: 600 }}>Context</summary>
+        <DocContextInspector state={state} docId={docId} />
+      </details>
       <section style={{ flex: 1, minHeight: 0, borderTop: '1px solid #E2E8F0' }}>
         {chat ? (
           // Same paths as canvas chat cards: the registered chat actions.
