@@ -29,6 +29,7 @@ import { projectCanvas } from './canvas-projection';
 import { layoutDocNodes, centerLayoutAt } from './doc-layout';
 import { ChatSearchBar } from './components/ChatSearchBar';
 import { PromptBar, PromptMode } from './components/PromptBar';
+import { deletionIntents, DeletedShape } from './deletion-intents';
 import { exportBranchMarkdown } from './export-branch';
 import { ROOT_CANVAS_ID } from '@fcw/graph-core';
 import type { ChatServerMessage, ChatClientMessage, Position } from '@fcw/graph-core';
@@ -603,6 +604,7 @@ export default function ChatCanvas() {
       });
 
       // Deleting a context arrow -> disconnect (unless we deleted it ourselves).
+      const recentUnplaces = new Set<string>();
       editor.sideEffects.registerAfterDeleteHandler('shape', (shape) => {
         if (syncingRef.current) return;
         if (shape.type === 'arrow' && shape.meta?.fcwCtx) {
@@ -611,6 +613,16 @@ export default function ChatCanvas() {
             from: String(shape.meta.from),
             to: String(shape.meta.to),
           });
+        }
+        // Deleting a doc box / chat card unplaces it from its canvas. Side-effect
+        // handlers can fire more than once per deletion, so dedupe briefly.
+        const canvasId = String(shape.meta?.canvasId ?? ROOT_CANVAS_ID);
+        for (const msg of deletionIntents([shape as DeletedShape], canvasId)) {
+          const key = JSON.stringify(msg);
+          if (recentUnplaces.has(key)) continue;
+          recentUnplaces.add(key);
+          setTimeout(() => recentUnplaces.delete(key), 500);
+          send(msg);
         }
       });
 
