@@ -399,6 +399,7 @@ export default function ChatCanvas() {
         syncCompaction(msg.compactionId);
         return;
       }
+      if (msg.type !== 'chat_created' && !('chatId' in msg)) return; // doc_*: M3
       const chatId = msg.type === 'chat_created' ? msg.chat.id : msg.chatId;
       const view = next.chats[chatId];
       if (view) syncChat(view);
