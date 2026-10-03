@@ -1,5 +1,83 @@
 import { describe, it, expect } from 'vitest';
-import { validateMermaid } from './diagram-gen.js';
+import { validateMermaid, createDiagramGenerator } from './diagram-gen.js';
+
+const GOOD = 'graph TD\nA[One] --> B[Two]';
+const BAD = 'graph TD\nA --- B';
+
+function fake(replies: Array<string | Error>) {
+  const calls: Array<{ system: string; messages: Array<{ role: string; content: string }> }> = [];
+  const createMessage = async (params: (typeof calls)[number]) => {
+    calls.push(params);
+    const next = replies[calls.length - 1];
+    if (next instanceof Error) throw next;
+    return { content: [{ type: 'text', text: next }] };
+  };
+  return { calls, createMessage: createMessage as never };
+}
+
+describe('createDiagramGenerator', () => {
+  it('returns pasted Mermaid directly with no API call', async () => {
+    const f = fake([]);
+    const r = await createDiagramGenerator({ apiKey: 'k', createMessage: f.createMessage }).generate(GOOD);
+    expect(r.ok).toBe(true);
+    expect(f.calls).toHaveLength(0);
+  });
+
+  it('fails without calling when there is no api key', async () => {
+    const f = fake([GOOD]);
+    const r = await createDiagramGenerator({ createMessage: f.createMessage }).generate('a login flow');
+    expect(r).toEqual({ ok: false, raw: '', error: 'no api key' });
+    expect(f.calls).toHaveLength(0);
+  });
+
+  it('makes one call when the first reply is valid (fenced ok)', async () => {
+    const f = fake(['```mermaid\n' + GOOD + '\n```']);
+    const r = await createDiagramGenerator({ apiKey: 'k', createMessage: f.createMessage }).generate('a flow');
+    expect(r.ok).toBe(true);
+    expect(f.calls).toHaveLength(1);
+  });
+
+  it('retries once with the parse error', async () => {
+    const f = fake([BAD, GOOD]);
+    const r = await createDiagramGenerator({ apiKey: 'k', createMessage: f.createMessage }).generate('a flow');
+    expect(r.ok).toBe(true);
+    expect(f.calls).toHaveLength(2);
+    const retry = JSON.stringify(f.calls[1].messages);
+    expect(retry).toContain('A --- B');
+    expect(retry).toContain('not supported');
+  });
+
+  it('returns the second raw reply after two failures', async () => {
+    const second = 'graph TD\nX -.-> Y';
+    const f = fake([BAD, second]);
+    const r = await createDiagramGenerator({ apiKey: 'k', createMessage: f.createMessage }).generate('a flow');
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.raw).toBe(second);
+      expect(r.error).toContain('X -.-> Y');
+    }
+    expect(f.calls).toHaveLength(2);
+  });
+
+  it('fails softly when the API throws', async () => {
+    const f = fake([new Error('boom')]);
+    const r = await createDiagramGenerator({ apiKey: 'k', createMessage: f.createMessage }).generate('a flow');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain('boom');
+    expect(f.calls).toHaveLength(1);
+  });
+
+  it('system prompt states the subset and forbids subgraph', async () => {
+    const f = fake([GOOD]);
+    await createDiagramGenerator({ apiKey: 'k', createMessage: f.createMessage }).generate('a flow', {
+      context: 'extra',
+    });
+    expect(f.calls[0].system).toContain('graph TD');
+    expect(f.calls[0].system).toContain('-->');
+    expect(f.calls[0].system).toMatch(/subgraph/);
+    expect(JSON.stringify(f.calls[0].messages)).toContain('extra');
+  });
+});
 
 describe('validateMermaid', () => {
   it('accepts the supported subset', () => {
