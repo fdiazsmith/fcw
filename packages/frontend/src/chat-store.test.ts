@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ChatServerMessage, ChatNode, Doc } from '@fcw/graph-core';
 import { compactionDigest, createChatGraph } from '@fcw/graph-core';
-import { emptyChatState, applyChatMessage, compactionIsStale, ChatState } from './chat-store';
+import { emptyChatState, applyChatMessage, compactionIsStale, clearPendingLayout, ChatState } from './chat-store';
 
 const chat = (id: string): ChatNode => ({
   id,
@@ -525,5 +525,30 @@ describe('doc state: doc_linked', () => {
     const out = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'nope' });
     expect(out.docs).toEqual(s.docs);
     expect(apply(s, { type: 'doc_linked', canvasId: 'zz', placedDocId: 'b', existingDocId: 'x' }).docs).toEqual(s.docs);
+  });
+});
+
+describe('doc state: diagram_created and pendingLayout', () => {
+  it('mirrors edges once and queues the layout; clearPendingLayout removes it', () => {
+    const edges = [{ from: 'a', to: 'b' }];
+    let s = apply(
+      emptyChatState(),
+      { type: 'doc_created', doc: mkDoc('a') },
+      { type: 'doc_created', doc: mkDoc('b') },
+      { type: 'diagram_created', canvasId: 'root', docIds: ['a', 'b'], edges },
+      { type: 'diagram_created', canvasId: 'a', docIds: ['b'], edges: [] },
+    );
+    const queued = s.pendingLayout.length;
+    expect(queued).toBe(2);
+    expect(s.pendingLayout).toEqual([
+      { canvasId: 'root', docIds: ['a', 'b'], edges },
+      { canvasId: 'a', docIds: ['b'], edges: [] },
+    ]);
+    // The server added the edges to its canvas; mirror them once (no duplicates).
+    expect(s.rootCanvas.edges).toEqual(edges);
+    s = apply(s, { type: 'diagram_created', canvasId: 'root', docIds: ['a', 'b'], edges });
+    expect(s.rootCanvas.edges).toEqual(edges);
+    s = clearPendingLayout(s, 'root');
+    expect(s.pendingLayout.map((p) => p.canvasId)).toEqual(['a']);
   });
 });

@@ -98,6 +98,11 @@ function viewFrom(chat: ChatNode): ChatView {
   };
 }
 
+/** Drop the queued diagram layouts for a canvas once the UI has run them. */
+export function clearPendingLayout(state: ChatState, canvasId: string): ChatState {
+  return { ...state, pendingLayout: state.pendingLayout.filter((p) => p.canvasId !== canvasId) };
+}
+
 /** The canvas with this id: root, or a doc's own canvas. */
 export function canvasById(state: ChatState, canvasId: string): DocCanvas | undefined {
   return canvasId === ROOT_CANVAS_ID ? state.rootCanvas : state.docs[canvasId]?.canvas;
@@ -246,6 +251,22 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
       return { ...next, docs };
     }
     return next;
+  }
+
+  if (msg.type === 'diagram_created') {
+    // The server already put these edges on its canvas; mirror them once.
+    const next = withCanvas(state, msg.canvasId, (c) => ({
+      ...c,
+      edges: [
+        ...c.edges,
+        ...msg.edges.filter((e) => !c.edges.some((x) => x.from === e.from && x.to === e.to)),
+      ],
+    }));
+    if (next === state) return state;
+    return {
+      ...next,
+      pendingLayout: [...next.pendingLayout, { canvasId: msg.canvasId, docIds: msg.docIds, edges: msg.edges }],
+    };
   }
 
   if (msg.type === 'doc_chat_ready') {
