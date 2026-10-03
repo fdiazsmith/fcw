@@ -31,16 +31,17 @@ Each milestone ends in a **gate**. Never start a milestone until the previous ga
 
 Compaction becomes a Doc. Placements become polymorphic. Everything here is pure functions.
 
-- [~] **M1.1** `DocPlacement` → `{ kind: 'doc' | 'chat', id, position }`. Update `docs.ts`, `doc-context.ts` (chat placements contribute nothing yet), `mermaid-docs.ts`.
-- [~] **M1.2** `Doc.generated?: { sourceDigest: string; status: 'generating' | 'idle' }`. A doc with `generated` is a compaction-style doc.
-- [~] **M1.3** `ChatGraph` gains `docs: Record<string, Doc>` and `rootCanvas: DocCanvas`. Chats on the root canvas stay where they are (`ChatNode.position`), so v2 graphs load unchanged.
-- [~] **M1.4** `compactChats(graph, chatIds, opts)` → creates a generated Doc, places the chats on its child canvas, and places the doc on the canvas the chats came from. Same invariants as `addCompaction` (≥1 member, known ids, no chat in two compactions).
-- [~] **M1.5** `docIsStale(doc, members)`: reuse the digest logic from `compaction.ts`.
-- [~] **M1.6** Migration `migrateCompactions(graph)`: old `graph.compactions` → generated Docs. Idempotent. Round-trip through `chat-graph-serialization`.
+- [x] **M1.1** `DocPlacement` → `{ kind: 'doc' | 'chat', id, position }`. Update `docs.ts`, `doc-context.ts` (chat placements contribute nothing yet), `mermaid-docs.ts`.
+- [x] **M1.2** `Doc.generated?: { sourceDigest: string; status: 'generating' | 'idle' }`. A doc with `generated` is a compaction-style doc.
+- [x] **M1.3** `ChatGraph` gains `docs: Record<string, Doc>` and `rootCanvas: DocCanvas`. Chats on the root canvas stay where they are (`ChatNode.position`), so v2 graphs load unchanged.
+- [x] **M1.4** `compactChats(graph, chatIds, opts)` → creates a generated Doc, places the chats on its child canvas, and places the doc on the canvas the chats came from. Same invariants as `addCompaction` (≥1 member, known ids, no chat in two compactions).
+- [x] **M1.5** `docIsStale(doc, members)`: reuse the digest logic from `compaction.ts`.
+- [x] **M1.6** Migration `migrateCompactions(graph)`: old `graph.compactions` → generated Docs. Idempotent. Round-trip through `chat-graph-serialization`.
 - [x] **M1.7** `applyToDoc(ws, docId, body)`: explicit write-back. Clears nothing else.
 - [x] **M1.8** `findDocsByTitle(ws, title)`: case- and whitespace-insensitive match for the "link instead?" chip.
-- [ ] **M1.9** `linkPlacement(ws, canvas, placementId, existingDocId)`: swap a generated box for a placement of an existing doc. Edges on that canvas re-point.
-- [ ] **M1.10** `graphToMermaid(canvas, ws)`: export direction. Round-trips through `parseMermaid` for the supported subset.
+- [~] **M1.9** `linkPlacement(ws, canvas, placementId, existingDocId)`: swap a generated box for a placement of an existing doc. Edges on that canvas re-point.
+- [~] **M1.10** `graphToMermaid(canvas, ws)`: export direction. Round-trips through `parseMermaid` for the supported subset.
+- [~] **M1.12** Data integrity follow-ups from M1.6: `Doc.createdAt?` preserved by `migrateCompactions` (no field dropped) and set by `compactChats`; `createDoc` ids unique across restarts (no module-counter collisions with persisted docs).
 - [ ] **M1.11** Remove `compaction.ts` exports once nothing imports them (last item of M1, after M2 has migrated callers; may move to M2).
 
 Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
@@ -107,8 +108,14 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 
 | Date | Item | Decision | Why | Reversible? |
 |---|---|---|---|---|
+| 2026-10-03 | M1.3 | A chat is "on the root canvas" iff no doc canvas places it; root keeps using `ChatNode.position`, `rootCanvas` holds only doc placements for now. | v2 graphs load unchanged with zero rewriting. | Yes |
+| 2026-10-03 | M1.4 | `compactChats` mutates the graph in place and returns the doc id (like `addCompaction`), unlike the immutable `docs.ts` fns. Ids `doc_<ts>_<n>`. | Server code already mutates ChatGraph in place; keeps M2 diff small. | Yes |
+| 2026-10-03 | M1.6 | Migration keeps old compaction ids as doc ids and is not yet wired into `chatGraphFromJSON` (M2.1 does it). | Ids referenced by clients stay stable. | Yes |
+| 2026-10-03 | M1.9 | `linkPlacement` returns the new canvas only; deleting the now-unplaced generated doc is the server's call (M2.2 `doc_linked`), only when it's empty and placed nowhere. | Keeps the pure fn free of deletion policy; no silent data loss. | Yes |
 
 ## Blockers / notes
 
 - 2026-10-03: `isolation: worktree` sub-agents branch off `main`, not `structure-first-app`. Briefs must tell them to `git reset --hard structure-first-app` first.
+- Frontend `tsc --noEmit` has **27 pre-existing errors** at baseline (App.tsx, GraphNodeShape, SearchBar, ImportMeta.env, ChatView test fixtures). Verification rule: no *new* errors. Fixing them is a candidate item, not done ad hoc.
+- Proto localStorage (`fcw-proto-v1`) holds old `{docId}` placements; a stored proto session misbehaves after M1.1. Throwaway, deleted in M6.2.
 
