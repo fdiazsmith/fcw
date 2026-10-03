@@ -29,6 +29,7 @@ import { projectCanvas } from './canvas-projection';
 import { layoutDocNodes, centerLayoutAt } from './doc-layout';
 import { ChatSearchBar } from './components/ChatSearchBar';
 import { PromptBar, PromptMode } from './components/PromptBar';
+import { exportCanvasMermaid } from './export-mermaid';
 import { DocPanel } from './components/DocPanel';
 import { deletionIntents, DeletedShape } from './deletion-intents';
 import { exportBranchMarkdown } from './export-branch';
@@ -187,6 +188,20 @@ export default function ChatCanvas() {
     panelDocIdRef.current = docId;
     if (docId) setPanelState(stateRef.current);
     setPanelDocId(docId);
+  }, []);
+
+  // Export Mermaid: copy the current canvas; if the clipboard refuses, show the text.
+  const [exportState, setExportState] = useState<'idle' | 'copied'>('idle');
+  const [exportText, setExportText] = useState<string | null>(null);
+  const exportMermaid = useCallback(async () => {
+    const text = exportCanvasMermaid(stateRef.current, currentCanvas(navRef.current));
+    try {
+      await navigator.clipboard.writeText(text);
+      setExportState('copied');
+      setTimeout(() => setExportState('idle'), 1500);
+    } catch {
+      setExportText(text);
+    }
   }, []);
 
   const showBanner = useCallback((text: string) => {
@@ -815,7 +830,42 @@ export default function ChatCanvas() {
             </button>
           </React.Fragment>
         ))}
+        <button
+          data-testid="export-mermaid"
+          title="Copy this canvas as Mermaid"
+          onClick={exportMermaid}
+          style={{ ...crumbButton, marginLeft: 8, color: '#475569' }}
+        >
+          {exportState === 'copied' ? 'Copied' : 'Export Mermaid'}
+        </button>
       </div>
+      {exportText !== null && (
+        <div
+          data-testid="export-mermaid-fallback"
+          style={{
+            position: 'absolute',
+            top: 56,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1001,
+            background: '#fff',
+            border: '1px solid #CBD5E1',
+            borderRadius: 8,
+            padding: 10,
+            boxShadow: '0 2px 10px rgba(15,23,42,0.18)',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: 12,
+          }}
+        >
+          <div style={{ marginBottom: 6 }}>Clipboard unavailable. Copy the Mermaid below.</div>
+          <textarea readOnly value={exportText} rows={8} style={{ width: 360, fontFamily: 'monospace' }} onFocus={(e) => e.currentTarget.select()} />
+          <div style={{ textAlign: 'right' }}>
+            <button onClick={() => setExportText(null)} style={crumbButton}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       {/* Compact usage hint, bottom-left clear of tldraw's zoom controls.
           pointerEvents:none so it never intercepts canvas interaction. */}
       <div
