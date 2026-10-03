@@ -14,19 +14,14 @@ describe('isChatClientMessage', () => {
   it('recognizes compaction messages', () => {
     expect(isChatClientMessage({ type: 'chat_compact_requested', chatIds: ['a'] })).toBe(true);
     expect(isChatClientMessage({ type: 'chat_compact_requested', chatIds: [] })).toBe(false);
-    expect(
-      isChatClientMessage({ type: 'chat_compaction_regenerate_requested', compactionId: 'c' }),
-    ).toBe(true);
+    // Legacy chat_compaction_* requests were removed at M3.6.
+    expect(isChatClientMessage({ type: 'chat_compaction_regenerate_requested', compactionId: 'c' })).toBe(false);
     expect(
       isChatClientMessage({ type: 'chat_compaction_document_updated', compactionId: 'c', document: 'd' }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
-      isChatClientMessage({
-        type: 'chat_compaction_move_requested',
-        compactionId: 'c',
-        position: { x: 1, y: 2 },
-      }),
-    ).toBe(true);
+      isChatClientMessage({ type: 'chat_compaction_move_requested', compactionId: 'c', position: { x: 1, y: 2 } }),
+    ).toBe(false);
   });
 });
 
@@ -159,42 +154,14 @@ describe('handleChatClientMessage', () => {
     ]);
   });
 
-  it('chat_compaction_regenerate_requested and doc_regenerate_requested re-generate the body', async () => {
+  it('doc_regenerate_requested re-generates the body', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     const id = await sessions.compact([a]);
     sessions.graph.chats[a].messages.push({ role: 'user', content: 'fresh insight', createdAt: 't' });
-    await handleChatClientMessage(
-      { type: 'chat_compaction_regenerate_requested', compactionId: id },
-      sessions,
-    );
-    expect(sessions.graph.docs[id].body).toContain('fresh insight');
-    sessions.graph.chats[a].messages.push({ role: 'user', content: 'even fresher', createdAt: 't' });
     expect(isChatClientMessage({ type: 'doc_regenerate_requested', docId: id })).toBe(true);
     await handleChatClientMessage({ type: 'doc_regenerate_requested', docId: id }, sessions);
-    expect(sessions.graph.docs[id].body).toContain('even fresher');
-  });
-
-  it('chat_compaction_document_updated stores the user edit on the doc', async () => {
-    const sessions = new ChatSessionManager();
-    const a = sessions.createChat({ x: 0, y: 0 });
-    const id = await sessions.compact([a]);
-    await handleChatClientMessage(
-      { type: 'chat_compaction_document_updated', compactionId: id, document: '# Edited' },
-      sessions,
-    );
-    expect(sessions.graph.docs[id].body).toBe('# Edited');
-  });
-
-  it('chat_compaction_move_requested moves the doc on root', async () => {
-    const sessions = new ChatSessionManager();
-    const a = sessions.createChat({ x: 0, y: 0 });
-    const id = await sessions.compact([a]);
-    await handleChatClientMessage(
-      { type: 'chat_compaction_move_requested', compactionId: id, position: { x: 5, y: 6 } },
-      sessions,
-    );
-    expect(sessions.graph.rootCanvas.placements).toEqual([{ kind: 'doc', id, position: { x: 5, y: 6 } }]);
+    expect(sessions.graph.docs[id].body).toContain('fresh insight');
   });
 
   it('chat_stop_requested stops the in-flight stream (partial settles)', async () => {

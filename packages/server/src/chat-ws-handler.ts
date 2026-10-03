@@ -1,6 +1,5 @@
 // v2 WS dispatch: validates and routes chat client messages to the session manager.
 import { z } from 'zod';
-import { ROOT_CANVAS_ID } from '@fcw/graph-core';
 import type { ChatClientMessage } from '@fcw/graph-core';
 import { ChatSessionManager } from './chat-session.js';
 
@@ -77,23 +76,6 @@ const ChatCompactRequestedSchema = z.object({
   type: z.literal('chat_compact_requested'),
   chatIds: z.array(z.string()).min(1),
   canvasId: z.string().optional(),
-});
-
-const ChatCompactionRegenerateRequestedSchema = z.object({
-  type: z.literal('chat_compaction_regenerate_requested'),
-  compactionId: z.string(),
-});
-
-const ChatCompactionDocumentUpdatedSchema = z.object({
-  type: z.literal('chat_compaction_document_updated'),
-  compactionId: z.string(),
-  document: z.string(),
-});
-
-const ChatCompactionMoveRequestedSchema = z.object({
-  type: z.literal('chat_compaction_move_requested'),
-  compactionId: z.string(),
-  position: z.object({ x: z.number(), y: z.number() }),
 });
 
 const PositionSchema = z.object({ x: z.number(), y: z.number() });
@@ -178,9 +160,6 @@ export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatSettingsUpdatedSchema,
   ChatPermissionDecisionSchema,
   ChatCompactRequestedSchema,
-  ChatCompactionRegenerateRequestedSchema,
-  ChatCompactionDocumentUpdatedSchema,
-  ChatCompactionMoveRequestedSchema,
   DocCreateRequestedSchema,
   DocUpdateRequestedSchema,
   DocPlaceRequestedSchema,
@@ -226,14 +205,6 @@ export async function handleChatClientMessage(
     await sessions.regenerate(msg.chatId);
   } else if (msg.type === 'chat_compact_requested') {
     await sessions.compact(msg.chatIds, msg.canvasId);
-  // Legacy chat_compaction_* requests map onto doc ops (compactionId is the
-  // docId after migration). Accepted until the M3 frontend lands.
-  } else if (msg.type === 'chat_compaction_regenerate_requested') {
-    await sessions.regenerateDoc(msg.compactionId);
-  } else if (msg.type === 'chat_compaction_document_updated') {
-    sessions.updateDoc(msg.compactionId, { body: msg.document });
-  } else if (msg.type === 'chat_compaction_move_requested') {
-    sessions.moveOnCanvas(ROOT_CANVAS_ID, 'doc', msg.compactionId, msg.position);
   } else if (msg.type === 'doc_regenerate_requested') {
     await sessions.regenerateDoc(msg.docId);
   } else if (msg.type === 'doc_create_requested') {

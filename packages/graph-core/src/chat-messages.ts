@@ -1,6 +1,5 @@
 // v2 WebSocket protocol: chat-graph messages (shared server <-> frontend language).
 import type { ChatGraph, ChatMessage, ChatNode, ContextEdge, ChatSettings, TokenUsage } from './chat-graph.js';
-import type { Compaction, CompactionStatus } from './compaction.js';
 import type { Doc, DocEdge, DocPlacement } from './docs.js';
 import type { Position } from './types.js';
 
@@ -35,10 +34,6 @@ export type ChatServerMessage =
   | { type: 'chat_capabilities'; models: CapabilityModel[]; commands: CapabilityCommand[] }
   | { type: 'chat_permission_requested'; chatId: string; requestId: string; toolName: string; input: unknown }
   | { type: 'chat_permission_resolved'; chatId: string; requestId: string }
-  // Deprecated: the server no longer emits chat_compaction_* (M2.3); kept
-  // until the M3 frontend stops handling them.
-  | { type: 'chat_compaction_created'; compaction: Compaction }
-  | { type: 'chat_compaction_document'; compactionId: string; document: string; sourceDigest: string; status: CompactionStatus }
   | { type: 'doc_created'; doc: Doc }
   | { type: 'doc_updated'; docId: string; title?: string; body?: string; generated?: Doc['generated'] }
   | { type: 'doc_placed'; canvasId: string; placement: DocPlacement }
@@ -62,9 +57,6 @@ export type ChatClientMessage =
   | { type: 'chat_settings_updated'; chatId: string; settings: Partial<ChatSettings> }
   | { type: 'chat_permission_decision'; chatId: string; requestId: string; behavior: 'allow' | 'deny'; message?: string }
   | { type: 'chat_compact_requested'; chatIds: string[]; canvasId?: string }
-  | { type: 'chat_compaction_regenerate_requested'; compactionId: string }
-  | { type: 'chat_compaction_document_updated'; compactionId: string; document: string }
-  | { type: 'chat_compaction_move_requested'; compactionId: string; position: Position }
   | { type: 'doc_create_requested'; canvasId: string; title: string; position: Position }
   | { type: 'doc_update_requested'; docId: string; title?: string; body?: string }
   | { type: 'doc_place_requested'; canvasId: string; kind: DocPlacement['kind']; id: string; position: Position }

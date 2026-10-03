@@ -1,6 +1,6 @@
 // Legacy Compaction entity (pre structure-first). Only its shape survives:
-// migrateCompactions reads it from old .fcw.json files and the deprecated
-// chat_compaction_* messages carry it until M3 deletes that path.
+// migrateCompactions reads it from old .fcw.json files (the chat_compaction_*
+// messages that carried it were deleted at M3.6).
 import type { Position } from './types.js';
 
 export type CompactionStatus = 'generating' | 'idle';
