@@ -31,6 +31,10 @@ export interface Doc {
   title: string;
   body: string; // markdown
   canvas: DocCanvas;
+  // Present when the body is generated from the chats placed on its canvas
+  // (a compaction-style doc). sourceDigest fingerprints those transcripts at
+  // the last generation, so edits to them mark the doc stale.
+  generated?: { sourceDigest: string; status: 'generating' | 'idle' };
 }
 
 export interface DocWorkspace {

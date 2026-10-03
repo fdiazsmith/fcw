@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { createWorkspace, createDoc, placeDoc, updateDocBody } from './docs.js';
+import type { Doc } from './docs.js';
 
 it('creates a uniform doc: title, empty body, empty child canvas', () => {
   const [, doc] = createDoc(createWorkspace(), 'Sign in');
@@ -36,4 +37,15 @@ it('placeDoc produces a doc-kind placement', () => {
   expect(ws.docs[host.id].canvas.placements).toEqual([
     { kind: 'doc', id: child.id, position: { x: 5, y: 7 } },
   ]);
+});
+
+it('a doc with `generated` is a compaction-style doc; plain docs have none', () => {
+  const [, plain] = createDoc(createWorkspace(), 'Plain');
+  expect(plain.generated).toBeUndefined();
+
+  const generated: Doc = {
+    ...plain,
+    generated: { sourceDigest: 'abc-1', status: 'generating' },
+  };
+  expect(generated.generated).toEqual({ sourceDigest: 'abc-1', status: 'generating' });
 });
