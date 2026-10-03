@@ -368,4 +368,28 @@ describe('WebSocket Server project routing', () => {
     await until(a.received, () => lists(a.received).length === 4);
     expect(host.open(other.id).graph.meta.settings).toEqual({ cwd: '/tmp', effort: 'low' });
   });
+
+  it('trash: sockets on it get project_closed then the default project; everyone gets the new list', async () => {
+    const sandbox = host.defaultProjectId();
+    const doomed = await host.create('Doomed');
+    const a = await client();
+    const b = await client(`/?project=${doomed.id}`);
+    await until(a.received, (m) => m.type === 'chat_snapshot');
+    await until(b.received, (m) => m.type === 'chat_snapshot');
+    a.received.length = 0;
+    b.received.length = 0;
+
+    a.ws.send(JSON.stringify({ type: 'project_trash_requested', id: doomed.id }));
+    await until(b.received, (m) => m.type === 'chat_snapshot');
+    const list = await until(a.received, (m) => m.type === 'project_list');
+    expect(list.projects.map((p: Msg) => p.id)).toEqual([sandbox]);
+    expect(b.received.slice(0, 4).map((m) => m.type)).toEqual(['project_closed', 'project_opened', 'project_list', 'chat_snapshot']);
+    expect(b.received[0]).toEqual({ type: 'project_closed', id: doomed.id, reason: 'trashed' });
+    expect(b.received[1].project.id).toBe(sandbox);
+    expect(a.received.some((m) => m.type === 'project_closed')).toBe(false);
+
+    // b now talks to the sandbox manager.
+    b.ws.send(JSON.stringify({ type: 'chat_create_requested', position: { x: 0, y: 0 } }));
+    await until(a.received, (m) => m.type === 'chat_created');
+  });
 });

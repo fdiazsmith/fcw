@@ -16,6 +16,7 @@ const ProjectClientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('project_open_requested'), id: z.string() }),
   z.object({ type: z.literal('project_create_requested'), title: z.string() }),
   z.object({ type: z.literal('project_rename_requested'), id: z.string(), title: z.string() }),
+  z.object({ type: z.literal('project_trash_requested'), id: z.string() }),
   z.object({
     type: z.literal('project_settings_requested'),
     id: z.string(),
@@ -106,6 +107,14 @@ export function createWsServer(
       if (msg.type === 'project_create_requested') await host.create(msg.title);
       else if (msg.type === 'project_rename_requested') await host.rename(msg.id, msg.title);
       else if (msg.type === 'project_settings_requested') await host.setSettings(msg.id, msg.settings);
+      else if (msg.type === 'project_trash_requested') {
+        await host.trash(msg.id);
+        for (const [client, binding] of bindings) {
+          if (binding.id !== msg.id) continue;
+          send(client, { type: 'project_closed', id: msg.id, reason: 'trashed' });
+          bind(client, host, host.defaultProjectId());
+        }
+      }
       const list = { type: 'project_list', projects: host.list() };
       for (const client of wss.clients) send(client, list);
     }
