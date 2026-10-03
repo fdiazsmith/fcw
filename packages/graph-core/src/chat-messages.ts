@@ -46,6 +46,7 @@ export type ChatServerMessage =
   | { type: 'doc_moved'; canvasId: string; kind: DocPlacement['kind']; id: string; position: Position }
   | { type: 'doc_linked'; canvasId: string; placedDocId: string; existingDocId: string }
   // After the per-box doc_created/doc_placed; the client lays the boxes out (M3.4).
+  | { type: 'doc_chat_ready'; docId: string; chatId: string }
   | { type: 'diagram_created'; canvasId: string; docIds: string[]; edges: DocEdge[]; error?: string };
 
 // Client -> Server

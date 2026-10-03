@@ -509,6 +509,22 @@ export class ChatSessionManager extends EventEmitter {
     this.scheduleSave();
   }
 
+  /** The doc's doc-chat, created on first request (title = doc title, placed
+   *  nowhere). Always answers with doc_chat_ready. */
+  requestDocChat(docId: string): string {
+    const doc = this.docById(docId);
+    let chat = Object.values(this.graph.chats).find((c) => c.docId === docId);
+    if (!chat) {
+      const id = addChat(this.graph, { position: { x: 0, y: 0 }, title: doc.title });
+      chat = this.graph.chats[id];
+      chat.docId = docId;
+      this.emit('message', { type: 'chat_created', chat });
+      this.scheduleSave();
+    }
+    this.emit('message', { type: 'doc_chat_ready', docId, chatId: chat.id });
+    return chat.id;
+  }
+
   /** Generate a diagram onto a canvas: one doc per box, edges on the canvas.
    *  Positions are a provisional grid; the client lays out (M3.4). */
   async requestDiagram(canvasId: string, prompt: string): Promise<void> {

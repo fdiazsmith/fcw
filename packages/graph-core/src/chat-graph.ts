@@ -59,6 +59,8 @@ export interface ChatNode {
   sessionStale?: boolean;
   /** Accumulated token usage across this chat's turns. */
   usage?: TokenUsage;
+  /** Set on a doc-chat (M2.6): bound to this doc, never placed on a canvas. */
+  docId?: string;
 }
 
 export interface ContextEdge {
