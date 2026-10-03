@@ -47,4 +47,14 @@ describe('PromptBar', () => {
     press('Enter');
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it('doc mode submits the title as a doc', () => {
+    const onSubmit = vi.fn();
+    render(<PromptBar onSubmit={onSubmit} />);
+    fireEvent.click(screen.getByTestId('prompt-mode-doc'));
+    expect(screen.getByTestId('prompt-mode-doc').getAttribute('aria-pressed')).toBe('true');
+    type('Design.md');
+    press('Enter');
+    expect(onSubmit).toHaveBeenCalledWith('doc', 'Design.md');
+  });
 });

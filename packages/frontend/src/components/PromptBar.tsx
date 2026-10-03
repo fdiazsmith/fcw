@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export type PromptMode = 'chat' | 'diagram';
+export type PromptMode = 'chat' | 'diagram' | 'doc';
 
 export interface PromptBarProps {
   onSubmit: (mode: PromptMode, text: string) => void;
@@ -9,6 +9,7 @@ export interface PromptBarProps {
 const MODES: { mode: PromptMode; label: string }[] = [
   { mode: 'chat', label: 'Chat' },
   { mode: 'diagram', label: 'Diagram' },
+  { mode: 'doc', label: 'Doc' },
 ];
 
 /** Canvas-level prompt bar (bottom centre). Enter submits, Shift+Enter is a newline. */
@@ -64,7 +65,13 @@ export function PromptBar({ onSubmit }: PromptBarProps) {
         data-testid="prompt-bar"
         value={text}
         rows={1}
-        placeholder={mode === 'chat' ? 'Ask in a new chat…' : 'Describe a diagram, or paste Mermaid…'}
+        placeholder={
+          mode === 'chat'
+            ? 'Ask in a new chat…'
+            : mode === 'doc'
+              ? 'Title for a new doc…'
+              : 'Describe a diagram, or paste Mermaid…'
+        }
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKeyDown}
         style={{
