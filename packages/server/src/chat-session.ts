@@ -295,6 +295,14 @@ export class ChatSessionManager extends EventEmitter {
     return assembleDocContext(this.graph, host.id, { budget: DEFAULT_DOC_CONTEXT_BUDGET });
   }
 
+  /** A doc changed: every chat whose doc blocks include it must start a fresh
+   *  agent session (the preamble is only sent on a fresh one). */
+  private markDocReadersStale(docId: string): void {
+    for (const chat of Object.values(this.graph.chats)) {
+      if (this.docContextFor(chat.id).some((b) => b.docId === docId)) chat.sessionStale = true;
+    }
+  }
+
   /** Append a role 'tool' message with structured fields and broadcast it.
    *  The graph message keeps the full toolInput; the emitted WS copy is
    *  truncated so large tool outputs don't bloat frames. */
@@ -455,6 +463,7 @@ export class ChatSessionManager extends EventEmitter {
     const doc = this.docById(docId);
     if (patch.title !== undefined) doc.title = patch.title;
     if (patch.body !== undefined) doc.body = patch.body;
+    this.markDocReadersStale(docId);
     this.emit('message', { type: 'doc_updated', docId, ...patch });
     this.scheduleSave();
   }
