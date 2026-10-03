@@ -41,6 +41,19 @@ export function createWorkspace(): DocWorkspace {
   return { docs: {} };
 }
 
+const normTitle = (s: string): string => s.trim().replace(/\s+/g, ' ').toLowerCase();
+
+/** Docs whose title matches `title` (trim, collapse whitespace, lowercase). Insertion order. */
+export function findDocsByTitle(
+  ws: Pick<DocWorkspace, 'docs'>,
+  title: string,
+  opts?: { excludeId?: string },
+): Doc[] {
+  const q = normTitle(title);
+  if (!q) return [];
+  return Object.values(ws.docs).filter((d) => d.id !== opts?.excludeId && normTitle(d.title) === q);
+}
+
 export function createDoc(ws: DocWorkspace, title: string): [DocWorkspace, Doc] {
   const doc: Doc = {
     id: newId(),

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createWorkspace, createDoc, placeDoc, updateDocBody, applyToDoc } from './docs.js';
+import { createWorkspace, createDoc, placeDoc, updateDocBody, applyToDoc, findDocsByTitle } from './docs.js';
 
 it('creates a uniform doc: title, empty body, empty child canvas', () => {
   const [, doc] = createDoc(createWorkspace(), 'Sign in');
@@ -51,4 +51,29 @@ it('applyToDoc replaces only the target body, preserving everything else', () =>
 
 it('applyToDoc throws on unknown docId', () => {
   expect(() => applyToDoc(createWorkspace(), 'nope', 'x')).toThrow();
+});
+
+it('findDocsByTitle matches case- and whitespace-insensitively, in insertion order', () => {
+  let ws = createWorkspace();
+  let a, b, c;
+  [ws, a] = createDoc(ws, 'Sign  In');
+  [ws, b] = createDoc(ws, 'Checkout');
+  [ws, c] = createDoc(ws, '  sign in\t');
+  expect(findDocsByTitle(ws, ' SIGN\n in ').map((d) => d.id)).toEqual([a.id, c.id]);
+  expect(findDocsByTitle(ws, 'nope')).toEqual([]);
+});
+
+it('findDocsByTitle returns [] for empty or whitespace-only query', () => {
+  const [ws] = createDoc(createWorkspace(), '');
+  expect(findDocsByTitle(ws, '')).toEqual([]);
+  expect(findDocsByTitle(ws, '  \t ')).toEqual([]);
+});
+
+it('findDocsByTitle excludes opts.excludeId and accepts a larger workspace object', () => {
+  let ws = createWorkspace();
+  let a, b;
+  [ws, a] = createDoc(ws, 'Login');
+  [ws, b] = createDoc(ws, 'login');
+  const bigger = { ...ws, extra: 1 };
+  expect(findDocsByTitle(bigger, 'Login', { excludeId: a.id }).map((d) => d.id)).toEqual([b.id]);
 });
