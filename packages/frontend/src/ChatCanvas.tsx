@@ -286,7 +286,7 @@ export default function ChatCanvas() {
           upsert(id, 'chat-node', c.position, chatProps(state.chats[c.chatId], state), { canvasId });
         }
         for (const [id, d] of wantDocs) {
-          upsert(id, 'doc-node', d.position, { docId: d.docId, modelJson: JSON.stringify(d.model) }, {
+          upsert(id, 'doc-node', d.position, { docId: d.docId, modelJson: JSON.stringify({ ...d.model, linkTo: d.linkTo }) }, {
             canvasId,
             docId: d.docId,
           });
@@ -459,6 +459,8 @@ export default function ChatCanvas() {
       openCanvas: (docId) => navigate(pushCanvas(navRef.current, docId)),
       regenerate: (docId) => send({ type: 'doc_regenerate_requested', docId }),
       select: (docId) => editorRef.current?.select(docShapeId(currentCanvas(navRef.current), docId)),
+      link: (placedDocId, existingDocId) =>
+        send({ type: 'doc_link_requested', canvasId: currentCanvas(navRef.current), placedDocId, existingDocId }),
     });
     return () => {
       registerChatActions(null);
