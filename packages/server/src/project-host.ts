@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { chatGraphToJSON, createChatGraph, projectSummary } from '@fcw/graph-core';
 import type { ChatGraph, ProjectSummary } from '@fcw/graph-core';
 import { ChatSessionManager } from './chat-session.js';
-import { createProject, listProjects, loadProject, saveChatGraph } from './chat-graph-store.js';
+import { createProject, listProjects, loadProject, saveChatGraph, trashProject } from './chat-graph-store.js';
 
 export interface ProjectHostOptions {
   storageDir: string;
@@ -100,6 +100,22 @@ export class ProjectHost {
 
   setSettings(id: string, settings: NonNullable<ChatGraph['meta']['settings']>): Promise<void> {
     return this.edit(id, (graph) => { graph.meta.settings = settings; });
+  }
+
+  /** Stops the project's running turns, unloads it and moves its file to
+   *  .trash/. Trashing the last-opened project moves the default to the most
+   *  recent remaining one (a new Sandbox if none). */
+  async trash(id: string): Promise<void> {
+    const manager = this.managers.get(id);
+    if (manager) {
+      manager.setSaveHandler(null);
+      for (const chatId of Object.keys(manager.graph.chats)) manager.stop(chatId);
+      this.managers.delete(id);
+    }
+    await trashProject(this.storageDir, id);
+    if (id === this.defaultId) {
+      this.setLastOpened(listProjects(this.storageDir)[0]?.id ?? this.createSync(SANDBOX).id);
+    }
   }
 
   /** Edits the open manager's graph (so a later save keeps it) or the file. */

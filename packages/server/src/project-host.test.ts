@@ -1,11 +1,13 @@
 // M7.3: ProjectHost — one ChatSessionManager per open project, last-opened
 // remembered in <dir>/.fcw-state.json, first launch yields a "Sandbox".
 import { describe, it, expect, vi } from 'vitest';
-import { mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ProjectHost } from './project-host.js';
 import { createProject, listProjects, loadProject } from './chat-graph-store.js';
+import { ChatSessionManager } from './chat-session.js';
+import type { StreamTurnFn } from './turn-events.js';
 
 function tempDir(): string {
   return mkdtempSync(join(tmpdir(), 'fcw-host-'));
@@ -105,6 +107,51 @@ describe('ProjectHost open', () => {
     // Not-open projects are edited on disk.
     await host.rename(sandbox, 'Play');
     expect(host.list().find((p) => p.id === sandbox)?.title).toBe('Play');
+  });
+
+  it('trash stops running turns, unloads the manager and moves the file to .trash/', async () => {
+    const dir = tempDir();
+    let aborted = false;
+    const stream: StreamTurnFn = async function* (ctx) {
+      yield { type: 'text_delta', text: 'partial' };
+      await new Promise<void>((r) => ctx.signal?.addEventListener('abort', () => r()));
+      aborted = ctx.signal?.aborted ?? false;
+    };
+    const host = new ProjectHost({
+      storageDir: dir,
+      createManager: (graph) => new ChatSessionManager(undefined, { api: stream }, graph),
+    });
+    const p = await host.create('Doomed');
+    const m = host.open(p.id);
+    const chat = m.createChat({ x: 0, y: 0 });
+    const turn = m.prompt(chat, 'hi');
+    await new Promise((r) => setTimeout(r, 10));
+
+    await host.trash(p.id);
+    await turn;
+    expect(aborted).toBe(true);
+    expect(existsSync(join(dir, `${p.id}.fcw2.json`))).toBe(false);
+    expect(readdirSync(join(dir, '.trash'))).toEqual([`${p.id}.fcw2.json`]);
+    // The pending debounced save must not resurrect the file.
+    await new Promise((r) => setTimeout(r, 700));
+    expect(existsSync(join(dir, `${p.id}.fcw2.json`))).toBe(false);
+    expect(() => host.open(p.id)).toThrow(/unknown project/);
+  });
+
+  it('trashing the last-opened project falls back to the most recent one, else a new Sandbox', async () => {
+    const dir = tempDir();
+    const host = new ProjectHost({ storageDir: dir });
+    const sandbox = host.defaultProjectId();
+    const other = await host.create('Other');
+    host.open(other.id);
+    await host.trash(other.id);
+    expect(host.defaultProjectId()).toBe(sandbox);
+    expect(new ProjectHost({ storageDir: dir }).defaultProjectId()).toBe(sandbox);
+
+    await host.trash(sandbox);
+    const fresh = host.defaultProjectId();
+    expect(fresh).not.toBe(sandbox);
+    expect(host.list().map((p) => [p.id, p.title])).toEqual([[fresh, 'Sandbox']]);
   });
 
   it('opening an unknown project throws', () => {
