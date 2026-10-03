@@ -10,8 +10,11 @@ export type DocShapeProps = {
   w: number;
   h: number;
   docId: string;
-  modelJson: string; // JSON DocCardModel; '' means not loaded yet
+  modelJson: string; // JSON DocShapeModel; '' means not loaded yet
 };
+
+/** The card model plus the doc to offer linking to (M3.5), if any. */
+export type DocShapeModel = DocCardModel & { linkTo?: string | null };
 
 export type DocShape = TLBaseShape<'doc-node', DocShapeProps>;
 
@@ -20,6 +23,8 @@ export interface DocActions {
   openCanvas: (docId: string) => void;
   regenerate: (docId: string) => void;
   select: (docId: string) => void;
+  /** Swap this box for a placement of an existing doc ("link instead?"). */
+  link: (docId: string, existingDocId: string) => void;
 }
 
 let registeredActions: DocActions | null = null;
@@ -34,10 +39,10 @@ export function docActions(): DocActions | null {
   return registeredActions;
 }
 
-function parseModel(raw: string): DocCardModel | null {
+function parseModel(raw: string): DocShapeModel | null {
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as DocCardModel;
+    return JSON.parse(raw) as DocShapeModel;
   } catch {
     return null;
   }
@@ -69,11 +74,38 @@ export class DocShapeUtil extends BaseBoxShapeUtil<DocShape> {
     const model = parseModel(shape.props.modelJson);
     const id = shape.props.docId;
     if (!model) return <HTMLContainer />;
+    const { linkTo, ...card } = model;
 
     return (
       <HTMLContainer style={{ width: '100%', height: '100%', pointerEvents: 'all' }}>
         <DocCard
-          {...model}
+          {...card}
+          linkChip={
+            linkTo ? (
+              <button
+                data-testid="doc-link-chip"
+                title="A doc with this title exists: use it here instead"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  docActions()?.link(id, linkTo);
+                }}
+                style={{
+                  padding: '2px 7px',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  borderRadius: 10,
+                  border: '1px solid #C4B5FD',
+                  background: '#F5F3FF',
+                  color: '#6D28D9',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                🔗 Link instead?
+              </button>
+            ) : undefined
+          }
           onOpenCanvas={() => docActions()?.openCanvas(id)}
           onRegenerate={() => docActions()?.regenerate(id)}
           onSelect={() => docActions()?.select(id)}
