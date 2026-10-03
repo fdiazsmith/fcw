@@ -6,14 +6,15 @@ export interface WsClient {
   close(): void;
 }
 
-export function createWsClient(url: string): WsClient {
+/** `url` may be a getter, re-read on every (re)connect. */
+export function createWsClient(url: string | (() => string)): WsClient {
   let ws: WebSocket;
   let messageHandler: ((msg: ServerMessage) => void) | null = null;
   let reconnectDelay = 1000;
   let closed = false;
 
   function connect() {
-    ws = new WebSocket(url);
+    ws = new WebSocket(typeof url === 'function' ? url() : url);
 
     ws.onmessage = (event) => {
       try {

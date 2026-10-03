@@ -68,4 +68,16 @@ describe('createWsClient', () => {
     expect(MockWebSocket.instances.length).toBe(2);
     vi.useRealTimers();
   });
+
+  it('a url getter is re-read on reconnect (M7.6: rebind to the current project)', () => {
+    vi.useFakeTimers();
+    let url = 'ws://x?project=a';
+    createWsClient(() => url);
+    expect(MockWebSocket.instances[0].url).toBe('ws://x?project=a');
+    url = 'ws://x?project=b';
+    MockWebSocket.instances[0].onclose?.();
+    vi.advanceTimersByTime(1500);
+    expect(MockWebSocket.instances[1].url).toBe('ws://x?project=b');
+    vi.useRealTimers();
+  });
 });
