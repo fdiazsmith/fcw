@@ -17,6 +17,8 @@ export interface ChatWindowProps {
   listDirs?: (path?: string) => Promise<DirListing>;
   /** Doc chats: adds an "Apply to doc" button to assistant messages (index into chat.messages). */
   onApply?: (messageIndex: number) => void;
+  /** False hides the title row, for hosts that already name the chat (the doc panel). */
+  showTitle?: boolean;
 }
 
 const EFFORTS: ChatSettings['effort'][] = ['low', 'medium', 'high', 'xhigh', 'max'];
@@ -57,6 +59,7 @@ export function ChatWindow({
   uploadAttachment,
   listDirs,
   onApply,
+  showTitle = true,
 }: ChatWindowProps) {
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -127,19 +130,21 @@ export function ChatWindow({
         fontSize: 13,
       }}
     >
-      <div
-        style={{
-          padding: '6px 10px',
-          borderBottom: '1px solid #E2E8F0',
-          fontWeight: 600,
-          color: '#334155',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {chat.title || 'New chat'}
-      </div>
+      {showTitle && (
+        <div
+          style={{
+            padding: '6px 10px',
+            borderBottom: '1px solid #E2E8F0',
+            fontWeight: 600,
+            color: '#334155',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {chat.title || 'New chat'}
+        </div>
+      )}
 
       {/* Per-chat engine settings */}
       <div
@@ -319,9 +324,10 @@ export function ChatWindow({
                 onClick={() => quote(m.content)}
                 className="fcw-quote-btn"
                 style={{
+                  // Beside the bubble, in the gutter its 85% max width leaves.
                   position: 'absolute',
-                  top: -8,
-                  right: -8,
+                  top: 4,
+                  ...(isUser ? { right: '100%', marginRight: 4 } : { left: '100%', marginLeft: 4 }),
                   height: 18,
                   padding: '0 6px',
                   borderRadius: 9,

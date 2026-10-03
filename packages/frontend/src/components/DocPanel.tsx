@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
+import type { Editor } from '@tiptap/react';
 import type { ChatState } from '../chat-store';
 import { docChatBinding } from '../doc-panel-model';
 import { chatActions } from '../shapes/ChatShape';
@@ -18,6 +19,9 @@ export interface DocPanelProps {
   onApply: (chatId: string, messageIndex: number) => void;
 }
 
+/** The panel docks to the right edge; the canvas gives up this much width. */
+export const DOC_PANEL_WIDTH = 420;
+
 const notConnected = () => Promise.reject(new Error('not connected'));
 
 /** Side panel for the selected doc (MERMAID-DOCS.md § Doc-chat placement). */
@@ -26,6 +30,9 @@ export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat, o
   const { chat, needsRequest } = docChatBinding(state, docId);
   const caps = state.capabilities;
   const hasCaps = caps.models.length > 0 || caps.commands.length > 0;
+
+  const editorRef = useRef<Editor | null>(null);
+  const setEditor = useCallback((ed: Editor | null) => (editorRef.current = ed), []);
 
   const exists = !!doc;
   // Once per doc while its doc-chat is missing; the reply fills docChats.
@@ -43,7 +50,7 @@ export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat, o
         top: 0,
         right: 0,
         bottom: 0,
-        width: 420,
+        width: DOC_PANEL_WIDTH,
         zIndex: 1002,
         display: 'flex',
         flexDirection: 'column',
@@ -72,9 +79,25 @@ export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat, o
         </button>
       </header>
       <section style={{ flex: '0 1 auto', maxHeight: '40%', overflow: 'auto', padding: '8px 12px', fontSize: 13 }}>
-        <div data-testid="doc-body-editor">
+        {/* Framed like an input so an empty body still reads as editable. */}
+        <div
+          data-testid="doc-body-editor"
+          style={{ minHeight: 64, padding: '0 10px', border: '1px solid #E2E8F0', borderRadius: 6, cursor: 'text' }}
+          // A click on the frame's empty space lands the caret at the end.
+          onMouseDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            e.preventDefault();
+            editorRef.current?.commands.focus('end');
+          }}
+        >
           {/* Remount per doc so a pending debounced edit never lands on another doc. */}
-          <MarkdownEditor key={docId} markdown={doc.body} editable onChange={onBodyChange} />
+          <MarkdownEditor
+            key={docId}
+            markdown={doc.body}
+            editable
+            onChange={onBodyChange}
+            editorRef={setEditor}
+          />
         </div>
       </section>
       <details style={{ padding: '6px 12px', borderTop: '1px solid #E2E8F0', fontSize: 12 }}>
@@ -101,6 +124,7 @@ export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat, o
             uploadAttachment={(file) => chatActions()?.uploadAttachment(file) ?? notConnected()}
             listDirs={(path) => chatActions()?.listDirs(path) ?? notConnected()}
             onApply={(i) => onApply(chat.id, i)}
+            showTitle={false}
           />
         ) : (
           <div style={{ padding: 12, fontSize: 12, color: '#94A3B8' }}>Starting doc chat…</div>

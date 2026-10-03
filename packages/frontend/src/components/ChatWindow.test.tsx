@@ -207,6 +207,24 @@ describe('ChatWindow', () => {
     expect(input.value).toBe('> line one\n> line two\n\n');
   });
 
+  it('puts the quote badge beside the bubble, never over its text', () => {
+    render(
+      <ChatWindow
+        chat={view({
+          messages: [
+            { role: 'user', content: 'hi', createdAt: 't' },
+            { role: 'assistant', content: 'yo', createdAt: 't' },
+          ],
+        })}
+        onSend={() => {}}
+      />,
+    );
+    const [mine, theirs] = screen.getAllByRole('button', { name: /quote/i });
+    // User bubbles hug the right edge, so the badge goes on their left; and vice versa.
+    expect(mine.style.right).toBe('100%');
+    expect(theirs.style.left).toBe('100%');
+  });
+
   it('quoting preserves an existing draft', () => {
     render(
       <ChatWindow

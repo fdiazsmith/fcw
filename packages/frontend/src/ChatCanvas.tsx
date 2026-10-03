@@ -32,7 +32,7 @@ import { layoutDocNodes, centerLayoutAt } from './doc-layout';
 import { ChatSearchBar } from './components/ChatSearchBar';
 import { PromptBar, PromptMode } from './components/PromptBar';
 import { exportCanvasMermaid } from './export-mermaid';
-import { DocPanel } from './components/DocPanel';
+import { DocPanel, DOC_PANEL_WIDTH } from './components/DocPanel';
 import { GlobalGraph } from './components/GlobalGraph';
 import { globalGraph } from './global-graph';
 import type { GlobalGraphData } from './global-graph';
@@ -961,30 +961,33 @@ export default function ChatCanvas() {
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
-      <ChromeContext.Provider value={chrome}>
-        <Tldraw shapeUtils={customShapes} components={chromeComponents} onMount={onMount} />
-      </ChromeContext.Provider>
-      {/* Prompt dock, bottom centre above tldraw's toolbar, with the usage hint under it. */}
-      <div
-        data-testid="prompt-dock"
-        style={{
-          position: 'absolute',
-          bottom: 64,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
-        }}
-      >
-        <PromptBar onSubmit={submitPrompt} />
+      {/* The canvas and its chrome shrink beside an open doc panel instead of hiding under it. */}
+      <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: panelDocId ? DOC_PANEL_WIDTH : 0 }}>
+        <ChromeContext.Provider value={chrome}>
+          <Tldraw shapeUtils={customShapes} components={chromeComponents} onMount={onMount} />
+        </ChromeContext.Provider>
+        {/* Prompt dock, bottom centre above tldraw's toolbar, with the usage hint under it. */}
         <div
-          data-testid="canvas-hint"
-          style={{ pointerEvents: 'none', fontFamily: 'system-ui, sans-serif', fontSize: 11, color: '#64748B' }}
+          data-testid="prompt-dock"
+          style={{
+            position: 'absolute',
+            bottom: 64,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+          }}
         >
-          double-click: new · + : branch · drag arrow: connect
+          <PromptBar onSubmit={submitPrompt} />
+          <div
+            data-testid="canvas-hint"
+            style={{ pointerEvents: 'none', fontFamily: 'system-ui, sans-serif', fontSize: 11, color: '#64748B' }}
+          >
+            double-click: new · + : branch · drag arrow: connect
+          </div>
         </div>
       </div>
       {graph && (

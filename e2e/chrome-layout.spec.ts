@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { E2E_WS_URL } from './ports';
 
 // The app chrome must not overlap itself or tldraw's own panels, and the
 // breadcrumb is the only canvas navigation (tldraw's page menu is hidden).
@@ -40,4 +41,41 @@ test('canvas chrome does not overlap and has a single navigation', async ({ page
     for (let j = i + 1; j < boxes.length; j++)
       if (overlaps(boxes[i][1], boxes[j][1])) clashes.push(`${boxes[i][0]} × ${boxes[j][0]}`);
   expect(clashes).toEqual([]);
+});
+
+test('the doc panel sits beside the canvas chrome, not over it', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByTestId('prompt-mode-diagram').click();
+  await page.getByTestId('prompt-bar').fill('graph TD\n  A[Layout panel]');
+  await page.getByTestId('prompt-bar').press('Enter');
+  const shape = page.locator('[data-testid="doc-shape"][data-doc-title="Layout panel"]');
+  await shape.getByTestId('doc-title').click();
+
+  const boxes = await Promise.all([
+    box(page, 'doc panel', '[data-testid="doc-panel"]'),
+    box(page, 'style panel', '.tlui-style-panel'),
+    box(page, 'canvas actions', '[data-testid="canvas-actions"]'),
+    box(page, 'breadcrumb', '[data-testid="breadcrumb"]'),
+    box(page, 'prompt + hint', '[data-testid="prompt-dock"]'),
+    box(page, 'toolbar', '.tlui-toolbar__inner'),
+  ]);
+  const [panel, ...rest] = boxes;
+  expect(rest.filter(([, b]) => overlaps(panel[1], b)).map(([n]) => n)).toEqual([]);
+
+  // Leave root as we found it for the next spec (one shared server).
+  const id = (await shape.getAttribute('data-doc-id'))!;
+  await page.evaluate(
+    ({ id, wsUrl }) =>
+      new Promise<void>((resolve, reject) => {
+        const ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          ws.send(JSON.stringify({ type: 'doc_unplace_requested', canvasId: 'root', kind: 'doc', id }));
+          setTimeout(() => (ws.close(), resolve()), 200);
+        };
+        ws.onerror = () => reject(new Error('ws error'));
+      }),
+    { id, wsUrl: E2E_WS_URL },
+  );
+  await expect(shape).toHaveCount(0);
 });

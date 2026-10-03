@@ -91,6 +91,11 @@ describe('DocPanel', () => {
     expect(p.onClose).toHaveBeenCalledOnce();
   });
 
+  it('names the doc once: its doc-chat has no title row of its own', () => {
+    render(<DocPanel {...props({ state: withDocChat() })} />);
+    expect(screen.queryByText('Auth chat')).toBeNull();
+  });
+
   it('renders nothing for an unknown doc', () => {
     render(<DocPanel {...props({ docId: 'gone' })} />);
     expect(screen.queryByTestId('doc-panel')).toBeNull();
