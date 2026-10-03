@@ -14,7 +14,11 @@
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "dev": "npm run build -w packages/graph-core && npm run build -w packages/server && npm run dev -w packages/server & npm run dev -w packages/frontend",
+    "e2e": "playwright test",
+    "dev":"npm run build -w packages/graph-core && npm run build -w packages/server && npm run dev -w packages/server & npm run dev -w packages/frontend",
     "proto": "npm run build -w packages/graph-core && npm run dev:proto -w packages/frontend"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
   }
 }
