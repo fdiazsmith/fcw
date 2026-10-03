@@ -29,6 +29,7 @@ import { projectCanvas } from './canvas-projection';
 import { layoutDocNodes, centerLayoutAt } from './doc-layout';
 import { ChatSearchBar } from './components/ChatSearchBar';
 import { PromptBar, PromptMode } from './components/PromptBar';
+import { DocPanel } from './components/DocPanel';
 import { deletionIntents, DeletedShape } from './deletion-intents';
 import { exportBranchMarkdown } from './export-branch';
 import { ROOT_CANVAS_ID } from '@fcw/graph-core';
@@ -176,6 +177,17 @@ export default function ChatCanvas() {
   // Prompt-bar chats awaiting their chat_created, oldest first.
   const pendingPromptsRef = useRef<{ content: string; canvasId: string; position: Position }[]>([]);
   const [crumbs, setCrumbs] = useState<BreadcrumbItem[]>(breadcrumbItems(emptyChatState(), [ROOT_CANVAS_ID]));
+  // The doc side panel: which doc, and a store snapshot that re-renders it
+  // (refreshed on every server message only while the panel is open).
+  const [panelDocId, setPanelDocId] = useState<string | null>(null);
+  const panelDocIdRef = useRef<string | null>(null);
+  const [panelState, setPanelState] = useState<ChatState>(emptyChatState());
+
+  const openPanel = useCallback((docId: string | null) => {
+    panelDocIdRef.current = docId;
+    if (docId) setPanelState(stateRef.current);
+    setPanelDocId(docId);
+  }, []);
 
   const showBanner = useCallback((text: string) => {
     setBanner(text);
@@ -395,6 +407,7 @@ export default function ChatCanvas() {
       const next = applyChatMessage(stateRef.current, msg);
       if (msg.type !== 'chat_snapshot' && next === stateRef.current) return;
       stateRef.current = next;
+      if (panelDocIdRef.current) setPanelState(next);
       const editor = editorRef.current;
       if (!editor) return; // replayed on mount
 
@@ -484,6 +497,17 @@ export default function ChatCanvas() {
           if (canvasId === null || canvasId === currentCanvas(navRef.current)) return;
           navRef.current = pathToRoot(stateRef.current, canvasId);
           syncCanvas();
+        },
+        { scope: 'session', source: 'all' },
+      );
+
+      // Selecting a single doc box opens its side panel (closing is explicit).
+      const stopSelectListen = editor.store.listen(
+        () => {
+          const only = editor.getOnlySelectedShape();
+          if (only?.type !== 'doc-node') return;
+          const docId = (only as DocShape).props.docId;
+          if (docId && docId !== panelDocIdRef.current) openPanel(docId);
         },
         { scope: 'session', source: 'all' },
       );
@@ -628,10 +652,11 @@ export default function ChatCanvas() {
 
       return () => {
         stopPageListen();
+        stopSelectListen();
         container.removeEventListener('dblclick', onDblClick);
       };
     },
-    [send, syncCanvas, runPendingLayout, canvasIdForPage],
+    [send, syncCanvas, runPendingLayout, canvasIdForPage, openPanel],
   );
 
   /** Fold the selected chat cards into a generated doc on the current canvas. */
@@ -807,6 +832,18 @@ export default function ChatCanvas() {
       >
         double-click: new · + : branch · drag arrow: connect
       </div>
+      {panelDocId && (
+        <DocPanel
+          state={panelState}
+          docId={panelDocId}
+          onClose={() => openPanel(null)}
+          onBodyChange={(body) => send({ type: 'doc_update_requested', docId: panelDocId, body })}
+          onRequestChat={() => send({ type: 'doc_chat_requested', docId: panelDocId })}
+          onApply={(chatId, messageIndex) =>
+            send({ type: 'doc_apply_requested', docId: panelDocId, chatId, messageIndex })
+          }
+        />
+      )}
     </div>
   );
 }
