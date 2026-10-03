@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
+import { E2E_WS_URL } from './ports';
 
 // M6.1: the four origin sketches (docs/sketches/) played end to end against the
 // real server, one test per sketch, narrated with the sketch's own words. The
@@ -79,9 +80,9 @@ async function select(id: string): Promise<Locator> {
 
 /** Send client messages straight to the server (cleanup only). */
 async function sendToServer(msgs: object[]) {
-  await page.evaluate(async (payload) => {
+  await page.evaluate(async ({ payload, wsUrl }) => {
     await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket('ws://localhost:8009');
+      const ws = new WebSocket(wsUrl);
       ws.onopen = () => {
         for (const m of payload) ws.send(JSON.stringify(m));
         setTimeout(() => {
@@ -91,7 +92,7 @@ async function sendToServer(msgs: object[]) {
       };
       ws.onerror = () => reject(new Error('ws error'));
     });
-  }, msgs);
+  }, { payload: msgs, wsUrl: E2E_WS_URL });
 }
 
 test.beforeAll(async ({ browser }) => {

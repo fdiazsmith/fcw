@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
+import { E2E_WS_URL } from './ports';
 
 // M5.3: proto parity. One test per row of the "What to click" list in the
 // (now deleted) prototype README; the table lives in PLAN.md § M5.3. Each test drives the real app the way the row describes. The rows
@@ -87,9 +88,9 @@ async function select(id: string): Promise<Locator> {
 
 /** Send client messages straight to the server (cleanup only). */
 async function sendToServer(msgs: object[]) {
-  await page.evaluate(async (payload) => {
+  await page.evaluate(async ({ payload, wsUrl }) => {
     await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket('ws://localhost:8009');
+      const ws = new WebSocket(wsUrl);
       ws.onopen = () => {
         for (const m of payload) ws.send(JSON.stringify(m));
         setTimeout(() => {
@@ -99,7 +100,7 @@ async function sendToServer(msgs: object[]) {
       };
       ws.onerror = () => reject(new Error('ws error'));
     });
-  }, msgs);
+  }, { payload: msgs, wsUrl: E2E_WS_URL });
 }
 
 test.beforeAll(async ({ browser }) => {

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { E2E_WS_URL } from './ports';
 
 // M5.1: "Export Mermaid" copies the CURRENT canvas as Mermaid text.
 
@@ -25,9 +26,9 @@ test('export-mermaid copies the current canvas as Mermaid', async ({ page, conte
   expect(text).toContain('-->');
 
   // Leave root as we found it for the next spec (one shared server).
-  await page.evaluate(async (payload) => {
+  await page.evaluate(async ({ payload, wsUrl }) => {
     await new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket('ws://localhost:8009');
+      const ws = new WebSocket(wsUrl);
       ws.onopen = () => {
         for (const id of payload) ws.send(JSON.stringify({ type: 'doc_unplace_requested', canvasId: 'root', kind: 'doc', id }));
         setTimeout(() => {
@@ -37,6 +38,6 @@ test('export-mermaid copies the current canvas as Mermaid', async ({ page, conte
       };
       ws.onerror = () => reject(new Error('ws error'));
     });
-  }, ids);
+  }, { payload: ids, wsUrl: E2E_WS_URL });
   await expect(page.getByTestId('doc-shape')).toHaveCount(0);
 });

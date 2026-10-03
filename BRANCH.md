@@ -67,7 +67,7 @@ Known gaps are listed in `PLAN.md` § Blockers / notes.
 npm install
 npm run dev              # server + frontend, http://localhost:8008
 npm test                 # vitest, all packages
-npm run e2e              # Playwright; stop `npm run dev` first (ports 8008/8009)
+npm run e2e              # Playwright on its own ports (Vite 8108, server 8109); safe beside npm run dev
 npm run smoke:compaction # real server, keyless, free
 npm run smoke:docs       # real API: needs ANTHROPIC_API_KEY in .env.local, a few cents
 ```
