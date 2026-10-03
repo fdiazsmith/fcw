@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseMermaid, mermaidToDocNodes } from '@fcw/graph-core';
-import { layoutDocNodes, DOC_W, DOC_H } from './doc-layout';
+import { layoutDocNodes, centerLayoutAt, DOC_W, DOC_H } from './doc-layout';
 
 const layoutOf = (mermaid: string) => {
   const { docs, edges } = mermaidToDocNodes(parseMermaid(mermaid));
@@ -34,5 +34,23 @@ describe('layoutDocNodes', () => {
 
     // A lone node sits at the layout origin; its top-left is the margin itself.
     expect(positions.get('A')).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe('centerLayoutAt', () => {
+  it('moves the layout so its bounding box is centred on the point', () => {
+    const laid = new Map([
+      ['a', { x: 0, y: 0 }],
+      ['b', { x: 0, y: 240 }],
+    ]);
+    const out = centerLayoutAt(laid, { x: 1000, y: 500 });
+    // bbox: x 0..DOC_W, y 0..240+DOC_H
+    const top = 500 - (240 + DOC_H) / 2;
+    expect(out.get('a')).toEqual({ x: 1000 - DOC_W / 2, y: top });
+    expect(out.get('b')).toEqual({ x: 1000 - DOC_W / 2, y: top + 240 });
+  });
+
+  it('an empty layout stays empty', () => {
+    expect(centerLayoutAt(new Map(), { x: 1, y: 2 }).size).toBe(0);
   });
 });

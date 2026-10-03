@@ -55,3 +55,16 @@ export function layoutDocNodes(
   }
   return positions;
 }
+
+/** Shift a layout so its bounding box is centred on `center` (e.g. the viewport). */
+export function centerLayoutAt(positions: Map<string, Position>, center: Position): Map<string, Position> {
+  if (positions.size === 0) return new Map();
+  const all = [...positions.values()];
+  const minX = Math.min(...all.map((p) => p.x));
+  const minY = Math.min(...all.map((p) => p.y));
+  const maxX = Math.max(...all.map((p) => p.x)) + DOC_W;
+  const maxY = Math.max(...all.map((p) => p.y)) + DOC_H;
+  const dx = center.x - (minX + maxX) / 2;
+  const dy = center.y - (minY + maxY) / 2;
+  return new Map([...positions].map(([id, p]) => [id, { x: p.x + dx, y: p.y + dy }]));
+}
