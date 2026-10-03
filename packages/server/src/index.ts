@@ -81,7 +81,7 @@ export function createApp(options: ServerOptions = {}) {
 
   // Create Claude client if API key available
   const apiKey = anthropicApiKey ?? process.env.ANTHROPIC_API_KEY;
-  console.log('[init] API key:', apiKey ? `${apiKey.slice(0, 10)}...` : 'NOT SET');
+  console.log('[init] API key:', apiKey ? 'set' : 'NOT SET');
   const claudeClient = apiKey ? createClaudeClient(apiKey) : undefined;
   console.log('[init] Claude client:', claudeClient ? 'created' : 'MISSING — prompts will only create nodes, no AI response');
 
