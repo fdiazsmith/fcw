@@ -95,11 +95,11 @@ Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate p
 
 ## M5: Export + global graph
 
-- [~] **M5.1** "Export Mermaid" on any canvas (`graphToMermaid`), copy to clipboard.
-- [~] **M5.2** Global graph view (sketch 04): every doc a node, every placement an edge. Graduate proto `GlobalGraph.tsx` (no d3-force).
-- [ ] **M5.3** Proto parity checklist: every row of `src/proto/README.md` "What to click" works in the real app.
+- [x] **M5.1** "Export Mermaid" on any canvas (`graphToMermaid`), copy to clipboard.
+- [x] **M5.2** Global graph view (sketch 04): every doc a node, every placement an edge. Graduate proto `GlobalGraph.tsx` (no d3-force).
+- [~] **M5.3** Proto parity checklist: every row of `src/proto/README.md` "What to click" works in the real app.
 
-- [~] **M5.4** (added) Blank doc boxes: prompt bar gets a third mode `prompt-mode-doc` → `doc_create_requested { canvasId, title: <input>, position: viewport centre }`. Needed for sketch 02 ("Design.md", "Page Structure") and M6.1.
+- [x] **M5.4** (added) Blank doc boxes: prompt bar gets a third mode `prompt-mode-doc` → `doc_create_requested { canvasId, title: <input>, position: viewport centre }`. Needed for sketch 02 ("Design.md", "Page Structure") and M6.1.
 
 **Gate M5:** suites green; parity checklist all ✓.
 
@@ -140,6 +140,7 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 | 2026-10-03 | M4.0 | `createApp({ engines: { api?, agent? } })` replaces engine streams for every chat; `createApp` also returns `chatSessions`. e2e engine replies `Drafted: <prompt>`. | Smallest seam; production wiring unchanged. | Yes |
 | 2026-10-03 | M4.1 | Panel opens from tldraw selection (exactly one `doc-node` selected), not DocCard onClick (dead inside tldraw). Title read-only. 420px right overlay; Context section collapsed by default. | Selection is tldraw's own model; avoids fighting pointer handling. | Yes |
 | 2026-10-03 | M5.4 | Blank docs via a `Doc` prompt-bar mode, not a toolbar button or double-click. | One entry point for "make something here"; double-click already means "new chat" on root. | Yes |
+| 2026-10-03 | M5.2 | Global graph includes a synthetic root node ("Canvas") linked to docs on `rootCanvas`; docs only (no chats); snapshot taken when opened (no live update); labels always shown ≤12 nodes; doc edges dashed, placement edges solid; picking navigates via `pathToRoot`. | Root isn't a doc but is where everything hangs. | Yes |
 | 2026-10-03 | M1.9 | `linkPlacement` returns the new canvas only; deleting the now-unplaced generated doc is the server's call (M2.2 `doc_linked`), only when it's empty and placed nowhere. | Keeps the pure fn free of deletion policy; no silent data loss. | Yes |
 
 ## Blockers / notes
