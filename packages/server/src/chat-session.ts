@@ -295,6 +295,14 @@ export class ChatSessionManager extends EventEmitter {
     return assembleDocContext(this.graph, host.id, { budget: DEFAULT_DOC_CONTEXT_BUDGET });
   }
 
+  /** A doc changed: every chat whose doc blocks include it must start a fresh
+   *  agent session (the preamble is only sent on a fresh one). */
+  private markDocReadersStale(docId: string): void {
+    for (const chat of Object.values(this.graph.chats)) {
+      if (this.docContextFor(chat.id).some((b) => b.docId === docId)) chat.sessionStale = true;
+    }
+  }
+
   /** Append a role 'tool' message with structured fields and broadcast it.
    *  The graph message keeps the full toolInput; the emitted WS copy is
    *  truncated so large tool outputs don't bloat frames. */
@@ -381,6 +389,8 @@ export class ChatSessionManager extends EventEmitter {
       chatIds,
       canvasId === ROOT_CANVAS_ID ? undefined : { sourceCanvasDocId: canvasId },
     );
+    // The chats now sit on a doc canvas: their doc context changed.
+    for (const chatId of chatIds) this.graph.chats[chatId].sessionStale = true;
     // Snapshot copy: generation mutates the live doc right after this emit.
     this.emit('message', { type: 'doc_created', doc: structuredClone(this.graph.docs[id]) });
     for (const p of before) {
@@ -417,6 +427,7 @@ export class ChatSessionManager extends EventEmitter {
     );
     doc.body = body;
     doc.generated = { sourceDigest, status: 'idle' };
+    this.markDocReadersStale(id);
     this.emit('message', { type: 'doc_updated', docId: id, body, generated: { ...doc.generated } });
     this.scheduleSave();
   }
@@ -455,6 +466,7 @@ export class ChatSessionManager extends EventEmitter {
     const doc = this.docById(docId);
     if (patch.title !== undefined) doc.title = patch.title;
     if (patch.body !== undefined) doc.body = patch.body;
+    this.markDocReadersStale(docId);
     this.emit('message', { type: 'doc_updated', docId, ...patch });
     this.scheduleSave();
   }
@@ -473,6 +485,7 @@ export class ChatSessionManager extends EventEmitter {
     }
     const placement: DocPlacement = { kind, id, position: { ...position } };
     canvas.placements.push(placement);
+    if (kind === 'chat') this.graph.chats[id].sessionStale = true;
     this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
     this.scheduleSave();
   }
@@ -488,13 +501,14 @@ export class ChatSessionManager extends EventEmitter {
     const canvas = this.canvasById(canvasId);
     const placement = this.placementOn(canvasId, kind, id);
     canvas.placements = canvas.placements.filter((p) => p !== placement);
+    if (kind === 'chat' && this.graph.chats[id]) this.graph.chats[id].sessionStale = true;
     this.emit('message', { type: 'doc_unplaced', canvasId, kind, id });
     this.scheduleSave();
   }
 
   /** Swap a placed box for a placement of an existing doc. The replaced doc
    *  is deleted when it is now an empty orphan (no body, empty child canvas,
-   *  placed nowhere); doc_linked is the only message — clients drop it too. */
+   *  placed nowhere, no doc-chat); doc_linked is the only message — clients drop it too. */
   linkDoc(canvasId: string, placedDocId: string, existingDocId: string): void {
     const canvas = this.canvasById(canvasId);
     const linked = linkPlacement(this.graph, canvas, placedDocId, existingDocId);
@@ -508,7 +522,8 @@ export class ChatSessionManager extends EventEmitter {
       replaced.body === '' &&
       replaced.canvas.placements.length === 0 &&
       replaced.canvas.edges.length === 0 &&
-      !placedAnywhere
+      !placedAnywhere &&
+      !Object.values(this.graph.chats).some((c) => c.docId === placedDocId)
     ) {
       delete this.graph.docs[placedDocId];
     }
@@ -543,6 +558,7 @@ export class ChatSessionManager extends EventEmitter {
       throw new Error(`message ${messageIndex} of ${chatId} is not an assistant message`);
     }
     this.graph.docs[docId] = applyToDoc(this.graph, docId, message.content).docs[docId];
+    this.markDocReadersStale(docId);
     this.emit('message', { type: 'doc_updated', docId, body: message.content });
     this.scheduleSave();
   }

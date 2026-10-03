@@ -1,7 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { createChatGraph, addChat, appendMessage, addContextEdge } from './chat-graph.js';
-import { addCompaction, completeCompactionGeneration } from './compaction.js';
+import type { ChatGraph } from './chat-graph.js';
 import { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
+
+/** A pre-structure-first compaction, as old .fcw.json files hold them. */
+function legacyCompaction(g: ChatGraph, memberIds: string[]): string {
+  const id = 'cmp_1';
+  g.compactions[id] = {
+    id,
+    title: 'Legacy',
+    memberIds,
+    document: '# Doc',
+    sourceDigest: 'digest-1',
+    position: { x: 0, y: 0 },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    status: 'idle',
+  };
+  return id;
+}
 
 describe('chat-graph serialization', () => {
   it('round-trips a graph through JSON', () => {
@@ -84,8 +100,7 @@ describe('chat-graph serialization', () => {
     const g = createChatGraph('Compact');
     const a = addChat(g, { title: 'root' });
     appendMessage(g, a, 'user', 'hi');
-    const id = addCompaction(g, [a]);
-    completeCompactionGeneration(g, id, '# Doc', 'digest-1');
+    legacyCompaction(g, [a]);
 
     const restored = chatGraphFromJSON(chatGraphToJSON(g));
     expect(restored).toEqual(g);
@@ -95,7 +110,7 @@ describe('chat-graph serialization', () => {
     const g = createChatGraph('Bad');
     const a = addChat(g);
     const b = addChat(g);
-    addCompaction(g, [a, b]);
+    legacyCompaction(g, [a, b]);
     const json = JSON.parse(chatGraphToJSON(g));
     delete json.chats[b];
     expect(() => chatGraphFromJSON(JSON.stringify(json))).toThrow(/unknown chat/i);

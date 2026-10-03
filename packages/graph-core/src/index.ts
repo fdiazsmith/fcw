@@ -95,17 +95,9 @@ export {
   markSessionStale,
   addTurnUsage,
 } from './chat-graph.js';
-export type { Compaction, CompactionStatus, CompactionMember } from './compaction.js';
-export {
-  addCompaction,
-  compactionDigest,
-  isCompactionStale,
-  setCompactionDocument,
-  completeCompactionGeneration,
-  setCompactionStatus,
-  setCompactionPosition,
-} from './compaction.js';
-export { compactChats, docIsStale, migrateCompactions } from './doc-compaction.js';
+export type { Compaction, CompactionStatus } from './compaction.js';
+export type { CompactionMember } from './doc-compaction.js';
+export { compactChats, compactionDigest, docIsStale, migrateCompactions } from './doc-compaction.js';
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';
 export { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
