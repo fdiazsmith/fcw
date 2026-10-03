@@ -15,6 +15,8 @@ export interface ChatWindowProps {
   uploadAttachment?: (file: File) => Promise<Attachment>;
   /** Server-backed directory listing; enables the cwd folder picker. */
   listDirs?: (path?: string) => Promise<DirListing>;
+  /** Doc chats: adds an "Apply to doc" button to assistant messages (index into chat.messages). */
+  onApply?: (messageIndex: number) => void;
 }
 
 const EFFORTS: ChatSettings['effort'][] = ['low', 'medium', 'high', 'xhigh', 'max'];
@@ -54,6 +56,7 @@ export function ChatWindow({
   onPermissionDecision,
   uploadAttachment,
   listDirs,
+  onApply,
 }: ChatWindowProps) {
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -295,6 +298,18 @@ export function ChatWindow({
               {m.attachments && m.attachments.length > 0 && (
                 <div style={{ marginTop: 4, fontSize: 11, opacity: 0.85 }}>
                   {m.attachments.map((a) => `📎 ${a.name}`).join('  ')}
+                </div>
+              )}
+              {onApply && m.role === 'assistant' && (
+                <div style={{ marginTop: 4 }}>
+                  <button
+                    type="button"
+                    data-testid="doc-apply"
+                    onClick={() => onApply(i)}
+                    style={{ padding: '2px 8px', borderRadius: 6, border: '1px solid #CBD5E1', background: '#fff', color: '#475569', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Apply to doc
+                  </button>
                 </div>
               )}
               <button

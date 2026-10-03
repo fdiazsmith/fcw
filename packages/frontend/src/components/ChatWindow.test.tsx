@@ -399,3 +399,33 @@ describe('ChatWindow', () => {
     expect(screen.getByText(/"path": "\/x"/)).toBeTruthy();
   });
 });
+
+describe('ChatWindow apply to doc', () => {
+  const msgs = [
+    { role: 'user' as const, content: 'draft it' },
+    { role: 'assistant' as const, content: 'here' },
+    { role: 'assistant' as const, content: 'more' },
+  ];
+
+  it('renders Apply on each assistant message and calls onApply with its index', () => {
+    const onApply = vi.fn();
+    render(<ChatWindow chat={view({ messages: msgs })} onSend={() => {}} onApply={onApply} />);
+    const btns = screen.getAllByTestId('doc-apply');
+    expect(btns).toHaveLength(2);
+    expect(btns[0].textContent).toBe('Apply to doc');
+    fireEvent.click(btns[1]);
+    expect(onApply).toHaveBeenCalledWith(2);
+  });
+
+  it('is absent without onApply', () => {
+    render(<ChatWindow chat={view({ messages: msgs })} onSend={() => {}} />);
+    expect(screen.queryByTestId('doc-apply')).toBeNull();
+  });
+
+  it('is not rendered for the streaming message', () => {
+    render(
+      <ChatWindow chat={view({ messages: [msgs[0]], streamingText: 'par' })} onSend={() => {}} onApply={() => {}} />,
+    );
+    expect(screen.queryByTestId('doc-apply')).toBeNull();
+  });
+});
