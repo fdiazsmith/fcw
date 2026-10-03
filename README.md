@@ -13,11 +13,10 @@ cp .env.example .env.local
 # Edit .env.local → set ANTHROPIC_API_KEY
 
 # Run server + frontend
-npm run dev --workspace=packages/server &
-npm run dev --workspace=packages/frontend
+npm run dev
 ```
 
-Open http://localhost:5173
+Open http://localhost:8008
 
 ## Demo Mode (no API key needed)
 
@@ -27,10 +26,14 @@ npm run dev --workspace=packages/frontend
 
 Without `VITE_WS_URL` set, the frontend loads a sample graph with 10 nodes showing all node types, colors, and arrows.
 
+## Structure-first docs (this branch)
+
+Boxes on the canvas are docs. Generate a diagram from a prompt or pasted Mermaid, dive into a box to get its own canvas, write the body in a side panel (with a doc chat and "Apply to doc"), compact chats into a doc, view the global graph, and export any canvas back to Mermaid. See `MERMAID-DOCS.md` for the design and `BRANCH.md` for what's implemented and how to run it.
+
 ## Architecture
 
 ```
-[Claude API] ←stream→ [Server :8080] ←WebSocket→ [Frontend :5173]
+[Claude API] ←stream→ [Server :8009] ←WebSocket→ [Frontend :8008]
                            │                           │
                       [.fcw.json]                 [tldraw canvas]
 ```
@@ -120,6 +123,9 @@ npm test
 npm run test --workspace=packages/graph-core
 npm run test --workspace=packages/server
 npm run test --workspace=packages/frontend
+
+# End-to-end (Playwright; boots its own server :8009 and Vite :8008, so stop npm run dev first)
+npm run e2e
 ```
 
 ## Agent-engine smoke test
@@ -134,6 +140,13 @@ npm run smoke:agent -- /path/to/repo
 
 Requires a local Claude Code install (`claude` on PATH) and `ANTHROPIC_API_KEY`
 in `.env.local`. Not run by `npm test`.
+
+Other smokes (also not run by `npm test`):
+
+```bash
+npm run smoke:compaction   # real server, keyless, free
+npm run smoke:docs         # real API: needs ANTHROPIC_API_KEY, a few cents
+```
 
 ## Tech Stack
 

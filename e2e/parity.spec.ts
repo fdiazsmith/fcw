@@ -1,7 +1,7 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
 
-// M5.3: proto parity. One test per row of `packages/frontend/src/proto/README.md`
-// "What to click", driving the real app the way the row describes. The rows
+// M5.3: proto parity. One test per row of the "What to click" list in the
+// (now deleted) prototype README; the table lives in PLAN.md § M5.3. Each test drives the real app the way the row describes. The rows
 // build on each other (the sketch scenario, three levels deep), so they share
 // one page and run in order.
 //

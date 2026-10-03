@@ -105,16 +105,15 @@ Nothing in the PoC forecloses this.
 ## Build Order
 
 1. ~~`parseMermaid(text) → {nodes, edges}`~~ — pure, tested, in `graph-core`. **Done.**
-2. `mermaidToDocNodes(graph)` — map parsed nodes onto FCW doc nodes (id, title from label,
-   empty `body`, position). Still pure, still testable.
-3. Auto-layout positions — the parser returns no coordinates; something must place the boxes.
-4. Canvas rendering — doc shapes + connectors in `packages/frontend`.
-5. Expansion UI — click a box, edit Markdown, or ask the LLM to draft it.
-6. `graphToMermaid(graph) → string` — the export direction.
+2. ~~`mermaidToDocNodes(graph)`~~ — maps parsed nodes onto doc nodes. **Done** (`graph-core` `mermaid-docs.ts`).
+3. ~~Auto-layout positions~~ — dagre via `layoutDocNodes`. **Done** (frontend `doc-layout.ts`).
+4. ~~Canvas rendering~~ — `DocShape` plus view-swap navigation. **Done** (`packages/frontend`).
+5. ~~Expansion UI~~ — doc side panel: Markdown body editor, doc chat, Apply to doc. **Done** (`packages/frontend`).
+6. ~~`graphToMermaid(canvas, ws) → string`~~ — the export direction. **Done** (`graph-core`; "Export Mermaid" button).
 
-Steps 1–3 are pure functions and get strict Red-Green-Refactor per `CLAUDE.md`.
 Build order for the full app now lives in `PLAN.md` (branch `structure-first-app`).
-Step 4 is where the tldraw shape-interaction risks from `PROJECT-V2.md` §Known Risks apply.
+The structure-first prototype (`src/proto/`, `npm run proto`) was deleted in M6.2 after
+its behaviour was proven in the real app (parity table: `PLAN.md` § M5.3).
 
 ## Parser Scope (current)
 
