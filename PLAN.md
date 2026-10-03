@@ -97,7 +97,7 @@ Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate p
 
 - [x] **M5.1** "Export Mermaid" on any canvas (`graphToMermaid`), copy to clipboard.
 - [x] **M5.2** Global graph view (sketch 04): every doc a node, every placement an edge. Graduate proto `GlobalGraph.tsx` (no d3-force).
-- [~] **M5.3** Proto parity checklist: every row of `src/proto/README.md` "What to click" works in the real app.
+- [x] **M5.3** Proto parity checklist: every row of `src/proto/README.md` "What to click" works in the real app.
 
   Parity table (`e2e/parity.spec.ts`, one serial test per row, sketch scenario built with the real UI; all passed first run, no production change needed):
 
@@ -119,12 +119,12 @@ Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate p
 
 - [x] **M5.4** (added) Blank doc boxes: prompt bar gets a third mode `prompt-mode-doc` → `doc_create_requested { canvasId, title: <input>, position: viewport centre }`. Needed for sketch 02 ("Design.md", "Page Structure") and M6.1.
 
-**Gate M5:** suites green; parity checklist all ✓.
+**Gate M5:** suites green; parity checklist all ✓. **Passed 2026-10-03**: graph-core 182, server 336, frontend 241 (tsc baseline 27); e2e 17/17 incl. 8/8 parity rows (all passed first run).
 
 ## M6: Verify + close
 
-- [ ] **M6.1** End-to-end Playwright script of the four sketches (`docs/sketches/`) against the real server.
-- [ ] **M6.2** Delete `src/proto/`, `proto.html`, the `proto` scripts (parity proven in M5.3).
+- [~] **M6.1** End-to-end Playwright script of the four sketches (`docs/sketches/`) against the real server.
+- [~] **M6.2** Delete `src/proto/`, `proto.html`, the `proto` scripts (parity proven in M5.3).
 - [ ] **M6.3** Update `MERMAID-DOCS.md` build order, this branch's `BRANCH.md` ("What's implemented"), `README.md`.
 - [ ] **M6.4** Final report to Fer: what shipped, the decision log, known gaps, how to dogfood.
 
@@ -175,5 +175,6 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 - e2e specs share one server per run and rely on ordering + cleanup (gate-m3 expects exactly 3 boxes on root). Fragile; a per-spec fresh server or a reset endpoint would fix it. Not done.
 - No chat-delete exists: deleting a root chat card reappears on next sync (pre-existing behaviour, unchanged).
 - Doc panel (420px, top-right) covers the "+ New chat / Export / Compact" toolbar while open. `DocCard` onClick is dead inside tldraw. Dev StrictMode may send `doc_chat_requested` twice (server dedupes: one doc-chat per doc).
+- From M5.3: "Link instead?" links the oldest same-titled doc with no choice offered; Doc-mode boxes stack at viewport centre; Escape doesn't close the panel while the editor has focus; `global-graph-edge` has no from/to attributes.
 - Proto localStorage (`fcw-proto-v1`) holds old `{docId}` placements; a stored proto session misbehaves after M1.1. Throwaway, deleted in M6.2.
 
