@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ChatServerMessage, ChatNode, Doc } from '@fcw/graph-core';
 import { compactionDigest, createChatGraph } from '@fcw/graph-core';
-import { emptyChatState, applyChatMessage, compactionIsStale, clearPendingLayout, ChatState } from './chat-store';
+import { emptyChatState, applyChatMessage, compactionIsStale, clearPendingLayout, canvasById, placementsOn, canvasesPlacing, rootChatIds, chatIdsOn, ChatState } from './chat-store';
 
 const chat = (id: string): ChatNode => ({
   id,
@@ -550,5 +550,48 @@ describe('doc state: diagram_created and pendingLayout', () => {
     expect(s.rootCanvas.edges).toEqual(edges);
     s = clearPendingLayout(s, 'root');
     expect(s.pendingLayout.map((p) => p.canvasId)).toEqual(['a']);
+  });
+});
+
+describe('doc selectors', () => {
+  const pos = { x: 0, y: 0 };
+  const state = apply(
+    emptyChatState(),
+    { type: 'chat_created', chat: chat('c1') },
+    { type: 'chat_created', chat: chat('c2') },
+    { type: 'chat_created', chat: chat('c3') },
+    { type: 'chat_created', chat: { ...chat('dc'), docId: 'd1' } },
+    { type: 'doc_created', doc: mkDoc('d1') },
+    { type: 'doc_created', doc: mkDoc('d2') },
+    { type: 'doc_placed', canvasId: 'root', placement: { kind: 'doc', id: 'd1', position: pos } },
+    { type: 'doc_placed', canvasId: 'd2', placement: { kind: 'doc', id: 'd1', position: pos } },
+    { type: 'doc_placed', canvasId: 'd1', placement: { kind: 'chat', id: 'c1', position: pos } },
+    { type: 'doc_placed', canvasId: 'd1', placement: { kind: 'doc', id: 'd2', position: pos } },
+  );
+
+  it('canvasById resolves root, a doc canvas, or undefined', () => {
+    expect(canvasById(state, 'root')).toBe(state.rootCanvas);
+    expect(canvasById(state, 'd1')).toBe(state.docs.d1.canvas);
+    expect(canvasById(state, 'nope')).toBeUndefined();
+  });
+
+  it('placementsOn lists a canvas placements (empty for unknown)', () => {
+    expect(placementsOn(state, 'd1').map((p) => `${p.kind}:${p.id}`)).toEqual(['chat:c1', 'doc:d2']);
+    expect(placementsOn(state, 'nope')).toEqual([]);
+  });
+
+  it('canvasesPlacing lists every canvas that places the doc', () => {
+    expect(canvasesPlacing(state, 'd1').sort()).toEqual(['d2', 'root']);
+    expect(canvasesPlacing(state, 'zzz')).toEqual([]);
+  });
+
+  it('rootChatIds excludes chats on doc canvases and doc-chats', () => {
+    expect(rootChatIds(state).sort()).toEqual(['c2', 'c3']);
+  });
+
+  it('chatIdsOn: root -> rootChatIds, doc canvas -> its chat placements', () => {
+    expect(chatIdsOn(state, 'root').sort()).toEqual(['c2', 'c3']);
+    expect(chatIdsOn(state, 'd1')).toEqual(['c1']);
+    expect(chatIdsOn(state, 'nope')).toEqual([]);
   });
 });

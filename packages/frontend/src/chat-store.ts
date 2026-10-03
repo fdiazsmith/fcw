@@ -108,6 +108,37 @@ export function canvasById(state: ChatState, canvasId: string): DocCanvas | unde
   return canvasId === ROOT_CANVAS_ID ? state.rootCanvas : state.docs[canvasId]?.canvas;
 }
 
+export function placementsOn(state: ChatState, canvasId: string): DocPlacement[] {
+  return canvasById(state, canvasId)?.placements ?? [];
+}
+
+/** Every canvas (root or doc id) that places this doc — powers the link badge. */
+export function canvasesPlacing(state: ChatState, docId: string): string[] {
+  const ids: string[] = [];
+  if (state.rootCanvas.placements.some((p) => isPlacement(p, 'doc', docId))) ids.push(ROOT_CANVAS_ID);
+  for (const doc of Object.values(state.docs)) {
+    if (doc.canvas.placements.some((p) => isPlacement(p, 'doc', docId))) ids.push(doc.id);
+  }
+  return ids;
+}
+
+/** Chats on root: placed on no doc canvas, and not a doc-chat (those never render on a canvas). */
+export function rootChatIds(state: ChatState): string[] {
+  const docChatIds = new Set(Object.values(state.docChats));
+  const placed = new Set<string>();
+  for (const doc of Object.values(state.docs)) {
+    for (const p of doc.canvas.placements) if (p.kind === 'chat') placed.add(p.id);
+  }
+  return Object.keys(state.chats).filter((id) => !placed.has(id) && !docChatIds.has(id));
+}
+
+export function chatIdsOn(state: ChatState, canvasId: string): string[] {
+  if (canvasId === ROOT_CANVAS_ID) return rootChatIds(state);
+  return placementsOn(state, canvasId)
+    .filter((p) => p.kind === 'chat')
+    .map((p) => p.id);
+}
+
 /** Replace one canvas (root or a doc's); unknown canvas ids leave state unchanged. */
 function withCanvas(state: ChatState, canvasId: string, fn: (c: DocCanvas) => DocCanvas): ChatState {
   if (canvasId === ROOT_CANVAS_ID) return { ...state, rootCanvas: fn(state.rootCanvas) };
@@ -176,7 +207,11 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
   }
 
   if (msg.type === 'chat_created') {
-    return { ...state, chats: { ...state.chats, [msg.chat.id]: viewFrom(msg.chat) } };
+    return {
+      ...state,
+      chats: { ...state.chats, [msg.chat.id]: viewFrom(msg.chat) },
+      docChats: msg.chat.docId ? { ...state.docChats, [msg.chat.docId]: msg.chat.id } : state.docChats,
+    };
   }
 
   if (msg.type === 'chat_connected') {
