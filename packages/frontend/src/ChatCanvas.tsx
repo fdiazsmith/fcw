@@ -28,6 +28,7 @@ import {
 import { projectCanvas } from './canvas-projection';
 import { layoutDocNodes, centerLayoutAt } from './doc-layout';
 import { ChatSearchBar } from './components/ChatSearchBar';
+import { PromptBar, PromptMode } from './components/PromptBar';
 import { exportBranchMarkdown } from './export-branch';
 import { ROOT_CANVAS_ID } from '@fcw/graph-core';
 import type { ChatServerMessage, ChatClientMessage, Position } from '@fcw/graph-core';
@@ -171,6 +172,8 @@ export default function ChatCanvas() {
   const mainPageIdRef = useRef<TLPageId | null>(null);
   // How the user got to the current canvas; drives the breadcrumb.
   const navRef = useRef<NavStack>([ROOT_CANVAS_ID]);
+  // Prompt-bar chats awaiting their chat_created, oldest first.
+  const pendingPromptsRef = useRef<{ content: string; canvasId: string; position: Position }[]>([]);
   const [crumbs, setCrumbs] = useState<BreadcrumbItem[]>(breadcrumbItems(emptyChatState(), [ROOT_CANVAS_ID]));
 
   const showBanner = useCallback((text: string) => {
@@ -349,6 +352,23 @@ export default function ChatCanvas() {
     stateRef.current = state;
   }, [send]);
 
+  /** Prompt bar: Diagram -> diagram on this canvas; Chat -> a new chat at the
+   *  viewport centre, prompted once chat_created arrives. */
+  const submitPrompt = useCallback(
+    (mode: PromptMode, text: string) => {
+      const canvasId = currentCanvas(navRef.current);
+      if (mode === 'diagram') {
+        send({ type: 'diagram_requested', canvasId, prompt: text });
+        return;
+      }
+      const center = editorRef.current?.getViewportPageBounds().center ?? { x: 0, y: 0 };
+      const position = { x: center.x - 180, y: center.y - 210 };
+      pendingPromptsRef.current.push({ content: text, canvasId, position });
+      send({ type: 'chat_create_requested', position });
+    },
+    [send],
+  );
+
   const zoomToChat = useCallback(
     (chatId: string) => {
       const editor = editorRef.current;
@@ -396,6 +416,16 @@ export default function ChatCanvas() {
       syncCanvas();
 
       if (msg.type === 'chat_created') {
+        // A chat the prompt bar asked for: place it (off root) and send the prompt.
+        const pending = msg.chat.docId ? undefined : pendingPromptsRef.current.shift();
+        if (pending) {
+          const chatId = msg.chat.id;
+          if (pending.canvasId !== ROOT_CANVAS_ID) {
+            send({ type: 'doc_place_requested', canvasId: pending.canvasId, kind: 'chat', id: chatId, position: pending.position });
+          }
+          send({ type: 'chat_prompt_submitted', chatId, content: pending.content });
+          return;
+        }
         const id = chatShapeId(msg.chat.id);
         if (editor.getShape(id)) {
           editor.select(id);
@@ -403,7 +433,7 @@ export default function ChatCanvas() {
         }
       }
     },
-    [syncCanvas, runPendingLayout, showBanner],
+    [syncCanvas, runPendingLayout, showBanner, send],
   );
 
   useEffect(() => {
@@ -608,6 +638,10 @@ export default function ChatCanvas() {
     <div style={{ position: 'fixed', inset: 0 }}>
       <Tldraw shapeUtils={customShapes} onMount={onMount} />
       <ChatSearchBar getState={() => stateRef.current} onSelect={zoomToChat} />
+      {/* Prompt bar, bottom centre above tldraw's toolbar. */}
+      <div style={{ position: 'absolute', bottom: 72, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}>
+        <PromptBar onSubmit={submitPrompt} />
+      </div>
       {banner && (
         <div
           style={{
