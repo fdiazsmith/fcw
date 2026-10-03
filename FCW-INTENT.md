@@ -1,5 +1,20 @@
 # FCW — Flow Canvas for Work
 
+## Thesis
+
+**The context window that ran out wasn't the model's. It was mine.**
+
+The industry keeps making the machine's memory bigger, and the human's still fits in a scrollbar. Weeks of context, many threads, and the only way to move through it is scrolling. Chat is a single timeline: your head has to hold the structure. Real work branches, depends on other work, and loops back.
+
+A spatial interface doesn't just look nicer. It's **memory that lives outside your head.** When a system can be seen as nodes, the complexity a person can handle grows enormously — the same lesson as patching a TouchDesigner network for an immersive installation. The screen remembers the structure, so you don't have to.
+
+Everything below follows from that. Token savings for the model are a side effect; the scarce context window FCW is built to extend is the human's. Design decisions are judged by it:
+
+- **Placements, not copies** — one doc, seen everywhere; you never track which version is current.
+- **The global graph is a query, never maintained** — the screen holds the map, not your memory.
+- **Compaction keeps history behind the node** — you can safely forget the details because they're still there.
+- **Explicit apply** — the model never silently rewrites what you're holding in your head.
+
 ## The Problem with Chat
 
 Every major LLM interface today works the same way: a linear scroll of messages. You type, the model responds, you type again. The conversation moves in one direction — down.
