@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { createWorkspace, createDoc, placeDoc, updateDocBody, applyToDoc, findDocsByTitle } from './docs.js';
+import { createWorkspace, createDoc, placeDoc, updateDocBody, applyToDoc, findDocsByTitle, linkPlacement } from './docs.js';
 import type { Doc } from './docs.js';
 
 it('creates a uniform doc: title, empty body, empty child canvas', () => {
@@ -99,4 +99,25 @@ it('a doc with `generated` is a compaction-style doc; plain docs have none', () 
     generated: { sourceDigest: 'abc-1', status: 'generating' },
   };
   expect(generated.generated).toEqual({ sourceDigest: 'abc-1', status: 'generating' });
+});
+
+const linkWs = () => {
+  let ws = createWorkspace();
+  let a, b, c, d;
+  [ws, a] = createDoc(ws, 'A');
+  [ws, b] = createDoc(ws, 'B');
+  [ws, c] = createDoc(ws, 'C');
+  [ws, d] = createDoc(ws, 'D');
+  return { ws, a: a.id, b: b.id, c: c.id, d: d.id };
+};
+const P = (id: string, x = 0) => ({ kind: 'doc' as const, id, position: { x, y: x } });
+
+it('linkPlacement swaps the placement in place and re-points edges, without mutating', () => {
+  const { ws, a, b, c, d } = linkWs();
+  const canvas = { placements: [P(a, 1), P(b, 2), P(c, 3)], edges: [{ from: a, to: b }, { from: c, to: b }] };
+  const snapshot = JSON.stringify(canvas);
+  const out = linkPlacement(ws, canvas, b, d);
+  expect(out.placements).toEqual([P(a, 1), P(d, 2), P(c, 3)]);
+  expect(out.edges).toEqual([{ from: a, to: d }, { from: c, to: d }]);
+  expect(JSON.stringify(canvas)).toBe(snapshot);
 });

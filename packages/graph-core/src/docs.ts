@@ -98,3 +98,21 @@ export function applyToDoc<W extends DocWorkspace>(ws: W, docId: string, body: s
   if (!doc) throw new Error(`applyToDoc: unknown doc "${docId}"`);
   return { ...ws, docs: { ...ws.docs, [docId]: { ...doc, body } } };
 }
+
+/** Swap a generated box for a placement of an existing doc; edges re-point. Pure. */
+export function linkPlacement(
+  ws: Pick<DocWorkspace, 'docs'>,
+  canvas: DocCanvas,
+  placedDocId: string,
+  existingDocId: string,
+): DocCanvas {
+  return {
+    placements: canvas.placements.map((p) =>
+      p.kind === 'doc' && p.id === placedDocId ? { ...p, id: existingDocId } : p,
+    ),
+    edges: canvas.edges.map((e) => ({
+      from: e.from === placedDocId ? existingDocId : e.from,
+      to: e.to === placedDocId ? existingDocId : e.to,
+    })),
+  };
+}
