@@ -10,10 +10,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        // The app.
         main: resolve(__dirname, 'index.html'),
-        // Throwaway structure-first prototype — see src/proto/README.md.
-        proto: resolve(__dirname, 'proto.html'),
       },
     },
   },
