@@ -50,12 +50,12 @@ Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
 
 ## M2: Server
 
-- [~] **M2.1** Persistence: `docs` + `rootCanvas` saved in `.fcw.json`; migration runs on load (M1.6). Test with a fixture from the `compacting` branch.
-- [~] **M2.2** WS protocol (graph-core `chat-messages.ts`): `doc_created`, `doc_updated` (title/body), `doc_placed`, `doc_unplaced`, `doc_moved`, `doc_linked`. Client: matching `*_requested` messages. Replaces the `chat_compaction_*` messages (keep server accepting old ones until M3 lands, then delete).
-- [~] **M2.3** Re-implement compact / regenerate / edit / move on top of doc ops. `chat-session-compaction` tests move over, not deleted.
-- [ ] **M2.4** Chat context from docs: a chat placed on a doc's canvas, or a doc-chat, gets `assembleDocContext` blocks in its preamble alongside transcript context. One pipeline (`context-builder.ts`).
+- [x] **M2.1** Persistence: `docs` + `rootCanvas` saved in `.fcw.json`; migration runs on load (M1.6). Test with a fixture from the `compacting` branch.
+- [x] **M2.2** WS protocol (graph-core `chat-messages.ts`): `doc_created`, `doc_updated` (title/body), `doc_placed`, `doc_unplaced`, `doc_moved`, `doc_linked`. Client: matching `*_requested` messages. Replaces the `chat_compaction_*` messages (keep server accepting old ones until M3 lands, then delete).
+- [x] **M2.3** Re-implement compact / regenerate / edit / move on top of doc ops. `chat-session-compaction` tests move over, not deleted.
+- [~] **M2.4** Chat context from docs: a chat placed on a doc's canvas, or a doc-chat, gets `assembleDocContext` blocks in its preamble alongside transcript context. One pipeline (`context-builder.ts`).
 - [~] **M2.5** Mermaid generation: `diagram_requested { canvasId, prompt }` → agent call constrained to the supported subset → `parseMermaid` → on failure, one retry with the parse error → on second failure, a single raw-Mermaid doc box. Then `mermaidToDocNodes` → placements (layout positions come from the client, see M3.4).
-- [ ] **M2.6** Doc-chat sessions: a chat bound to a doc (`ChatNode.docId?`) whose context is the doc + its references. "Apply to doc" message → `applyToDoc`.
+- [~] **M2.6** Doc-chat sessions: a chat bound to a doc (`ChatNode.docId?`) whose context is the doc + its references. "Apply to doc" message → `applyToDoc`.
 - [ ] **M2.7** `scripts/docs-smoke.mjs` + `npm run smoke:docs`: real server, generate a diagram, compact two chats, apply to doc, restart, verify persistence.
 
 **Gate M2:** server suite green; `smoke:compaction` **and** `smoke:docs` green; a pre-existing `.fcw.json` with compactions opens and migrates.
@@ -116,6 +116,10 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 | 2026-10-03 | M2.2 | Server stops *emitting* `chat_compaction_*` at M2.2 and only accepts the old requests. Frontend compaction display is knowingly broken until M3.1/M3.6. `smoke:compaction` is ported to the new protocol (same scenario). | Avoids running two parallel emit paths; the plan deletes the old ones at M3 anyway. | Yes |
 | 2026-10-03 | M2.2 | `doc_link_requested` deletes the replaced doc only if it's empty (body, child canvas) and placed nowhere. | Thesis: no silent data loss; a filled box is never discarded. | Yes |
 | 2026-10-03 | M2.5 | Prompt that already parses as subset-Mermaid skips the model (paste path, proto parity). Keyless → raw fallback box. Max 2 API calls. | Proto parity, keyless smoke stays free. | Yes |
+| 2026-10-03 | M2.1 | Migration runs server-side in `chat-graph-store.ts` (`loadLatestChatGraph`); `chatGraphFromJSON` stays a plain parse. Chat placements on root are rejected (root chats are implicit). | Keeps graph-core parse pure; one load path. | Yes |
+| 2026-10-03 | M2.5 | Server emits `diagram_created { canvasId, docIds, edges, error? }` after the per-box `doc_created`/`doc_placed`; the client runs `layoutDocNodes` and sends `doc_move_requested` per box. Fallback = one doc whose body is the raw Mermaid in a fence. | Positions stay a client concern (M3.4) without a second round-trip protocol. | Yes |
+| 2026-10-03 | M2.4 | A chat placed on a **generated** doc's canvas does not get that doc as context (its body is derived from the chat itself); placed on a regular doc's canvas, it gets `assembleDocContext(that doc)`. | Avoid feeding a chat its own summary. | Yes |
+| 2026-10-03 | M2.6 | Doc-chat = `ChatNode.docId`; at most one per doc, created on `doc_chat_requested`; never rendered on a canvas (frontend must exclude chats with `docId` from root). Apply = `doc_apply_requested { docId, chatId, messageIndex }`, assistant messages only. | Side-panel placement per locked decision; data stays placement-agnostic. | Yes |
 | 2026-10-03 | M1.9 | `linkPlacement` returns the new canvas only; deleting the now-unplaced generated doc is the server's call (M2.2 `doc_linked`), only when it's empty and placed nowhere. | Keeps the pure fn free of deletion policy; no silent data loss. | Yes |
 
 ## Blockers / notes
