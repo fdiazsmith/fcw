@@ -30,11 +30,12 @@ main → phase5-chat-features → v2 → agent-chat-windows → compacting → m
 - Throwaway prototype: `npm run proto`. Its verdict (in `src/proto/README.md`):
   view-swap navigation wins, spatial zoom is parked
 
-## Open before building the UI
+## Decisions settled (2026-10-03)
 
-1. Unify **Compaction** and **Doc**? A compaction is a doc whose child canvas holds chats.
-2. Generating vs. referencing: what does a box titled like an existing doc become?
-3. The doc chat: a side panel, or a real agent chat window with the doc as context?
-4. Server-side Mermaid generation, and the fallback when the parser can't read it.
+1. **Compaction = Doc.** One entity; a compaction is a generated doc whose child canvas holds the chats.
+2. **Generate new docs, offer "link instead?"** on title matches. No auto-linking.
+3. **Doc chat = the real agent `ChatWindow` in a side panel**, with Apply to doc.
+4. **Mermaid: constrain, validate, retry once, then fall back to a raw box.**
 
+Build plan: `PLAN.md`. Master agent prompt: `ORCHESTRATOR.md`.
 Full rationale in `MERMAID-DOCS.md`; the parent's notes are in the `mermaid-docs` `BRANCH.md`.

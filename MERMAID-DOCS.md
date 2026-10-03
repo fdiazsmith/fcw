@@ -20,11 +20,14 @@ prompt → Mermaid text → boxes on canvas → each box is a Markdown doc → e
 | Storage | **Embedded in `.fcw.json`** for the proof of concept — consistent with how chat nodes persist, one portable file, no new plumbing. Export to real `.md` files comes later. |
 | Source of truth | **The graph.** After generation, your edits are truth, full stop. |
 | Box = doc | **Uniform.** Every box is a doc from birth: title, empty body, empty child canvas. "Add documentation" = fill the body; "open as canvas" = fill the canvas. No promotion step, one entity type. |
-| Navigation | **Spatial zoom-in** (tldraw-frame style), not view-swap. ⚠ Highest-risk choice per PROJECT-V2 §Known Risks — prototype early with a kill-criterion review. The data model is navigation-agnostic either way. |
+| Navigation | **View-swap**: one tldraw page per canvas, breadcrumb to walk back up. *Revised 2026-10-03.* Spatial zoom-in was prototyped (`src/proto/SpatialCanvas.tsx`) and **parked**: depth costs zoom exponentially (~0.15× per level), and a reference can't nest inside its own ancestry. View-swap has neither problem. |
 | Chats | **Chats live on canvases too.** A scoped canvas holds v2 chat nodes alongside doc boxes; docs on the canvas can feed chat context. This feature and v2 chat-graph share one surface. |
 | Doc write-back | **Explicit apply.** The doc-builder chat proposes body text; a human presses "apply to doc" on a message. Chats never silently mutate docs. |
 | Chat context depth | **Recursive with budget.** A doc-chat inherits the doc's references transitively; over budget, the most distant docs degrade to title-only (later: llm-summary). Placements may form cycles — traversal tolerates them (visited set), unlike ContextEdge which forbids them. |
-| Doc-chat placement | **Side panel** next to the doc body (copilot layout), not a canvas shape. Data model is placement-agnostic, so this can move onto the canvas later without rework. |
+| Doc-chat placement | **Side panel** next to the doc body, mounting the **real agent `ChatWindow`** (models, effort, attachments: the same component as canvas chats). The doc and its references feed in as context; assistant messages get **Apply to doc**. *Revised 2026-10-03.* Data model is placement-agnostic, so it can move onto the canvas later. |
+| Compaction vs. Doc | **Unified (2026-10-03).** Compaction is not its own entity. Compacting chats creates a Doc whose body is **generated** from their transcripts, and those chats are *placed on its child canvas*. Placements generalize to `{kind: 'doc' \| 'chat', id, position}`. Staleness (`sourceDigest`) and "regenerate?" apply to any doc with a generated body. Old `.fcw.json` compactions migrate on load. |
+| Generating vs. referencing | **New doc + "link instead?" chip (2026-10-03).** Generating a diagram always creates new docs. A box whose title matches an existing doc shows a chip, and one click swaps it for a placement of the existing doc. No auto-linking. |
+| Mermaid generation | **Constrain, validate, retry (2026-10-03).** The server prompts the agent to emit only the supported Mermaid subset. If `parseMermaid` fails, retry once with the parse error. If that fails, place the raw Mermaid in a single doc box so nothing is lost. Parser extensions remain separate TDD cycles. |
 
 ## Chats Meet Docs
 
@@ -110,6 +113,7 @@ Nothing in the PoC forecloses this.
 6. `graphToMermaid(graph) → string` — the export direction.
 
 Steps 1–3 are pure functions and get strict Red-Green-Refactor per `CLAUDE.md`.
+Build order for the full app now lives in `PLAN.md` (branch `structure-first-app`).
 Step 4 is where the tldraw shape-interaction risks from `PROJECT-V2.md` §Known Risks apply.
 
 ## Parser Scope (current)
