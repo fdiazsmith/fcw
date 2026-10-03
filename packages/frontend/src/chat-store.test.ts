@@ -402,3 +402,27 @@ describe('doc state: snapshot', () => {
     expect(s.rootCanvas).toEqual({ placements: [], edges: [] });
   });
 });
+
+describe('doc state: docs and doc-chats', () => {
+  it('doc_created adds to the table', () => {
+    const s = apply(emptyChatState(), { type: 'doc_created', doc: mkDoc('d1') });
+    expect(s.docs.d1.title).toBe('d1');
+  });
+
+  it('doc_updated patches title, body and generated; ignores unknown ids', () => {
+    let s = apply(emptyChatState(), { type: 'doc_created', doc: mkDoc('d1') });
+    s = apply(
+      s,
+      { type: 'doc_updated', docId: 'd1', title: 'T', body: 'B' },
+      { type: 'doc_updated', docId: 'd1', generated: { sourceDigest: 'x', status: 'idle' } },
+    );
+    expect(s.docs.d1).toMatchObject({ title: 'T', body: 'B', generated: { sourceDigest: 'x', status: 'idle' } });
+    const after = apply(s, { type: 'doc_updated', docId: 'nope', body: 'z' });
+    expect(after.docs).toEqual(s.docs);
+  });
+
+  it('doc_chat_ready records the doc-chat', () => {
+    const s = apply(emptyChatState(), { type: 'doc_chat_ready', docId: 'd1', chatId: 'c1' });
+    expect(s.docChats).toEqual({ d1: 'c1' });
+  });
+});

@@ -172,7 +172,21 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
     };
   }
 
-  // doc_* messages are not handled yet (M3.1).
+  if (msg.type === 'doc_created') {
+    return { ...state, docs: { ...state.docs, [msg.doc.id]: msg.doc } };
+  }
+
+  if (msg.type === 'doc_updated') {
+    const doc = state.docs[msg.docId];
+    if (!doc) return state;
+    const { type: _type, docId: _docId, ...patch } = msg;
+    return { ...state, docs: { ...state.docs, [msg.docId]: { ...doc, ...patch } } };
+  }
+
+  if (msg.type === 'doc_chat_ready') {
+    return { ...state, docChats: { ...state.docChats, [msg.docId]: msg.chatId } };
+  }
+
   if (!('chatId' in msg)) return state;
 
   const existing = state.chats[msg.chatId];
