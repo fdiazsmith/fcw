@@ -288,6 +288,27 @@ describe('handleChatClientMessage', () => {
   });
 });
 
+describe('doc-chat messages (M2.6)', () => {
+  it('validates', () => {
+    expect(isChatClientMessage({ type: 'doc_chat_requested', docId: 'd' })).toBe(true);
+    expect(isChatClientMessage({ type: 'doc_chat_requested' })).toBe(false);
+    expect(isChatClientMessage({ type: 'doc_apply_requested', docId: 'd', chatId: 'c', messageIndex: 1 })).toBe(true);
+    expect(isChatClientMessage({ type: 'doc_apply_requested', docId: 'd', chatId: 'c', messageIndex: -1 })).toBe(false);
+    expect(isChatClientMessage({ type: 'doc_apply_requested', docId: 'd', chatId: 'c', messageIndex: 1.5 })).toBe(false);
+    expect(isChatClientMessage({ type: 'doc_apply_requested', docId: 'd', chatId: 'c' })).toBe(false);
+  });
+
+  it('dispatches to requestDocChat and applyToDoc', async () => {
+    const sessions = new ChatSessionManager();
+    const req = vi.spyOn(sessions, 'requestDocChat').mockReturnValue('c');
+    const apply = vi.spyOn(sessions, 'applyToDoc').mockReturnValue();
+    await handleChatClientMessage({ type: 'doc_chat_requested', docId: 'd' }, sessions);
+    await handleChatClientMessage({ type: 'doc_apply_requested', docId: 'd', chatId: 'c', messageIndex: 1 }, sessions);
+    expect(req).toHaveBeenCalledWith('d');
+    expect(apply).toHaveBeenCalledWith('d', 'c', 1);
+  });
+});
+
 describe('diagram_requested (M2.5)', () => {
   it('validates', () => {
     expect(isChatClientMessage({ type: 'diagram_requested', canvasId: 'root', prompt: 'p' })).toBe(true);

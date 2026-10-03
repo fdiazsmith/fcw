@@ -154,6 +154,18 @@ const DiagramRequestedSchema = z.object({
   prompt: z.string(),
 });
 
+const DocChatRequestedSchema = z.object({
+  type: z.literal('doc_chat_requested'),
+  docId: z.string(),
+});
+
+const DocApplyRequestedSchema = z.object({
+  type: z.literal('doc_apply_requested'),
+  docId: z.string(),
+  chatId: z.string(),
+  messageIndex: z.number().int().nonnegative(),
+});
+
 export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatCreateRequestedSchema,
   ChatPromptSubmittedSchema,
@@ -177,6 +189,8 @@ export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   DocLinkRequestedSchema,
   DocRegenerateRequestedSchema,
   DiagramRequestedSchema,
+  DocChatRequestedSchema,
+  DocApplyRequestedSchema,
 ]);
 
 export function isChatClientMessage(value: unknown): value is ChatClientMessage {
@@ -236,5 +250,9 @@ export async function handleChatClientMessage(
     sessions.linkDoc(msg.canvasId, msg.placedDocId, msg.existingDocId);
   } else if (msg.type === 'diagram_requested') {
     await sessions.requestDiagram(msg.canvasId, msg.prompt);
+  } else if (msg.type === 'doc_chat_requested') {
+    sessions.requestDocChat(msg.docId);
+  } else if (msg.type === 'doc_apply_requested') {
+    sessions.applyToDoc(msg.docId, msg.chatId, msg.messageIndex);
   }
 }
