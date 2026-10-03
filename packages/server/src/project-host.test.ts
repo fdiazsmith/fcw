@@ -88,6 +88,25 @@ describe('ProjectHost open', () => {
     expect(new ProjectHost({ storageDir: dir }).defaultProjectId()).toBe(a.id);
   });
 
+  it('create / list / rename / setSettings, and an open manager sees the change', async () => {
+    const host = new ProjectHost({ storageDir: tempDir() });
+    const sandbox = host.defaultProjectId();
+    const created = await host.create('Research');
+    expect(created).toMatchObject({ title: 'Research', chatCount: 0, docCount: 0 });
+    expect(host.list().map((p) => p.title).sort()).toEqual(['Research', 'Sandbox']);
+
+    const m = host.open(created.id);
+    await host.rename(created.id, 'Deep research');
+    await host.setSettings(created.id, { cwd: '/tmp/x', model: 'claude-opus-4-8', effort: 'high' });
+    expect(m.graph.meta.title).toBe('Deep research');
+    expect(m.graph.meta.settings).toEqual({ cwd: '/tmp/x', model: 'claude-opus-4-8', effort: 'high' });
+    expect(host.list().find((p) => p.id === created.id)?.title).toBe('Deep research');
+
+    // Not-open projects are edited on disk.
+    await host.rename(sandbox, 'Play');
+    expect(host.list().find((p) => p.id === sandbox)?.title).toBe('Play');
+  });
+
   it('opening an unknown project throws', () => {
     const host = new ProjectHost({ storageDir: tempDir() });
     expect(() => host.open('cg_nope')).toThrow(/unknown project/);

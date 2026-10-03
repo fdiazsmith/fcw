@@ -3,8 +3,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import { chatGraphFromJSON, chatGraphToJSON, createChatGraph, migrateCompactions } from '@fcw/graph-core';
-import type { ChatGraph } from '@fcw/graph-core';
+import { chatGraphFromJSON, chatGraphToJSON, createChatGraph, migrateCompactions, projectSummary } from '@fcw/graph-core';
+import type { ChatGraph, ProjectSummary } from '@fcw/graph-core';
 
 export function loadLatestChatGraph(storageDir: string): ChatGraph | undefined {
   const files = readdirSync(storageDir)
@@ -19,16 +19,6 @@ export function loadLatestChatGraph(storageDir: string): ChatGraph | undefined {
 
 export async function saveChatGraph(storageDir: string, graph: ChatGraph): Promise<void> {
   await writeFile(join(storageDir, `${graph.id}.fcw2.json`), chatGraphToJSON(graph), 'utf-8');
-}
-
-// Structurally identical to graph-core's ProjectSummary (M7.1); switch to the
-// graph-core type at integration.
-export interface ProjectSummary {
-  id: string;
-  title: string;
-  updatedAt: string;
-  chatCount: number;
-  docCount: number;
 }
 
 export async function createProject(storageDir: string, title: string): Promise<ChatGraph> {
@@ -73,13 +63,7 @@ export function listProjects(storageDir: string): ProjectSummary[] {
     try {
       const path = join(storageDir, f);
       const graph = chatGraphFromJSON(readFileSync(path, 'utf-8'));
-      out.push({
-        id: graph.id,
-        title: graph.meta.title,
-        updatedAt: statSync(path).mtime.toISOString(),
-        chatCount: Object.keys(graph.chats).length,
-        docCount: Object.keys(graph.docs).length,
-      });
+      out.push(projectSummary(graph, statSync(path).mtime.toISOString()));
     } catch (err) {
       console.error(`[chat-graph-store] skipping unreadable project ${f}:`, err);
     }

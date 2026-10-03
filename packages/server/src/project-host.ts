@@ -2,10 +2,10 @@
 // open project (lazily created, each saving to its own file).
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chatGraphToJSON, createChatGraph } from '@fcw/graph-core';
-import type { ChatGraph } from '@fcw/graph-core';
+import { chatGraphToJSON, createChatGraph, projectSummary } from '@fcw/graph-core';
+import type { ChatGraph, ProjectSummary } from '@fcw/graph-core';
 import { ChatSessionManager } from './chat-session.js';
-import { listProjects, loadProject, saveChatGraph } from './chat-graph-store.js';
+import { createProject, listProjects, loadProject, saveChatGraph } from './chat-graph-store.js';
 
 export interface ProjectHostOptions {
   storageDir: string;
@@ -83,6 +83,30 @@ export class ProjectHost {
     }
     this.setLastOpened(id);
     return manager;
+  }
+
+  list(): ProjectSummary[] {
+    return listProjects(this.storageDir);
+  }
+
+  async create(title: string): Promise<ProjectSummary> {
+    const graph = await createProject(this.storageDir, title);
+    return projectSummary(graph, new Date().toISOString());
+  }
+
+  rename(id: string, title: string): Promise<void> {
+    return this.edit(id, (graph) => { graph.meta.title = title; });
+  }
+
+  setSettings(id: string, settings: NonNullable<ChatGraph['meta']['settings']>): Promise<void> {
+    return this.edit(id, (graph) => { graph.meta.settings = settings; });
+  }
+
+  /** Edits the open manager's graph (so a later save keeps it) or the file. */
+  private async edit(id: string, change: (graph: ChatGraph) => void): Promise<void> {
+    const graph = this.managers.get(id)?.graph ?? loadProject(this.storageDir, id);
+    change(graph);
+    await saveChatGraph(this.storageDir, graph);
   }
 
   private createSync(title: string): ChatGraph {
