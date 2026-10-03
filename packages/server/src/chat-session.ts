@@ -19,8 +19,19 @@ import {
   setCompactionDocument,
   setCompactionStatus,
   setCompactionPosition,
+  createDoc,
+  ROOT_CANVAS_ID,
 } from '@fcw/graph-core';
-import type { ChatGraph, ChatMessage, Position, ChatSettings, Attachment } from '@fcw/graph-core';
+import type {
+  ChatGraph,
+  ChatMessage,
+  Position,
+  ChatSettings,
+  Attachment,
+  Doc,
+  DocCanvas,
+  DocPlacement,
+} from '@fcw/graph-core';
 import { structuralCompactionDocument, type GenerateCompactionDoc } from './compaction-doc.js';
 import type { StreamTurnFn, TurnContext, PermissionDecision } from './turn-events.js';
 
@@ -388,6 +399,44 @@ export class ChatSessionManager extends EventEmitter {
       sourceDigest: c.sourceDigest,
       status: c.status,
     });
+  }
+
+  // ── docs (structure-first): canvasId is ROOT_CANVAS_ID or a docId ──
+
+  private canvasById(canvasId: string): DocCanvas {
+    if (canvasId === ROOT_CANVAS_ID) return this.graph.rootCanvas;
+    const doc = this.graph.docs[canvasId];
+    if (!doc) throw new Error(`unknown canvas: ${canvasId}`);
+    return doc.canvas;
+  }
+
+  private docById(docId: string): Doc {
+    const doc = this.graph.docs[docId];
+    if (!doc) throw new Error(`unknown doc: ${docId}`);
+    return doc;
+  }
+
+  /** New empty doc, placed on the given canvas. */
+  createDoc(canvasId: string, title: string, position: Position): string {
+    const canvas = this.canvasById(canvasId);
+    const [, doc] = createDoc({ docs: {} }, title);
+    doc.createdAt = new Date().toISOString();
+    this.graph.docs[doc.id] = doc;
+    const placement: DocPlacement = { kind: 'doc', id: doc.id, position: { ...position } };
+    canvas.placements.push(placement);
+    this.emit('message', { type: 'doc_created', doc: structuredClone(doc) });
+    this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
+    this.scheduleSave();
+    return doc.id;
+  }
+
+  /** User edit of title and/or body. A generated doc keeps its digest. */
+  updateDoc(docId: string, patch: { title?: string; body?: string }): void {
+    const doc = this.docById(docId);
+    if (patch.title !== undefined) doc.title = patch.title;
+    if (patch.body !== undefined) doc.body = patch.body;
+    this.emit('message', { type: 'doc_updated', docId, ...patch });
+    this.scheduleSave();
   }
 
   private maybeAutoTitle(chatId: string): void {
