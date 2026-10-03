@@ -5,6 +5,10 @@ import { createWsServer } from './ws-server.js';
 import { StateManager } from './state-manager.js';
 import { ChatSessionManager } from './chat-session.js';
 import { ROOT_CANVAS_ID } from '@fcw/graph-core';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ProjectHost } from './project-host.js';
 
 function startServer(
   httpServer: ReturnType<typeof createServer>,
@@ -231,5 +235,70 @@ describe('WebSocket Server', () => {
     expect(secondMsg.type).toBe('node_auto_collapsed');
     expect(secondMsg.nodeId).toBe(nodeId);
     ws.close();
+  });
+});
+
+// M7.4: per-connection project routing.
+describe('WebSocket Server project routing', () => {
+  let httpServer: ReturnType<typeof createServer>;
+  let wss: WebSocketServer;
+  let host: ProjectHost;
+  let port: number;
+  const sockets: WebSocket[] = [];
+
+  beforeEach(async () => {
+    host = new ProjectHost({ storageDir: mkdtempSync(join(tmpdir(), 'fcw-ws-proj-')) });
+    httpServer = createServer();
+    wss = createWsServer(httpServer, new StateManager(), { projects: host });
+    await startServer(httpServer);
+    port = (httpServer.address() as { port: number }).port;
+  });
+
+  afterEach(async () => {
+    for (const ws of sockets.splice(0)) ws.close();
+    await new Promise<void>((resolve) => wss.close(() => resolve()));
+    await stopServer(httpServer);
+  });
+
+  type Msg = Record<string, any>;
+  async function client(query = ''): Promise<{ ws: WebSocket; received: Msg[] }> {
+    const ws = new WebSocket(`ws://localhost:${port}${query}`);
+    sockets.push(ws);
+    const received: Msg[] = [];
+    ws.on('message', (data) => received.push(JSON.parse(data.toString())));
+    await new Promise<void>((resolve, reject) => {
+      ws.on('open', () => resolve());
+      ws.on('error', reject);
+    });
+    return { ws, received };
+  }
+  async function until(received: Msg[], pred: (m: Msg) => boolean): Promise<Msg> {
+    for (let i = 0; i < 200; i++) {
+      const found = received.find(pred);
+      if (found) return found;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    throw new Error(`timed out; got ${received.map((m) => m.type).join(', ')}`);
+  }
+
+  it('binds a plain connection to the default project: project_opened, project_list, then its snapshot', async () => {
+    const { received } = await client();
+    await until(received, (m) => m.type === 'chat_snapshot');
+    expect(received.map((m) => m.type)).toEqual(['project_opened', 'project_list', 'chat_snapshot']);
+    const id = host.defaultProjectId();
+    expect(received[0].project).toMatchObject({ id, title: 'Sandbox' });
+    expect(received[1].projects.map((p: Msg) => p.id)).toEqual([id]);
+    expect(received[2].graph.id).toBe(id);
+  });
+
+  it('?project=<id> binds to that project; an unknown id falls back to the default', async () => {
+    const other = await host.create('Other');
+    const a = await client(`/?project=${other.id}`);
+    expect((await until(a.received, (m) => m.type === 'chat_snapshot')).graph.id).toBe(other.id);
+    expect(a.received[0].project.id).toBe(other.id);
+
+    const fallback = host.defaultProjectId();
+    const b = await client('/?project=cg_nope');
+    expect((await until(b.received, (m) => m.type === 'chat_snapshot')).graph.id).toBe(fallback);
   });
 });

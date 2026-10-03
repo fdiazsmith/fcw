@@ -1,6 +1,6 @@
 // M7.3: hosts the projects of one storage dir — one ChatSessionManager per
 // open project (lazily created, each saving to its own file).
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chatGraphToJSON, createChatGraph, projectSummary } from '@fcw/graph-core';
 import type { ChatGraph, ProjectSummary } from '@fcw/graph-core';
@@ -83,6 +83,13 @@ export class ProjectHost {
     }
     this.setLastOpened(id);
     return manager;
+  }
+
+  /** Summary of a project, from its in-memory graph when open. */
+  summary(id: string): ProjectSummary {
+    const path = join(this.storageDir, `${id}.fcw2.json`);
+    const updatedAt = existsSync(path) ? statSync(path).mtime.toISOString() : new Date().toISOString();
+    return projectSummary(this.managers.get(id)?.graph ?? loadProject(this.storageDir, id), updatedAt);
   }
 
   list(): ProjectSummary[] {

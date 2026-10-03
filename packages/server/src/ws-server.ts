@@ -8,11 +8,14 @@ import type { ServerMessage, ClientMessage, ChatServerMessage } from '@fcw/graph
 import { formatErrorMessage } from './error-format.js';
 import { ChatSessionManager } from './chat-session.js';
 import { isChatClientMessage, handleChatClientMessage } from './chat-ws-handler.js';
+import type { ProjectHost } from './project-host.js';
 
 export interface WsServerOptions {
   claudeClient?: ClaudeClient;
   toolExecutor?: ToolExecutor;
   chatSessions?: ChatSessionManager;
+  /** M7.4: per-connection projects. When set, `chatSessions` is ignored. */
+  projects?: ProjectHost;
   /** Lazily-loaded model/command capabilities, pushed to each client on connect. */
   capabilities?: () => Promise<{
     models: { id: string; displayName: string }[];
@@ -51,11 +54,34 @@ export function createWsServer(
     broadcast(msg as unknown as ServerMessage);
   });
 
-  wss.on('connection', (ws: WebSocket, _req: IncomingMessage) => {
+  // M7.4: each socket is bound to one project's manager.
+  const projects = options?.projects;
+  const bindings = new Map<WebSocket, { id: string; sessions: ChatSessionManager }>();
+
+  function send(ws: WebSocket, msg: unknown): void {
+    if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+  }
+
+  function bind(ws: WebSocket, host: ProjectHost, id: string): void {
+    const sessions = host.open(id);
+    bindings.set(ws, { id, sessions });
+    send(ws, { type: 'project_opened', project: host.summary(id) });
+    send(ws, { type: 'project_list', projects: host.list() });
+    send(ws, { type: 'chat_snapshot', graph: sessions.graph });
+  }
+
+  wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     console.log('[ws] client connected');
 
-    // v2: sync the full chat-graph so refreshes/restarts restore the canvas
-    if (options?.chatSessions) {
+    if (projects) {
+      const requested = new URL(req.url ?? '/', 'http://localhost').searchParams.get('project');
+      try {
+        bind(ws, projects, requested ?? projects.defaultProjectId());
+      } catch {
+        bind(ws, projects, projects.defaultProjectId());
+      }
+    } else if (options?.chatSessions) {
+      // v2: sync the full chat-graph so refreshes/restarts restore the canvas
       ws.send(JSON.stringify({ type: 'chat_snapshot', graph: options.chatSessions.graph }));
     }
 
@@ -99,7 +125,10 @@ export function createWsServer(
         });
     });
 
-    ws.on('close', () => console.log('[ws] client disconnected'));
+    ws.on('close', () => {
+      bindings.delete(ws);
+      console.log('[ws] client disconnected');
+    });
   });
 
   return wss;
