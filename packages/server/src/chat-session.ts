@@ -20,6 +20,7 @@ import {
   setCompactionStatus,
   setCompactionPosition,
   createDoc,
+  linkPlacement,
   ROOT_CANVAS_ID,
 } from '@fcw/graph-core';
 import type {
@@ -469,6 +470,30 @@ export class ChatSessionManager extends EventEmitter {
     const placement = this.placementOn(canvasId, kind, id);
     canvas.placements = canvas.placements.filter((p) => p !== placement);
     this.emit('message', { type: 'doc_unplaced', canvasId, kind, id });
+    this.scheduleSave();
+  }
+
+  /** Swap a placed box for a placement of an existing doc. The replaced doc
+   *  is deleted when it is now an empty orphan (no body, empty child canvas,
+   *  placed nowhere); doc_linked is the only message — clients drop it too. */
+  linkDoc(canvasId: string, placedDocId: string, existingDocId: string): void {
+    const canvas = this.canvasById(canvasId);
+    const linked = linkPlacement(this.graph, canvas, placedDocId, existingDocId);
+    canvas.placements = linked.placements;
+    canvas.edges = linked.edges;
+    const replaced = this.graph.docs[placedDocId];
+    const placedAnywhere = [this.graph.rootCanvas, ...Object.values(this.graph.docs).map((d) => d.canvas)]
+      .some((c) => c.placements.some((p) => p.kind === 'doc' && p.id === placedDocId));
+    if (
+      replaced &&
+      replaced.body === '' &&
+      replaced.canvas.placements.length === 0 &&
+      replaced.canvas.edges.length === 0 &&
+      !placedAnywhere
+    ) {
+      delete this.graph.docs[placedDocId];
+    }
+    this.emit('message', { type: 'doc_linked', canvasId, placedDocId, existingDocId });
     this.scheduleSave();
   }
 

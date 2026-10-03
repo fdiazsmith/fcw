@@ -152,3 +152,56 @@ describe('ChatSessionManager place / unplace / move', () => {
     expect(await savesAfter(sessions, () => sessions.unplaceFromCanvas(host, 'doc', ref))).toBe(1);
   });
 });
+
+describe('ChatSessionManager.linkDoc', () => {
+  afterEach(() => vi.useRealTimers());
+
+  /** Host canvas with a fresh box `placed` and an existing doc `existing` elsewhere. */
+  function setup() {
+    const sessions = new ChatSessionManager();
+    const host = sessions.createDoc(ROOT_CANVAS_ID, 'Host', { x: 0, y: 0 });
+    const existing = sessions.createDoc(ROOT_CANVAS_ID, 'Auth', { x: 0, y: 0 });
+    const placed = sessions.createDoc(host, 'Auth', { x: 7, y: 8 });
+    return { sessions, host, existing, placed };
+  }
+
+  it('swaps the placement, emits only doc_linked, and deletes the empty orphan', () => {
+    const { sessions, host, existing, placed } = setup();
+    const events = collect(sessions);
+    sessions.linkDoc(host, placed, existing);
+    expect(sessions.graph.docs[host].canvas.placements).toEqual([
+      { kind: 'doc', id: existing, position: { x: 7, y: 8 } },
+    ]);
+    expect(sessions.graph.docs[placed]).toBeUndefined();
+    expect(events).toEqual([{ type: 'doc_linked', canvasId: host, placedDocId: placed, existingDocId: existing }]);
+  });
+
+  it('keeps the replaced doc when it has a body, a non-empty canvas, or another placement', () => {
+    const withBody = setup();
+    withBody.sessions.updateDoc(withBody.placed, { body: 'notes' });
+    withBody.sessions.linkDoc(withBody.host, withBody.placed, withBody.existing);
+    expect(withBody.sessions.graph.docs[withBody.placed]).toBeDefined();
+
+    const withCanvas = setup();
+    withCanvas.sessions.createDoc(withCanvas.placed, 'Inner', { x: 0, y: 0 });
+    withCanvas.sessions.linkDoc(withCanvas.host, withCanvas.placed, withCanvas.existing);
+    expect(withCanvas.sessions.graph.docs[withCanvas.placed]).toBeDefined();
+
+    const elsewhere = setup();
+    elsewhere.sessions.placeOnCanvas(ROOT_CANVAS_ID, 'doc', elsewhere.placed, { x: 0, y: 0 });
+    elsewhere.sessions.linkDoc(elsewhere.host, elsewhere.placed, elsewhere.existing);
+    expect(elsewhere.sessions.graph.docs[elsewhere.placed]).toBeDefined();
+  });
+
+  it('rejects unknown canvas / docs', () => {
+    const { sessions, host, existing, placed } = setup();
+    expect(() => sessions.linkDoc('nope', placed, existing)).toThrow(/unknown canvas/);
+    expect(() => sessions.linkDoc(host, placed, 'nope')).toThrow(/unknown doc/);
+    expect(() => sessions.linkDoc(host, 'nope', existing)).toThrow(/not placed/);
+  });
+
+  it('persists', async () => {
+    const { sessions, host, existing, placed } = setup();
+    expect(await savesAfter(sessions, () => sessions.linkDoc(host, placed, existing))).toBe(1);
+  });
+});
