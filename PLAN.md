@@ -125,10 +125,11 @@ Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate p
 
 - [x] **M6.1** End-to-end Playwright script of the four sketches (`docs/sketches/`) against the real server.
 - [x] **M6.2** Delete `src/proto/`, `proto.html`, the `proto` scripts (parity proven in M5.3).
-- [~] **M6.3** Update `MERMAID-DOCS.md` build order, this branch's `BRANCH.md` ("What's implemented"), `README.md`.
-- [ ] **M6.4** Final report to Fer: what shipped, the decision log, known gaps, how to dogfood.
+- [x] **M6.3** Update `MERMAID-DOCS.md` build order, this branch's `BRANCH.md` ("What's implemented"), `README.md`.
+- [x] **M6.5** (added) Clean clone: `npm install` didn't build graph-core's `dist` (main/types point there), so `npm test` and server/frontend tsc failed. Fix: graph-core `"prepare": "tsc"`. Found by Gate M6's first run.
+- [x] **M6.4** Final report to Fer: what shipped, the decision log, known gaps, how to dogfood.
 
-**Gate M6:** full suite, all smokes, e2e green on a clean `npm install`.
+**Gate M6:** full suite, all smokes, e2e green on a clean `npm install`. **First run red** (clean clone: no graph-core dist → frontend tests unresolved, server tsc 203 / frontend tsc 132 errors) → M6.5. **Passed 2026-10-03** on a fresh clone of `c58c7a8`: frontend 241, graph-core 182, server 336; tsc 0/0/27 (27 pre-existing frontend); smoke:compaction ✓, smoke:docs ✓ (15.6s, model diagram parsed), smoke:agent ✓; e2e 21/21.
 
 ---
 
