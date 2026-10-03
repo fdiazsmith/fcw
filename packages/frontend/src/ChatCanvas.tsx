@@ -8,6 +8,8 @@ import {
   TLArrowBinding,
   TLShape,
   PageRecordType,
+  DefaultHelperButtons,
+  TLComponents,
 } from 'tldraw';
 import 'tldraw/tldraw.css';
 import { ChatShapeUtil, ChatShape, registerChatActions } from './shapes/ChatShape';
@@ -53,6 +55,32 @@ const crumbButton: React.CSSProperties = {
   fontSize: 13,
   cursor: 'pointer',
   padding: 0,
+};
+
+// Our chrome renders inside tldraw's own layout slots so its flexbox keeps
+// everything apart. Slots are stable components reading this context.
+interface ChromeSlots {
+  left: React.ReactNode;
+  top: React.ReactNode;
+  right: React.ReactNode;
+}
+const ChromeContext = React.createContext<ChromeSlots>({ left: null, top: null, right: null });
+const slot: React.CSSProperties = { pointerEvents: 'all' };
+const chromeComponents: TLComponents = {
+  // Canvases are tldraw pages driven by the breadcrumb; a second page menu would desync it.
+  PageMenu: null,
+  HelperButtons: () => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+      <div style={{ ...slot, margin: '8px 0 0 8px' }}>{React.useContext(ChromeContext).left}</div>
+      <DefaultHelperButtons />
+    </div>
+  ),
+  TopPanel: () => (
+    <div style={{ ...slot, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginTop: 8 }}>
+      {React.useContext(ChromeContext).top}
+    </div>
+  ),
+  SharePanel: () => <div style={{ ...slot, margin: '8px 8px 0 0' }}>{React.useContext(ChromeContext).right}</div>,
 };
 
 function chatShapeId(chatId: string): TLShapeId {
@@ -747,49 +775,134 @@ export default function ChatCanvas() {
     compactChats(chatIds);
   }, [compactChats]);
 
-  return (
-    <div style={{ position: 'fixed', inset: 0 }}>
-      <Tldraw shapeUtils={customShapes} onMount={onMount} />
-      <ChatSearchBar getState={() => stateRef.current} onSelect={zoomToChat} />
-      {/* Prompt bar, bottom centre above tldraw's toolbar. */}
-      <div style={{ position: 'absolute', bottom: 72, left: '50%', transform: 'translateX(-50%)', zIndex: 1000 }}>
-        <PromptBar onSubmit={submitPrompt} />
-      </div>
-      {banner && (
+  const chrome: ChromeSlots = {
+    left: <ChatSearchBar getState={() => stateRef.current} onSelect={zoomToChat} />,
+    top: (
+      <>
+        {/* Breadcrumb: how we got to this canvas; home walks back to root. */}
         <div
+          data-testid="breadcrumb"
           style={{
-            position: 'absolute',
-            top: 12,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1001,
-            background: '#FEF2F2',
-            color: '#B91C1C',
-            border: '1px solid #FECACA',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: '#fff',
+            border: '1px solid #E2E8F0',
             borderRadius: 8,
-            padding: '8px 14px',
+            padding: '6px 10px',
+            fontFamily: 'system-ui, sans-serif',
             fontSize: 13,
-            fontWeight: 600,
-            boxShadow: '0 2px 8px rgba(15,23,42,0.12)',
-            maxWidth: '60%',
+            color: '#334155',
+            boxShadow: '0 2px 8px rgba(15,23,42,0.1)',
           }}
         >
-          {banner}
+          <button
+            data-testid="breadcrumb-home"
+            title="Home"
+            onClick={() => navigate([ROOT_CANVAS_ID])}
+            style={crumbButton}
+          >
+            ⌂
+          </button>
+          {crumbs.map((c, i) => (
+            <React.Fragment key={`${i}-${c.canvasId}`}>
+              {i > 0 && <span style={{ color: '#94A3B8' }}>›</span>}
+              {i === 0 ? (
+                // The root crumb is the project menu; ⌂ walks back to root.
+                <span data-testid="breadcrumb-item">
+                  <ProjectMenu
+                    project={menuState.project}
+                    projects={menuState.projects}
+                    fallbackLabel={c.label}
+                    settings={menuState.projectSettings}
+                    capabilities={menuState.capabilities}
+                    listDirs={listDirs}
+                    onOpen={(id) => send({ type: 'project_open_requested', id })}
+                    onCreate={(title) => {
+                      pendingCreateRef.current = { title, before: stateRef.current.projects };
+                      send({ type: 'project_create_requested', title });
+                    }}
+                    onRename={(id, title) => send({ type: 'project_rename_requested', id, title })}
+                    onSaveSettings={(id, settings) => {
+                      send({ type: 'project_settings_requested', id, settings });
+                      // The server doesn't echo settings; keep the prefill current.
+                      stateRef.current = { ...stateRef.current, projectSettings: settings };
+                      setMenuState(stateRef.current);
+                    }}
+                    onTrash={(id) => send({ type: 'project_trash_requested', id })}
+                  />
+                </span>
+              ) : (
+                <button
+                  data-testid="breadcrumb-item"
+                  onClick={() => navigate(popTo(navRef.current, i))}
+                  style={{ ...crumbButton, fontWeight: i === crumbs.length - 1 ? 700 : 500 }}
+                >
+                  {c.label}
+                </button>
+              )}
+            </React.Fragment>
+          ))}
+          <button
+            data-testid="global-graph-toggle"
+            title="Global graph"
+            onClick={() => setGraph(globalGraph(stateRef.current))}
+            style={{ ...crumbButton, marginLeft: 8, color: '#475569' }}
+          >
+            Graph
+          </button>
+          <button
+            data-testid="export-mermaid"
+            title="Copy this canvas as Mermaid"
+            onClick={exportMermaid}
+            style={{ ...crumbButton, marginLeft: 4, color: '#475569' }}
+          >
+            {exportState === 'copied' ? 'Copied' : 'Export Mermaid'}
+          </button>
         </div>
-      )}
-      <div
-        style={{
-          // Sits below tldraw's top-right style-panel line so it clears it in
-          // the common case (a selected chat card shows no style panel).
-          position: 'absolute',
-          top: 54,
-          right: 12,
-          zIndex: 1000,
-          display: 'flex',
-          gap: 8,
-          alignItems: 'center',
-        }}
-      >
+        {banner && (
+          <div
+            style={{
+              background: '#FEF2F2',
+              color: '#B91C1C',
+              border: '1px solid #FECACA',
+              borderRadius: 8,
+              padding: '8px 14px',
+              fontSize: 13,
+              fontWeight: 600,
+              boxShadow: '0 2px 8px rgba(15,23,42,0.12)',
+              maxWidth: '60%',
+            }}
+          >
+            {banner}
+          </div>
+        )}
+        {exportText !== null && (
+          <div
+            data-testid="export-mermaid-fallback"
+            style={{
+              background: '#fff',
+              border: '1px solid #CBD5E1',
+              borderRadius: 8,
+              padding: 10,
+              boxShadow: '0 2px 10px rgba(15,23,42,0.18)',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: 12,
+            }}
+          >
+            <div style={{ marginBottom: 6 }}>Clipboard unavailable. Copy the Mermaid below.</div>
+            <textarea readOnly value={exportText} rows={8} style={{ width: 360, fontFamily: 'monospace' }} onFocus={(e) => e.currentTarget.select()} />
+            <div style={{ textAlign: 'right' }}>
+              <button onClick={() => setExportText(null)} style={crumbButton}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    ),
+    right: (
+      <div data-testid="canvas-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <button
           onClick={() => {
             const editor = editorRef.current;
@@ -843,139 +956,37 @@ export default function ChatCanvas() {
           Compact
         </button>
       </div>
-      {/* Breadcrumb: how we got to this canvas; home walks back to root. */}
+    ),
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0 }}>
+      <ChromeContext.Provider value={chrome}>
+        <Tldraw shapeUtils={customShapes} components={chromeComponents} onMount={onMount} />
+      </ChromeContext.Provider>
+      {/* Prompt dock, bottom centre above tldraw's toolbar, with the usage hint under it. */}
       <div
-        data-testid="breadcrumb"
+        data-testid="prompt-dock"
         style={{
           position: 'absolute',
-          top: 12,
+          bottom: 64,
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 1000,
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: 6,
-          background: '#fff',
-          border: '1px solid #E2E8F0',
-          borderRadius: 8,
-          padding: '6px 10px',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: 13,
-          color: '#334155',
-          boxShadow: '0 2px 8px rgba(15,23,42,0.1)',
+          gap: 4,
         }}
       >
-        <button
-          data-testid="breadcrumb-home"
-          title="Home"
-          onClick={() => navigate([ROOT_CANVAS_ID])}
-          style={crumbButton}
-        >
-          ⌂
-        </button>
-        {crumbs.map((c, i) => (
-          <React.Fragment key={`${i}-${c.canvasId}`}>
-            {i > 0 && <span style={{ color: '#94A3B8' }}>›</span>}
-            {i === 0 ? (
-              // The root crumb is the project menu; ⌂ walks back to root.
-              <span data-testid="breadcrumb-item">
-                <ProjectMenu
-                  project={menuState.project}
-                  projects={menuState.projects}
-                  fallbackLabel={c.label}
-                  settings={menuState.projectSettings}
-                  capabilities={menuState.capabilities}
-                  listDirs={listDirs}
-                  onOpen={(id) => send({ type: 'project_open_requested', id })}
-                  onCreate={(title) => {
-                    pendingCreateRef.current = { title, before: stateRef.current.projects };
-                    send({ type: 'project_create_requested', title });
-                  }}
-                  onRename={(id, title) => send({ type: 'project_rename_requested', id, title })}
-                  onSaveSettings={(id, settings) => {
-                    send({ type: 'project_settings_requested', id, settings });
-                    // The server doesn't echo settings; keep the prefill current.
-                    stateRef.current = { ...stateRef.current, projectSettings: settings };
-                    setMenuState(stateRef.current);
-                  }}
-                  onTrash={(id) => send({ type: 'project_trash_requested', id })}
-                />
-              </span>
-            ) : (
-              <button
-                data-testid="breadcrumb-item"
-                onClick={() => navigate(popTo(navRef.current, i))}
-                style={{ ...crumbButton, fontWeight: i === crumbs.length - 1 ? 700 : 500 }}
-              >
-                {c.label}
-              </button>
-            )}
-          </React.Fragment>
-        ))}
-        <button
-          data-testid="export-mermaid"
-          title="Copy this canvas as Mermaid"
-          onClick={exportMermaid}
-          style={{ ...crumbButton, marginLeft: 8, color: '#475569' }}
-        >
-          {exportState === 'copied' ? 'Copied' : 'Export Mermaid'}
-        </button>
-      </div>
-      {exportText !== null && (
+        <PromptBar onSubmit={submitPrompt} />
         <div
-          data-testid="export-mermaid-fallback"
-          style={{
-            position: 'absolute',
-            top: 56,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1001,
-            background: '#fff',
-            border: '1px solid #CBD5E1',
-            borderRadius: 8,
-            padding: 10,
-            boxShadow: '0 2px 10px rgba(15,23,42,0.18)',
-            fontFamily: 'system-ui, sans-serif',
-            fontSize: 12,
-          }}
+          data-testid="canvas-hint"
+          style={{ pointerEvents: 'none', fontFamily: 'system-ui, sans-serif', fontSize: 11, color: '#64748B' }}
         >
-          <div style={{ marginBottom: 6 }}>Clipboard unavailable. Copy the Mermaid below.</div>
-          <textarea readOnly value={exportText} rows={8} style={{ width: 360, fontFamily: 'monospace' }} onFocus={(e) => e.currentTarget.select()} />
-          <div style={{ textAlign: 'right' }}>
-            <button onClick={() => setExportText(null)} style={crumbButton}>
-              Close
-            </button>
-          </div>
+          double-click: new · + : branch · drag arrow: connect
         </div>
-      )}
-      {/* Compact usage hint, bottom-left clear of tldraw's zoom controls.
-          pointerEvents:none so it never intercepts canvas interaction. */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 12,
-          left: 140,
-          zIndex: 1000,
-          pointerEvents: 'none',
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: 11,
-          color: '#64748B',
-          background: 'rgba(255,255,255,0.9)',
-          padding: '4px 10px',
-          borderRadius: 8,
-          border: '1px solid #E2E8F0',
-        }}
-      >
-        double-click: new · + : branch · drag arrow: connect
       </div>
-      <button
-        data-testid="global-graph-toggle"
-        title="Global graph"
-        onClick={() => setGraph(globalGraph(stateRef.current))}
-        style={{ ...crumbButton, position: 'absolute', top: 12, left: 12, zIndex: 1000, background: '#fff', border: '1px solid #E2E8F0' }}
-      >
-        Graph
-      </button>
       {graph && (
         <GlobalGraph
           graph={graph}

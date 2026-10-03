@@ -9,7 +9,7 @@ export interface ChatSearchBarProps {
   onSelect: (chatId: string) => void;
 }
 
-/** Top-left search overlay: type to search across all chats, click to jump. */
+/** Top-left search box: type to search across all chats, click to jump. */
 export function ChatSearchBar({ getState, onSelect }: ChatSearchBarProps) {
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
@@ -21,11 +21,8 @@ export function ChatSearchBar({ getState, onSelect }: ChatSearchBarProps) {
     <div
       data-testid="chat-search-bar"
       style={{
-        // Sits below tldraw's top-left menu/pages row so it doesn't overlap it.
-        position: 'absolute',
-        top: 54,
-        left: 12,
-        zIndex: 1000,
+        // Rendered in tldraw's top-left slot, under its menu row.
+        position: 'relative',
         width: 280,
         fontFamily: 'system-ui, sans-serif',
       }}
