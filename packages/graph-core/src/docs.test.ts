@@ -9,6 +9,13 @@ it('creates a uniform doc: title, empty body, empty child canvas', () => {
   expect(doc.canvas).toEqual({ placements: [], edges: [] });
 });
 
+it('mints ids that are unique within a ms and not restart-prone counters', () => {
+  const [ws, a] = createDoc(createWorkspace(), 'A');
+  const [, b] = createDoc(ws, 'B');
+  expect(a.id).not.toBe(b.id);
+  expect(a.id).toMatch(/^doc_\d+_\d+$/);
+});
+
 it('one doc placed on two canvases stays one entity', () => {
   let ws = createWorkspace();
   let signin, checkout, arch;

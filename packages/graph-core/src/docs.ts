@@ -43,7 +43,8 @@ export interface DocWorkspace {
 }
 
 let nextId = 0;
-const newId = (): string => `doc_${++nextId}`;
+/** Doc id unique across process restarts (timestamp) and within a ms (counter). */
+export const newDocId = (): string => `doc_${Date.now()}_${++nextId}`;
 
 export function createWorkspace(): DocWorkspace {
   return { docs: {} };
@@ -64,7 +65,7 @@ export function findDocsByTitle(
 
 export function createDoc(ws: DocWorkspace, title: string): [DocWorkspace, Doc] {
   const doc: Doc = {
-    id: newId(),
+    id: newDocId(),
     title,
     body: '',
     canvas: { placements: [], edges: [] },
