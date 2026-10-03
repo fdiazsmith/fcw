@@ -1,7 +1,7 @@
 // The stream abstraction shared by the api and agent engines. A turn is a
 // single assistant response; adapters emit TurnEvents, the session manager
 // turns those into WS ChatServerMessages.
-import type { ChatMessage, ChatSettings, Attachment, TokenUsage } from '@fcw/graph-core';
+import type { ChatMessage, ChatSettings, Attachment, TokenUsage, DocContextBlock } from '@fcw/graph-core';
 
 export type TurnEvent =
   | { type: 'session'; sessionId: string }
@@ -21,6 +21,8 @@ export interface TurnContext {
   context: ChatMessage[];
   /** The new user prompt text for this turn (last entry of context). */
   latest: string;
+  /** Docs in scope for this chat (M2.4): deepest reference first, target last. */
+  docContext?: DocContextBlock[];
   settings: ChatSettings;
   /** Live agent session id, or undefined to start fresh with a preamble. */
   sessionId?: string;

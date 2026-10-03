@@ -9,6 +9,7 @@ import {
   removeContextEdge,
   setChatPosition,
   assembleContext,
+  assembleDocContext,
   removeLastMessage,
   updateChatSettings,
   markSessionStale,
@@ -31,6 +32,7 @@ import type {
   DocCanvas,
   DocPlacement,
   DocEdge,
+  DocContextBlock,
 } from '@fcw/graph-core';
 import { structuralCompactionDocument, type GenerateCompactionDoc } from './compaction-doc.js';
 import { createDiagramGenerator, type GenerateDiagram } from './diagram-gen.js';
@@ -49,6 +51,9 @@ export type SaveHandler = (graph: ChatGraph) => Promise<void>;
 
 const SAVE_DEBOUNCE_MS = 500;
 const DIAGRAM_GRID_COLS = 4;
+/** Max chars of doc bodies in a chat's preamble (~6k tokens); past it the most
+ *  distant references degrade to title-only. */
+export const DEFAULT_DOC_CONTEXT_BUDGET = 24_000;
 /** Auto-deny a permission prompt after this long so a turn never hangs forever. */
 const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
 /** Cap toolInput size in emitted WS tool messages (full input stays on disk). */
@@ -173,6 +178,7 @@ export class ChatSessionManager extends EventEmitter {
     if (!stream) return;
 
     const context = assembleContext(this.graph, chatId);
+    const docContext = this.docContextFor(chatId);
     const lastUser = [...context].reverse().find((m) => m.role === 'user');
     const latest = lastUser?.content ?? '';
     const attachments = lastUser?.attachments ?? [];
@@ -184,6 +190,7 @@ export class ChatSessionManager extends EventEmitter {
     const ctx: TurnContext = {
       context,
       latest,
+      docContext,
       settings,
       sessionId: fresh ? undefined : chat.sessionId,
       attachments,
@@ -269,6 +276,16 @@ export class ChatSessionManager extends EventEmitter {
     } finally {
       this.controllers.delete(chatId);
     }
+  }
+
+  /** Doc blocks for the regular doc whose canvas holds this chat. A generated
+   *  doc is skipped: its body is derived from the chat itself. */
+  private docContextFor(chatId: string): DocContextBlock[] {
+    const host = Object.values(this.graph.docs).find(
+      (d) => !d.generated && d.canvas.placements.some((p) => p.kind === 'chat' && p.id === chatId),
+    );
+    if (!host) return [];
+    return assembleDocContext(this.graph, host.id, { budget: DEFAULT_DOC_CONTEXT_BUDGET });
   }
 
   /** Append a role 'tool' message with structured fields and broadcast it.
