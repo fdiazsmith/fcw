@@ -38,7 +38,7 @@ Compaction becomes a Doc. Placements become polymorphic. Everything here is pure
 - [~] **M1.5** `docIsStale(doc, members)`: reuse the digest logic from `compaction.ts`.
 - [~] **M1.6** Migration `migrateCompactions(graph)`: old `graph.compactions` → generated Docs. Idempotent. Round-trip through `chat-graph-serialization`.
 - [x] **M1.7** `applyToDoc(ws, docId, body)`: explicit write-back. Clears nothing else.
-- [~] **M1.8** `findDocsByTitle(ws, title)`: case- and whitespace-insensitive match for the "link instead?" chip.
+- [x] **M1.8** `findDocsByTitle(ws, title)`: case- and whitespace-insensitive match for the "link instead?" chip.
 - [ ] **M1.9** `linkPlacement(ws, canvas, placementId, existingDocId)`: swap a generated box for a placement of an existing doc. Edges on that canvas re-point.
 - [ ] **M1.10** `graphToMermaid(canvas, ws)`: export direction. Round-trips through `parseMermaid` for the supported subset.
 - [ ] **M1.11** Remove `compaction.ts` exports once nothing imports them (last item of M1, after M2 has migrated callers; may move to M2).
