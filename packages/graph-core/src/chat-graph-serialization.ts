@@ -14,6 +14,8 @@ export function chatGraphFromJSON(json: string): ChatGraph {
     if (!parsed.chats[edge.to]) throw new Error(`edge references unknown chat: ${edge.to}`);
   }
   parsed.compactions ??= {}; // pre-compaction documents
+  parsed.docs ??= {}; // pre-doc documents
+  parsed.rootCanvas ??= { placements: [], edges: [] };
   for (const compaction of Object.values(parsed.compactions)) {
     for (const memberId of compaction.memberIds) {
       if (!parsed.chats[memberId]) {

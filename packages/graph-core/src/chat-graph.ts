@@ -1,6 +1,7 @@
 // FCW v2 chat-graph: node = chat window, edges = context inheritance.
 import type { Position } from './types.js';
 import type { Compaction } from './compaction.js';
+import type { Doc, DocCanvas } from './docs.js';
 
 export type ChatRole = 'user' | 'assistant' | 'tool';
 
@@ -75,6 +76,11 @@ export interface ChatGraph {
   edges: ContextEdge[];
   /** Chats folded behind editable document nodes. Absent in pre-compaction docs. */
   compactions: Record<string, Compaction>;
+  /** Doc table (structure-first model). Makes a ChatGraph a DocWorkspace. */
+  docs: Record<string, Doc>;
+  /** Top-level canvas. Chats stay at ChatNode.position: a chat is "on root"
+   *  iff no doc canvas places it, so root never holds chat placements for them. */
+  rootCanvas: DocCanvas;
 }
 
 let graphCounter = 0;
@@ -88,6 +94,8 @@ export function createChatGraph(title: string): ChatGraph {
     chats: {},
     edges: [],
     compactions: {},
+    docs: {},
+    rootCanvas: { placements: [], edges: [] },
   };
 }
 

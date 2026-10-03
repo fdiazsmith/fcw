@@ -1,15 +1,18 @@
 // Structure-first doc model (see MERMAID-DOCS.md).
 //
 // Every box on a canvas IS a doc: title, markdown body, and its own child
-// canvas. Canvases contain *placements* — {docId, position} — never the docs
-// themselves. Docs live in one global table per workspace, so one doc placed
+// canvas. Canvases contain *placements* — {kind, id, position} — never the
+// docs (or chats) themselves. Docs live in one global table per workspace, so one doc placed
 // on many canvases stays a single entity: nesting is a tree, references are
 // a graph. Pure functions, no I/O.
 
 import type { Position } from './types.js';
 
+// A placement puts a doc or a chat on a canvas. `id` keys into the doc table
+// (kind 'doc') or the chat table (kind 'chat').
 export interface DocPlacement {
-  docId: string;
+  kind: 'doc' | 'chat';
+  id: string;
   position: Position;
 }
 
@@ -28,6 +31,10 @@ export interface Doc {
   title: string;
   body: string; // markdown
   canvas: DocCanvas;
+  // Present when the body is generated from the chats placed on its canvas
+  // (a compaction-style doc). sourceDigest fingerprints those transcripts at
+  // the last generation, so edits to them mark the doc stale.
+  generated?: { sourceDigest: string; status: 'generating' | 'idle' };
 }
 
 export interface DocWorkspace {
@@ -75,7 +82,7 @@ export function placeDoc(
     ...host,
     canvas: {
       ...host.canvas,
-      placements: [...host.canvas.placements, { docId, position }],
+      placements: [...host.canvas.placements, { kind: 'doc', id: docId, position }],
     },
   };
   return { docs: { ...ws.docs, [canvasDocId]: updated } };

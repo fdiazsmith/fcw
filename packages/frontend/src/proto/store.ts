@@ -23,7 +23,7 @@ const KEY = 'fcw-proto-v1';
 /** Which canvases hold this doc. Length > 1 ⇒ it's a reference. */
 export function placedOn(state: ProtoState, docId: string): string[] {
   return Object.values(state.docs)
-    .filter((d) => d.canvas.placements.some((p) => p.docId === docId))
+    .filter((d) => d.canvas.placements.some((p) => p.id === docId))
     .map((d) => d.id);
 }
 
@@ -40,7 +40,7 @@ export function globalGraph(state: ProtoState): { nodes: Doc[]; links: DocEdge[]
   const nodes = Object.values(state.docs);
   const links: DocEdge[] = [];
   for (const doc of nodes) {
-    for (const p of doc.canvas.placements) links.push({ from: doc.id, to: p.docId });
+    for (const p of doc.canvas.placements) links.push({ from: doc.id, to: p.id });
     for (const e of doc.canvas.edges) links.push({ from: e.from, to: e.to });
   }
   return { nodes, links };
@@ -97,7 +97,7 @@ export function generate(state: ProtoState, canvasId: string, mermaid: string): 
         ...host.canvas.placements,
         ...docs.map((d) => {
           const p = positions.get(d.id)!;
-          return { docId: d.id, position: { x: p.x, y: p.y + below } };
+          return { kind: 'doc' as const, id: d.id, position: { x: p.x, y: p.y + below } };
         }),
       ],
       edges: [...host.canvas.edges, ...edges],
@@ -125,7 +125,7 @@ export function createBlank(
         [id]: doc,
         [canvasId]: {
           ...host,
-          canvas: { ...host.canvas, placements: [...host.canvas.placements, { docId: id, position }] },
+          canvas: { ...host.canvas, placements: [...host.canvas.placements, { kind: 'doc' as const, id, position }] },
         },
       },
     },
@@ -141,14 +141,14 @@ export function placeExisting(
   position: Position,
 ): ProtoState {
   const host = state.docs[canvasId];
-  if (host.canvas.placements.some((p) => p.docId === docId)) return state;
+  if (host.canvas.placements.some((p) => p.id === docId)) return state;
   return {
     ...state,
     docs: {
       ...state.docs,
       [canvasId]: {
         ...host,
-        canvas: { ...host.canvas, placements: [...host.canvas.placements, { docId, position }] },
+        canvas: { ...host.canvas, placements: [...host.canvas.placements, { kind: 'doc' as const, id: docId, position }] },
       },
     },
   };
@@ -164,7 +164,7 @@ export function unplace(state: ProtoState, canvasId: string, docId: string): Pro
       [canvasId]: {
         ...host,
         canvas: {
-          placements: host.canvas.placements.filter((p) => p.docId !== docId),
+          placements: host.canvas.placements.filter((p) => p.id !== docId),
           edges: host.canvas.edges.filter((e) => e.from !== docId && e.to !== docId),
         },
       },
@@ -187,7 +187,7 @@ export function move(
         ...host,
         canvas: {
           ...host.canvas,
-          placements: host.canvas.placements.map((p) => (p.docId === docId ? { ...p, position } : p)),
+          placements: host.canvas.placements.map((p) => (p.id === docId ? { ...p, position } : p)),
         },
       },
     },

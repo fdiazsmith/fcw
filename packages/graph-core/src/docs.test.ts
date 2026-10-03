@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import { createWorkspace, createDoc, placeDoc, updateDocBody, applyToDoc, findDocsByTitle } from './docs.js';
+import type { Doc } from './docs.js';
 
 it('creates a uniform doc: title, empty body, empty child canvas', () => {
   const [, doc] = createDoc(createWorkspace(), 'Sign in');
@@ -19,8 +20,8 @@ it('one doc placed on two canvases stays one entity', () => {
   ws = placeDoc(ws, checkout.id, arch.id, { x: 40, y: 60 });
 
   // both canvases reference the same id — placements route, they don't copy
-  expect(ws.docs[signin.id].canvas.placements[0].docId).toBe(arch.id);
-  expect(ws.docs[checkout.id].canvas.placements[0].docId).toBe(arch.id);
+  expect(ws.docs[signin.id].canvas.placements[0].id).toBe(arch.id);
+  expect(ws.docs[checkout.id].canvas.placements[0].id).toBe(arch.id);
 
   // edit once, visible from every canvas that references it
   ws = updateDocBody(ws, arch.id, '# Atoms, Molecules, Cells');
@@ -33,7 +34,7 @@ it('applyToDoc replaces only the target body, preserving everything else', () =>
   [ws, a] = createDoc(ws, 'A');
   [ws, b] = createDoc(ws, 'B');
   ws = updateDocBody(ws, a.id, 'old');
-  ws = { docs: { ...ws.docs, [a.id]: { ...ws.docs[a.id], generated: true } as (typeof ws.docs)[string] } };
+  ws = { docs: { ...ws.docs, [a.id]: { ...ws.docs[a.id], generated: { sourceDigest: 'd1', status: 'idle' } } } };
   const bigger = { ...ws, extra: 42 };
   const before = bigger.docs[a.id];
 
@@ -42,7 +43,7 @@ it('applyToDoc replaces only the target body, preserving everything else', () =>
   expect(next.docs[a.id].body).toBe('proposed');
   expect(next.docs[a.id].title).toBe('A');
   expect(next.docs[a.id].canvas).toBe(before.canvas);
-  expect((next.docs[a.id] as unknown as { generated: boolean }).generated).toBe(true);
+  expect(next.docs[a.id].generated).toEqual({ sourceDigest: 'd1', status: 'idle' });
   expect(next.docs[b.id]).toBe(bigger.docs[b.id]);
   expect(next.extra).toBe(42);
   expect(bigger.docs[a.id]).toBe(before);
@@ -76,4 +77,26 @@ it('findDocsByTitle excludes opts.excludeId and accepts a larger workspace objec
   [ws, b] = createDoc(ws, 'login');
   const bigger = { ...ws, extra: 1 };
   expect(findDocsByTitle(bigger, 'Login', { excludeId: a.id }).map((d) => d.id)).toEqual([b.id]);
+});
+
+it('placeDoc produces a doc-kind placement', () => {
+  let ws = createWorkspace();
+  let host, child;
+  [ws, host] = createDoc(ws, 'Host');
+  [ws, child] = createDoc(ws, 'Child');
+  ws = placeDoc(ws, host.id, child.id, { x: 5, y: 7 });
+  expect(ws.docs[host.id].canvas.placements).toEqual([
+    { kind: 'doc', id: child.id, position: { x: 5, y: 7 } },
+  ]);
+});
+
+it('a doc with `generated` is a compaction-style doc; plain docs have none', () => {
+  const [, plain] = createDoc(createWorkspace(), 'Plain');
+  expect(plain.generated).toBeUndefined();
+
+  const generated: Doc = {
+    ...plain,
+    generated: { sourceDigest: 'abc-1', status: 'generating' },
+  };
+  expect(generated.generated).toEqual({ sourceDigest: 'abc-1', status: 'generating' });
 });

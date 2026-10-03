@@ -115,7 +115,7 @@ describe('applyChatMessage', () => {
     let s = apply(emptyChatState(), { type: 'chat_created', chat: chat('old') });
     const graph = {
       id: 'g1',
-      version: 2 as const, compactions: {},
+      version: 2 as const, docs: {}, rootCanvas: { placements: [], edges: [] }, compactions: {},
       meta: { title: 'T', created: 't0' },
       chats: {
         a: { ...chat('a'), messages: [{ role: 'user' as const, content: 'hi', createdAt: 't1' }] },
@@ -182,7 +182,7 @@ describe('applyChatMessage — agent features', () => {
     };
     const node = { ...chat('c1'), usage };
     const graph = {
-      id: 'g', version: 2 as const, compactions: {},
+      id: 'g', version: 2 as const, docs: {}, rootCanvas: { placements: [], edges: [] }, compactions: {},
       meta: { title: 't', created: 't0' },
       chats: { c1: node }, edges: [],
     };
@@ -193,7 +193,7 @@ describe('applyChatMessage — agent features', () => {
   it('chat_snapshot carries per-chat settings', () => {
     const node = { ...chat('c1'), settings: { engine: 'agent' as const } };
     const graph = {
-      id: 'g', version: 2 as const, compactions: {},
+      id: 'g', version: 2 as const, docs: {}, rootCanvas: { placements: [], edges: [] }, compactions: {},
       meta: { title: 't', created: 't0' },
       chats: { c1: node }, edges: [],
     };
@@ -255,7 +255,7 @@ describe('applyChatMessage — agent features', () => {
       { type: 'chat_permission_requested', chatId: 'c1', requestId: 'r1', toolName: 'Bash', input: {} },
     );
     const graph = {
-      id: 'g', version: 2 as const, compactions: {},
+      id: 'g', version: 2 as const, docs: {}, rootCanvas: { placements: [], edges: [] }, compactions: {},
       meta: { title: 't', created: 't0' },
       chats: { c1: chat('c1') }, edges: [],
     };
@@ -333,7 +333,7 @@ describe('applyChatMessage — compactions', () => {
 
   it('chat_snapshot carries compactions', () => {
     const graph = {
-      id: 'g', version: 2 as const, compactions: { k1: compaction('k1', ['c1']) },
+      id: 'g', version: 2 as const, docs: {}, rootCanvas: { placements: [], edges: [] }, compactions: { k1: compaction('k1', ['c1']) },
       meta: { title: 't', created: 't0' },
       chats: { c1: chat('c1') }, edges: [],
     };
