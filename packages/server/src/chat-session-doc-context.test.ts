@@ -55,6 +55,19 @@ describe('doc context in chat turns (M2.4)', () => {
     expect(seen[0].docContext).toEqual([]);
   });
 
+  it('a doc-chat gets its doc + references', async () => {
+    const { sessions, seen } = capturing();
+    const doc = sessions.createDoc(ROOT_CANVAS_ID, 'Spec', pos);
+    sessions.createDoc(doc, 'Ref', pos);
+    sessions.updateDoc(doc, { body: 'spec body' });
+    const chat = sessions.requestDocChat(doc);
+
+    await sessions.prompt(chat, 'hi');
+
+    expect(titles(seen[0].docContext)).toEqual(['Ref', 'Spec']);
+    expect(seen[0].docContext?.at(-1)).toMatchObject({ docId: doc, body: 'spec body' });
+  });
+
   it('budget degradation flows through: distant references become title-only', async () => {
     const { sessions, seen } = capturing();
     const host = sessions.createDoc(ROOT_CANVAS_ID, 'Host', pos);

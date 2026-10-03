@@ -278,9 +278,15 @@ export class ChatSessionManager extends EventEmitter {
     }
   }
 
-  /** Doc blocks for the regular doc whose canvas holds this chat. A generated
-   *  doc is skipped: its body is derived from the chat itself. */
+  /** Doc blocks for a doc-chat's doc, else for the regular doc whose canvas
+   *  holds this chat. A generated host is skipped: its body is derived from
+   *  the chat itself. */
   private docContextFor(chatId: string): DocContextBlock[] {
+    const boundDocId = this.graph.chats[chatId].docId;
+    if (boundDocId !== undefined) {
+      if (!this.graph.docs[boundDocId]) return [];
+      return assembleDocContext(this.graph, boundDocId, { budget: DEFAULT_DOC_CONTEXT_BUDGET });
+    }
     const host = Object.values(this.graph.docs).find(
       (d) => !d.generated && d.canvas.placements.some((p) => p.kind === 'chat' && p.id === chatId),
     );
