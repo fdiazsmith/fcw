@@ -425,6 +425,7 @@ export class ChatSessionManager extends EventEmitter {
     );
     doc.body = body;
     doc.generated = { sourceDigest, status: 'idle' };
+    this.markDocReadersStale(id);
     this.emit('message', { type: 'doc_updated', docId: id, body, generated: { ...doc.generated } });
     this.scheduleSave();
   }

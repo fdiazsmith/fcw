@@ -65,4 +65,22 @@ describe('doc context freshness (M2.8)', () => {
     expect(stale(w.sessions, w.unrelated)).toBe(false);
     expect(stale(w.sessions, w.otherChat)).toBe(false);
   });
+
+  it("generation completing marks the generated doc's readers, not its own source chats", async () => {
+    const w = world();
+    const a = w.sessions.createChat(pos);
+    const b = w.sessions.createChat(pos);
+    const gen = await w.sessions.compact([a, b]);
+    w.sessions.placeOnCanvas(w.host, 'doc', gen, pos);
+    const genChat = w.sessions.requestDocChat(gen);
+    freshen(w.sessions);
+
+    await w.sessions.regenerateDoc(gen);
+
+    expect(stale(w.sessions, genChat)).toBe(true);
+    expect(stale(w.sessions, w.hosted)).toBe(true);
+    expect(stale(w.sessions, a)).toBe(false);
+    expect(stale(w.sessions, w.unrelated)).toBe(false);
+    expect(stale(w.sessions, w.otherChat)).toBe(false);
+  });
 });
