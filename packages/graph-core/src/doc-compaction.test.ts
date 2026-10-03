@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createChatGraph, addChat, appendMessage } from './chat-graph.js';
-import { addCompaction, compactionDigest } from './compaction.js';
-import { compactChats, docIsStale, migrateCompactions } from './doc-compaction.js';
+import { addCompaction } from './compaction.js';
+import { compactChats, compactionDigest, docIsStale, migrateCompactions } from './doc-compaction.js';
 import { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
 import type { Doc } from './docs.js';
 
@@ -122,6 +122,33 @@ describe('compactChats', () => {
     const before = JSON.stringify(g);
     expect(() => compactChats(g, ids)).toThrow();
     expect(JSON.stringify(g)).toBe(before);
+  });
+});
+
+describe('compactionDigest', () => {
+  it('is deterministic and independent of member order', () => {
+    const { g, ids } = graphWithChats(2);
+    const members = ids.map((id) => g.chats[id]);
+    const a = compactionDigest(members);
+    const b = compactionDigest([...members].reverse());
+    expect(a).toBe(b);
+    expect(a).toBeTruthy();
+  });
+
+  it('changes when a member gains a message', () => {
+    const { g, ids } = graphWithChats(2);
+    const before = compactionDigest(ids.map((id) => g.chats[id]));
+    appendMessage(g, ids[1], 'user', 'follow-up');
+    const after = compactionDigest(ids.map((id) => g.chats[id]));
+    expect(after).not.toBe(before);
+  });
+
+  it('changes when message content changes', () => {
+    const { g, ids } = graphWithChats(1);
+    const before = compactionDigest(ids.map((id) => g.chats[id]));
+    g.chats[ids[0]].messages[0].content = 'edited';
+    const after = compactionDigest(ids.map((id) => g.chats[id]));
+    expect(after).not.toBe(before);
   });
 });
 

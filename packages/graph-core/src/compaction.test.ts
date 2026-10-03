@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { createChatGraph, addChat, appendMessage } from './chat-graph.js';
 import {
   addCompaction,
-  compactionDigest,
   isCompactionStale,
   setCompactionDocument,
   completeCompactionGeneration,
   setCompactionStatus,
   setCompactionPosition,
 } from './compaction.js';
+import { compactionDigest } from './doc-compaction.js';
 
 function graphWithChats(n: number) {
   const g = createChatGraph('T');
@@ -70,33 +70,6 @@ describe('addCompaction', () => {
   it('generates unique compaction ids', () => {
     const { g, ids } = graphWithChats(2);
     expect(addCompaction(g, [ids[0]])).not.toBe(addCompaction(g, [ids[1]]));
-  });
-});
-
-describe('compactionDigest', () => {
-  it('is deterministic and independent of member order', () => {
-    const { g, ids } = graphWithChats(2);
-    const members = ids.map((id) => g.chats[id]);
-    const a = compactionDigest(members);
-    const b = compactionDigest([...members].reverse());
-    expect(a).toBe(b);
-    expect(a).toBeTruthy();
-  });
-
-  it('changes when a member gains a message', () => {
-    const { g, ids } = graphWithChats(2);
-    const before = compactionDigest(ids.map((id) => g.chats[id]));
-    appendMessage(g, ids[1], 'user', 'follow-up');
-    const after = compactionDigest(ids.map((id) => g.chats[id]));
-    expect(after).not.toBe(before);
-  });
-
-  it('changes when message content changes', () => {
-    const { g, ids } = graphWithChats(1);
-    const before = compactionDigest(ids.map((id) => g.chats[id]));
-    g.chats[ids[0]].messages[0].content = 'edited';
-    const after = compactionDigest(ids.map((id) => g.chats[id]));
-    expect(after).not.toBe(before);
   });
 });
 
