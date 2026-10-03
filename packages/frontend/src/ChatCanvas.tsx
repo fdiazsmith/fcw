@@ -11,7 +11,6 @@ import {
 } from 'tldraw';
 import 'tldraw/tldraw.css';
 import { ChatShapeUtil, ChatShape, registerChatActions } from './shapes/ChatShape';
-import { CompactShapeUtil } from './shapes/CompactShape';
 import { DocShapeUtil, DocShape, registerDocActions } from './shapes/DocShape';
 import { createWsClient, WsClient } from './ws-client';
 import { emptyChatState, applyChatMessage, clearPendingLayout, chatIdsOn, ChatState, ChatView } from './chat-store';
@@ -36,7 +35,7 @@ import type { ChatServerMessage, ChatClientMessage, Position } from '@fcw/graph-
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8009';
 const HTTP_URL = WS_URL.replace(/^ws/, 'http');
 
-const customShapes = [ChatShapeUtil, CompactShapeUtil, DocShapeUtil];
+const customShapes = [ChatShapeUtil, DocShapeUtil];
 
 const crumbButton: React.CSSProperties = {
   border: 'none',
@@ -183,6 +182,14 @@ export default function ChatCanvas() {
   const send = useCallback((msg: ChatClientMessage) => {
     wsRef.current?.sendMessage(msg as never);
   }, []);
+
+  const compactChats = useCallback(
+    (chatIds: string[]) => {
+      const canvasId = currentCanvas(navRef.current);
+      send({ type: 'chat_compact_requested', chatIds, ...(canvasId !== ROOT_CANVAS_ID ? { canvasId } : {}) });
+    },
+    [send],
+  );
 
   const refreshCrumbs = useCallback(() => {
     const next = breadcrumbItems(stateRef.current, navRef.current);
@@ -416,12 +423,7 @@ export default function ChatCanvas() {
         send({ type: 'chat_permission_decision', chatId, requestId, behavior }),
       uploadAttachment: (file) => uploadAttachment(file),
       listDirs: (path) => listDirs(path),
-      compact: (chatIds) => send({ type: 'chat_compact_requested', chatIds }),
-      regenerateCompaction: (compactionId) =>
-        send({ type: 'chat_compaction_regenerate_requested', compactionId }),
-      updateCompactionDocument: (compactionId, document) =>
-        send({ type: 'chat_compaction_document_updated', compactionId, document }),
-      enterCompaction: (compactionId) => navigate(pushCanvas(navRef.current, compactionId)),
+      compact: compactChats,
     });
     registerDocActions({
       openCanvas: (docId) => navigate(pushCanvas(navRef.current, docId)),
@@ -434,7 +436,7 @@ export default function ChatCanvas() {
       ws.close();
       wsRef.current = null;
     };
-  }, [handleServerMessage, send, navigate]);
+  }, [handleServerMessage, send, navigate, compactChats]);
 
   const onMount = useCallback(
     (editor: Editor) => {
@@ -588,7 +590,7 @@ export default function ChatCanvas() {
     [send, syncCanvas, runPendingLayout, canvasIdForPage],
   );
 
-  /** Fold the selected chat cards into a new compaction. */
+  /** Fold the selected chat cards into a generated doc on the current canvas. */
   const compactSelection = useCallback(() => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -599,8 +601,8 @@ export default function ChatCanvas() {
       .filter(Boolean);
     if (chatIds.length === 0) return;
     editor.selectNone();
-    send({ type: 'chat_compact_requested', chatIds });
-  }, [send]);
+    compactChats(chatIds);
+  }, [compactChats]);
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>

@@ -45,11 +45,8 @@ export interface ChatActions {
   uploadAttachment: (file: File) => Promise<Attachment>;
   /** Browse local server directories for the cwd picker. */
   listDirs: (path?: string) => Promise<DirListing>;
+  /** Fold chats into a generated doc on the current canvas. */
   compact: (chatIds: string[]) => void;
-  regenerateCompaction: (compactionId: string) => void;
-  updateCompactionDocument: (compactionId: string, document: string) => void;
-  /** Navigate into the tldraw page holding the compaction's member chats. */
-  enterCompaction: (compactionId: string) => void;
 }
 
 let registeredActions: ChatActions | null = null;
@@ -59,7 +56,7 @@ export function registerChatActions(actions: ChatActions | null): void {
   registeredActions = actions;
 }
 
-/** Accessor for shapes that live outside the React tree (e.g. CompactShape). */
+/** Accessor for shapes that live outside the React tree (e.g. DocShape). */
 export function chatActions(): ChatActions | null {
   return registeredActions;
 }

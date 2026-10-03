@@ -7,14 +7,13 @@ import type {
   ChatSettings,
   CapabilityModel,
   CapabilityCommand,
-  Compaction,
   Doc,
   DocCanvas,
   DocEdge,
   DocPlacement,
   TokenUsage,
 } from '@fcw/graph-core';
-import { compactionDigest, linkPlacement, ROOT_CANVAS_ID } from '@fcw/graph-core';
+import { linkPlacement, ROOT_CANVAS_ID } from '@fcw/graph-core';
 
 export interface PendingPermission {
   requestId: string;
@@ -49,7 +48,6 @@ export interface ChatState {
   chats: Record<string, ChatView>;
   edges: ContextEdge[];
   capabilities: Capabilities;
-  compactions: Record<string, Compaction>;
   /** The global doc table — mirrors the server's ChatGraph.docs. */
   docs: Record<string, Doc>;
   rootCanvas: DocCanvas;
@@ -64,22 +62,11 @@ export function emptyChatState(): ChatState {
     chats: {},
     edges: [],
     capabilities: { models: [], commands: [] },
-    compactions: {},
     docs: {},
     rootCanvas: { placements: [], edges: [] },
     docChats: {},
     pendingLayout: [],
   };
-}
-
-/** True when a member transcript changed since the document was generated. */
-export function compactionIsStale(state: ChatState, compactionId: string): boolean {
-  const compaction = state.compactions[compactionId];
-  if (!compaction) return false;
-  const members = compaction.memberIds
-    .map((id) => state.chats[id])
-    .filter((v): v is ChatView => Boolean(v));
-  return compactionDigest(members) !== compaction.sourceDigest;
 }
 
 function viewFrom(chat: ChatNode): ChatView {
@@ -174,31 +161,6 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
       rootCanvas: msg.graph.rootCanvas ?? { placements: [], edges: [] },
       docChats,
       edges: [...msg.graph.edges],
-      compactions: { ...(msg.graph.compactions ?? {}) },
-    };
-  }
-
-  if (msg.type === 'chat_compaction_created') {
-    return {
-      ...state,
-      compactions: { ...state.compactions, [msg.compaction.id]: msg.compaction },
-    };
-  }
-
-  if (msg.type === 'chat_compaction_document') {
-    const compaction = state.compactions[msg.compactionId];
-    if (!compaction) return state;
-    return {
-      ...state,
-      compactions: {
-        ...state.compactions,
-        [msg.compactionId]: {
-          ...compaction,
-          document: msg.document,
-          sourceDigest: msg.sourceDigest,
-          status: msg.status,
-        },
-      },
     };
   }
 
