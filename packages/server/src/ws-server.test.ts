@@ -3,6 +3,8 @@ import { createServer } from 'node:http';
 import WebSocket, { WebSocketServer } from 'ws';
 import { createWsServer } from './ws-server.js';
 import { StateManager } from './state-manager.js';
+import { ChatSessionManager } from './chat-session.js';
+import { ROOT_CANVAS_ID } from '@fcw/graph-core';
 
 function startServer(
   httpServer: ReturnType<typeof createServer>,
@@ -165,6 +167,44 @@ describe('WebSocket Server', () => {
     ws.close();
     await new Promise<void>((r) => capsWss.close(() => r()));
     await stopServer(capsHttp);
+  });
+
+  it('snapshot carries docs + rootCanvas; an unknown docId gets an error reply, not a crash', async () => {
+    const chatSessions = new ChatSessionManager();
+    const docId = chatSessions.createDoc(ROOT_CANVAS_ID, 'Auth', { x: 0, y: 0 });
+    const docHttp = createServer();
+    const docWss = createWsServer(docHttp, new StateManager(), { chatSessions });
+    await startServer(docHttp);
+    const docPort = (docHttp.address() as { port: number }).port;
+    const ws = new WebSocket(`ws://localhost:${docPort}`);
+    const received: Array<Record<string, unknown>> = [];
+    ws.on('message', (data) => received.push(JSON.parse(data.toString())));
+    await new Promise<void>((resolve, reject) => {
+      ws.on('open', () => resolve());
+      ws.on('error', reject);
+    });
+    const waitFor = async (type: string) => {
+      for (let i = 0; i < 100 && !received.some((m) => m.type === type); i++) {
+        await new Promise((r) => setTimeout(r, 10));
+      }
+      return received.find((m) => m.type === type);
+    };
+
+    const snap = (await waitFor('chat_snapshot')) as { graph: { docs: object; rootCanvas: object } };
+    expect(Object.keys(snap.graph.docs)).toEqual([docId]);
+    expect(snap.graph.rootCanvas).toEqual({ placements: [{ kind: 'doc', id: docId, position: { x: 0, y: 0 } }], edges: [] });
+
+    ws.send(JSON.stringify({ type: 'doc_update_requested', docId: 'nope', body: 'x' }));
+    const err = await waitFor('error');
+    expect(err?.message).toMatch(/unknown doc/);
+
+    // Still serving: a valid request after the error is applied and broadcast.
+    ws.send(JSON.stringify({ type: 'doc_update_requested', docId, body: 'ok' }));
+    expect(await waitFor('doc_updated')).toEqual({ type: 'doc_updated', docId, body: 'ok' });
+
+    ws.close();
+    await new Promise<void>((r) => docWss.close(() => r()));
+    await stopServer(docHttp);
   });
 
   it('broadcasts node_auto_collapsed event with only nodeId', async () => {
