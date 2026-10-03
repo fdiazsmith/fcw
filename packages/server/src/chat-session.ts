@@ -13,14 +13,22 @@ import {
   updateChatSettings,
   markSessionStale,
   addTurnUsage,
-  addCompaction,
   compactionDigest,
-  completeCompactionGeneration,
-  setCompactionDocument,
-  setCompactionStatus,
-  setCompactionPosition,
+  compactChats,
+  createDoc,
+  linkPlacement,
+  ROOT_CANVAS_ID,
 } from '@fcw/graph-core';
-import type { ChatGraph, ChatMessage, Position, ChatSettings, Attachment } from '@fcw/graph-core';
+import type {
+  ChatGraph,
+  ChatMessage,
+  Position,
+  ChatSettings,
+  Attachment,
+  Doc,
+  DocCanvas,
+  DocPlacement,
+} from '@fcw/graph-core';
 import { structuralCompactionDocument, type GenerateCompactionDoc } from './compaction-doc.js';
 import type { StreamTurnFn, TurnContext, PermissionDecision } from './turn-events.js';
 
@@ -332,62 +340,155 @@ export class ChatSessionManager extends EventEmitter {
     await this.runStream(chatId);
   }
 
-  /** Fold chats behind a new compaction node and synthesize its document. */
-  async compact(chatIds: string[]): Promise<string> {
-    const id = addCompaction(this.graph, chatIds);
-    // Snapshot copy: generation mutates the live object right after this emit.
-    const c = this.graph.compactions[id];
-    this.emit('message', {
-      type: 'chat_compaction_created',
-      compaction: { ...c, memberIds: [...c.memberIds] },
-    });
+  /** Fold chats into a new generated doc on `canvasId` (root by default):
+   *  the chats move onto the doc's child canvas, then the body is generated. */
+  async compact(chatIds: string[], canvasId: string = ROOT_CANVAS_ID): Promise<string> {
+    const source = this.canvasById(canvasId);
+    const before = source.placements;
+    const id = compactChats(
+      this.graph,
+      chatIds,
+      canvasId === ROOT_CANVAS_ID ? undefined : { sourceCanvasDocId: canvasId },
+    );
+    // Snapshot copy: generation mutates the live doc right after this emit.
+    this.emit('message', { type: 'doc_created', doc: structuredClone(this.graph.docs[id]) });
+    for (const p of before) {
+      if (p.kind === 'chat' && chatIds.includes(p.id)) {
+        this.emit('message', { type: 'doc_unplaced', canvasId, kind: 'chat', id: p.id });
+      }
+    }
+    const placement = this.placementOn(canvasId, 'doc', id);
+    this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
     this.scheduleSave();
     await this.generateInto(id);
     return id;
   }
 
-  /** Re-synthesize the document from the members' current transcripts. */
-  async regenerateCompaction(id: string): Promise<void> {
-    setCompactionStatus(this.graph, id, 'generating');
-    this.emitCompactionDocument(id);
-    await this.generateInto(id);
+  /** Re-generate a generated doc's body from the chats on its canvas. */
+  async regenerateDoc(docId: string): Promise<void> {
+    const doc = this.docById(docId);
+    if (!doc.generated) throw new Error(`doc ${docId} is not generated`);
+    doc.generated.status = 'generating';
+    this.emit('message', { type: 'doc_updated', docId, generated: { ...doc.generated } });
+    await this.generateInto(docId);
   }
 
-  /** User edit of the document — the generation digest is untouched. */
-  updateCompactionDocument(id: string, document: string): void {
-    setCompactionDocument(this.graph, id, document);
-    this.emitCompactionDocument(id);
-    this.scheduleSave();
-  }
-
-  moveCompaction(id: string, position: Position): void {
-    setCompactionPosition(this.graph, id, position);
-    this.scheduleSave();
-  }
-
-  /** Generate the document for a compaction, pinning the digest to the
-   *  transcripts the generator actually saw. */
+  /** Generate a doc's body, pinning the digest to the transcripts the
+   *  generator actually saw. */
   private async generateInto(id: string): Promise<void> {
-    const compaction = this.graph.compactions[id];
-    const members = compaction.memberIds.map((m) => this.graph.chats[m]);
-    const digest = compactionDigest(members);
-    const document = await this.generateCompactionDoc(members).catch(() =>
+    const doc = this.graph.docs[id];
+    const members = doc.canvas.placements
+      .filter((p) => p.kind === 'chat')
+      .map((p) => this.graph.chats[p.id]);
+    const sourceDigest = compactionDigest(members);
+    const body = await this.generateCompactionDoc(members).catch(() =>
       structuralCompactionDocument(members),
     );
-    completeCompactionGeneration(this.graph, id, document, digest);
-    this.emitCompactionDocument(id);
+    doc.body = body;
+    doc.generated = { sourceDigest, status: 'idle' };
+    this.emit('message', { type: 'doc_updated', docId: id, body, generated: { ...doc.generated } });
     this.scheduleSave();
   }
 
-  private emitCompactionDocument(id: string): void {
-    const c = this.graph.compactions[id];
-    this.emit('message', {
-      type: 'chat_compaction_document',
-      compactionId: id,
-      document: c.document,
-      sourceDigest: c.sourceDigest,
-      status: c.status,
-    });
+  // ── docs (structure-first): canvasId is ROOT_CANVAS_ID or a docId ──
+
+  private canvasById(canvasId: string): DocCanvas {
+    if (canvasId === ROOT_CANVAS_ID) return this.graph.rootCanvas;
+    const doc = this.graph.docs[canvasId];
+    if (!doc) throw new Error(`unknown canvas: ${canvasId}`);
+    return doc.canvas;
+  }
+
+  private docById(docId: string): Doc {
+    const doc = this.graph.docs[docId];
+    if (!doc) throw new Error(`unknown doc: ${docId}`);
+    return doc;
+  }
+
+  /** New empty doc, placed on the given canvas. */
+  createDoc(canvasId: string, title: string, position: Position): string {
+    const canvas = this.canvasById(canvasId);
+    const [, doc] = createDoc({ docs: {} }, title);
+    doc.createdAt = new Date().toISOString();
+    this.graph.docs[doc.id] = doc;
+    const placement: DocPlacement = { kind: 'doc', id: doc.id, position: { ...position } };
+    canvas.placements.push(placement);
+    this.emit('message', { type: 'doc_created', doc: structuredClone(doc) });
+    this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
+    this.scheduleSave();
+    return doc.id;
+  }
+
+  /** User edit of title and/or body. A generated doc keeps its digest. */
+  updateDoc(docId: string, patch: { title?: string; body?: string }): void {
+    const doc = this.docById(docId);
+    if (patch.title !== undefined) doc.title = patch.title;
+    if (patch.body !== undefined) doc.body = patch.body;
+    this.emit('message', { type: 'doc_updated', docId, ...patch });
+    this.scheduleSave();
+  }
+
+  /** Place an existing doc or chat on a canvas. Root never holds chat
+   *  placements: a chat is on root iff no doc canvas places it. */
+  placeOnCanvas(canvasId: string, kind: DocPlacement['kind'], id: string, position: Position): void {
+    const canvas = this.canvasById(canvasId);
+    if (kind === 'doc') this.docById(id);
+    else if (!this.graph.chats[id]) throw new Error(`unknown chat: ${id}`);
+    if (kind === 'chat' && canvasId === ROOT_CANVAS_ID) {
+      throw new Error('chats are not placed on root; unplace them from their doc canvas instead');
+    }
+    if (canvas.placements.some((p) => p.kind === kind && p.id === id)) {
+      throw new Error(`${kind} ${id} already placed on canvas ${canvasId}`);
+    }
+    const placement: DocPlacement = { kind, id, position: { ...position } };
+    canvas.placements.push(placement);
+    this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
+    this.scheduleSave();
+  }
+
+  moveOnCanvas(canvasId: string, kind: DocPlacement['kind'], id: string, position: Position): void {
+    const placement = this.placementOn(canvasId, kind, id);
+    placement.position = { ...position };
+    this.emit('message', { type: 'doc_moved', canvasId, kind, id, position: { ...position } });
+    this.scheduleSave();
+  }
+
+  unplaceFromCanvas(canvasId: string, kind: DocPlacement['kind'], id: string): void {
+    const canvas = this.canvasById(canvasId);
+    const placement = this.placementOn(canvasId, kind, id);
+    canvas.placements = canvas.placements.filter((p) => p !== placement);
+    this.emit('message', { type: 'doc_unplaced', canvasId, kind, id });
+    this.scheduleSave();
+  }
+
+  /** Swap a placed box for a placement of an existing doc. The replaced doc
+   *  is deleted when it is now an empty orphan (no body, empty child canvas,
+   *  placed nowhere); doc_linked is the only message — clients drop it too. */
+  linkDoc(canvasId: string, placedDocId: string, existingDocId: string): void {
+    const canvas = this.canvasById(canvasId);
+    const linked = linkPlacement(this.graph, canvas, placedDocId, existingDocId);
+    canvas.placements = linked.placements;
+    canvas.edges = linked.edges;
+    const replaced = this.graph.docs[placedDocId];
+    const placedAnywhere = [this.graph.rootCanvas, ...Object.values(this.graph.docs).map((d) => d.canvas)]
+      .some((c) => c.placements.some((p) => p.kind === 'doc' && p.id === placedDocId));
+    if (
+      replaced &&
+      replaced.body === '' &&
+      replaced.canvas.placements.length === 0 &&
+      replaced.canvas.edges.length === 0 &&
+      !placedAnywhere
+    ) {
+      delete this.graph.docs[placedDocId];
+    }
+    this.emit('message', { type: 'doc_linked', canvasId, placedDocId, existingDocId });
+    this.scheduleSave();
+  }
+
+  private placementOn(canvasId: string, kind: DocPlacement['kind'], id: string): DocPlacement {
+    const placement = this.canvasById(canvasId).placements.find((p) => p.kind === kind && p.id === id);
+    if (!placement) throw new Error(`${kind} ${id} is not placed on canvas ${canvasId}`);
+    return placement;
   }
 
   private maybeAutoTitle(chatId: string): void {

@@ -146,6 +146,9 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
     };
   }
 
+  // doc_* messages are not handled yet (M3.1).
+  if (!('chatId' in msg)) return state;
+
   const existing = state.chats[msg.chatId];
   if (!existing) return state;
 

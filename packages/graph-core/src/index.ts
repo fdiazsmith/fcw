@@ -109,6 +109,7 @@ export { compactChats, docIsStale, migrateCompactions } from './doc-compaction.j
 export { assembleContext } from './context-assembly.js';
 export type { AssembleOptions } from './context-assembly.js';
 export { chatGraphToJSON, chatGraphFromJSON } from './chat-graph-serialization.js';
+export { ROOT_CANVAS_ID } from './chat-messages.js';
 export type {
   ChatServerMessage,
   ChatClientMessage,

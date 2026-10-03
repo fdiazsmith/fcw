@@ -1,5 +1,6 @@
 // v2 WS dispatch: validates and routes chat client messages to the session manager.
 import { z } from 'zod';
+import { ROOT_CANVAS_ID } from '@fcw/graph-core';
 import type { ChatClientMessage } from '@fcw/graph-core';
 import { ChatSessionManager } from './chat-session.js';
 
@@ -75,6 +76,7 @@ const ChatRegenerateRequestedSchema = z.object({
 const ChatCompactRequestedSchema = z.object({
   type: z.literal('chat_compact_requested'),
   chatIds: z.array(z.string()).min(1),
+  canvasId: z.string().optional(),
 });
 
 const ChatCompactionRegenerateRequestedSchema = z.object({
@@ -94,6 +96,58 @@ const ChatCompactionMoveRequestedSchema = z.object({
   position: z.object({ x: z.number(), y: z.number() }),
 });
 
+const PositionSchema = z.object({ x: z.number(), y: z.number() });
+const PlacementKindSchema = z.enum(['doc', 'chat']);
+
+const DocCreateRequestedSchema = z.object({
+  type: z.literal('doc_create_requested'),
+  canvasId: z.string(),
+  title: z.string(),
+  position: PositionSchema,
+});
+
+const DocUpdateRequestedSchema = z.object({
+  type: z.literal('doc_update_requested'),
+  docId: z.string(),
+  title: z.string().optional(),
+  body: z.string().optional(),
+});
+
+const DocPlaceRequestedSchema = z.object({
+  type: z.literal('doc_place_requested'),
+  canvasId: z.string(),
+  kind: PlacementKindSchema,
+  id: z.string(),
+  position: PositionSchema,
+});
+
+const DocUnplaceRequestedSchema = z.object({
+  type: z.literal('doc_unplace_requested'),
+  canvasId: z.string(),
+  kind: PlacementKindSchema,
+  id: z.string(),
+});
+
+const DocMoveRequestedSchema = z.object({
+  type: z.literal('doc_move_requested'),
+  canvasId: z.string(),
+  kind: PlacementKindSchema,
+  id: z.string(),
+  position: PositionSchema,
+});
+
+const DocRegenerateRequestedSchema = z.object({
+  type: z.literal('doc_regenerate_requested'),
+  docId: z.string(),
+});
+
+const DocLinkRequestedSchema = z.object({
+  type: z.literal('doc_link_requested'),
+  canvasId: z.string(),
+  placedDocId: z.string(),
+  existingDocId: z.string(),
+});
+
 export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatCreateRequestedSchema,
   ChatPromptSubmittedSchema,
@@ -109,6 +163,13 @@ export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatCompactionRegenerateRequestedSchema,
   ChatCompactionDocumentUpdatedSchema,
   ChatCompactionMoveRequestedSchema,
+  DocCreateRequestedSchema,
+  DocUpdateRequestedSchema,
+  DocPlaceRequestedSchema,
+  DocUnplaceRequestedSchema,
+  DocMoveRequestedSchema,
+  DocLinkRequestedSchema,
+  DocRegenerateRequestedSchema,
 ]);
 
 export function isChatClientMessage(value: unknown): value is ChatClientMessage {
@@ -143,12 +204,28 @@ export async function handleChatClientMessage(
   } else if (msg.type === 'chat_regenerate_requested') {
     await sessions.regenerate(msg.chatId);
   } else if (msg.type === 'chat_compact_requested') {
-    await sessions.compact(msg.chatIds);
+    await sessions.compact(msg.chatIds, msg.canvasId);
+  // Legacy chat_compaction_* requests map onto doc ops (compactionId is the
+  // docId after migration). Accepted until the M3 frontend lands.
   } else if (msg.type === 'chat_compaction_regenerate_requested') {
-    await sessions.regenerateCompaction(msg.compactionId);
+    await sessions.regenerateDoc(msg.compactionId);
   } else if (msg.type === 'chat_compaction_document_updated') {
-    sessions.updateCompactionDocument(msg.compactionId, msg.document);
+    sessions.updateDoc(msg.compactionId, { body: msg.document });
   } else if (msg.type === 'chat_compaction_move_requested') {
-    sessions.moveCompaction(msg.compactionId, msg.position);
+    sessions.moveOnCanvas(ROOT_CANVAS_ID, 'doc', msg.compactionId, msg.position);
+  } else if (msg.type === 'doc_regenerate_requested') {
+    await sessions.regenerateDoc(msg.docId);
+  } else if (msg.type === 'doc_create_requested') {
+    sessions.createDoc(msg.canvasId, msg.title, msg.position);
+  } else if (msg.type === 'doc_update_requested') {
+    sessions.updateDoc(msg.docId, { title: msg.title, body: msg.body });
+  } else if (msg.type === 'doc_place_requested') {
+    sessions.placeOnCanvas(msg.canvasId, msg.kind, msg.id, msg.position);
+  } else if (msg.type === 'doc_unplace_requested') {
+    sessions.unplaceFromCanvas(msg.canvasId, msg.kind, msg.id);
+  } else if (msg.type === 'doc_move_requested') {
+    sessions.moveOnCanvas(msg.canvasId, msg.kind, msg.id, msg.position);
+  } else if (msg.type === 'doc_link_requested') {
+    sessions.linkDoc(msg.canvasId, msg.placedDocId, msg.existingDocId);
   }
 }

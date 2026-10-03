@@ -30,6 +30,57 @@ describe('isChatClientMessage', () => {
   });
 });
 
+describe('doc_* client messages (M2.2)', () => {
+  const pos = { x: 1, y: 2 };
+
+  it('validates doc requests', () => {
+    expect(isChatClientMessage({ type: 'doc_create_requested', canvasId: 'root', title: 't', position: pos })).toBe(true);
+    expect(isChatClientMessage({ type: 'doc_create_requested', canvasId: 'root', position: pos })).toBe(false);
+    expect(isChatClientMessage({ type: 'doc_update_requested', docId: 'd', body: 'b' })).toBe(true);
+    expect(isChatClientMessage({ type: 'doc_update_requested', docId: 'd', body: 3 })).toBe(false);
+    expect(isChatClientMessage({ type: 'doc_place_requested', canvasId: 'd', kind: 'chat', id: 'c', position: pos })).toBe(true);
+    expect(isChatClientMessage({ type: 'doc_place_requested', canvasId: 'd', kind: 'box', id: 'c', position: pos })).toBe(false);
+    expect(isChatClientMessage({ type: 'doc_unplace_requested', canvasId: 'd', kind: 'doc', id: 'e' })).toBe(true);
+    expect(isChatClientMessage({ type: 'doc_move_requested', canvasId: 'd', kind: 'doc', id: 'e', position: pos })).toBe(true);
+    expect(isChatClientMessage({ type: 'doc_move_requested', canvasId: 'd', kind: 'doc', id: 'e' })).toBe(false);
+    expect(isChatClientMessage({ type: 'doc_link_requested', canvasId: 'd', placedDocId: 'a', existingDocId: 'b' })).toBe(true);
+    expect(isChatClientMessage({ type: 'doc_link_requested', canvasId: 'd', placedDocId: 'a' })).toBe(false);
+  });
+
+  it('dispatches doc requests to the session manager', async () => {
+    const sessions = new ChatSessionManager();
+    await handleChatClientMessage({ type: 'doc_create_requested', canvasId: 'root', title: 'Host', position: pos }, sessions);
+    const host = Object.keys(sessions.graph.docs)[0];
+    await handleChatClientMessage({ type: 'doc_create_requested', canvasId: host, title: 'Box', position: pos }, sessions);
+    const box = Object.keys(sessions.graph.docs)[1];
+    await handleChatClientMessage({ type: 'doc_update_requested', docId: box, title: 'Auth', body: 'b' }, sessions);
+    expect(sessions.graph.docs[box]).toMatchObject({ title: 'Auth', body: 'b' });
+
+    const chat = sessions.createChat(pos);
+    await handleChatClientMessage({ type: 'doc_place_requested', canvasId: host, kind: 'chat', id: chat, position: pos }, sessions);
+    await handleChatClientMessage({ type: 'doc_move_requested', canvasId: host, kind: 'chat', id: chat, position: { x: 9, y: 9 } }, sessions);
+    expect(sessions.graph.docs[host].canvas.placements[1]).toEqual({ kind: 'chat', id: chat, position: { x: 9, y: 9 } });
+    await handleChatClientMessage({ type: 'doc_unplace_requested', canvasId: host, kind: 'chat', id: chat }, sessions);
+    expect(sessions.graph.docs[host].canvas.placements).toHaveLength(1);
+
+    await handleChatClientMessage({ type: 'doc_create_requested', canvasId: 'root', title: 'Existing', position: pos }, sessions);
+    const existing = Object.keys(sessions.graph.docs)[2];
+    await handleChatClientMessage({ type: 'doc_link_requested', canvasId: host, placedDocId: box, existingDocId: existing }, sessions);
+    expect(sessions.graph.docs[host].canvas.placements).toEqual([{ kind: 'doc', id: existing, position: pos }]);
+  });
+
+  it('rejects unknown ids without mutating', async () => {
+    const sessions = new ChatSessionManager();
+    await expect(
+      handleChatClientMessage({ type: 'doc_update_requested', docId: 'nope', body: 'x' }, sessions),
+    ).rejects.toThrow(/unknown doc/);
+    await expect(
+      handleChatClientMessage({ type: 'doc_create_requested', canvasId: 'nope', title: 't', position: pos }, sessions),
+    ).rejects.toThrow(/unknown canvas/);
+    expect(sessions.graph.docs).toEqual({});
+  });
+});
+
 describe('handleChatClientMessage', () => {
   it('chat_create_requested creates a chat at the given position', async () => {
     const sessions = new ChatSessionManager();
@@ -84,18 +135,31 @@ describe('handleChatClientMessage', () => {
     expect(sessions.graph.chats[id].position).toEqual({ x: 7, y: 8 });
   });
 
-  it('chat_compact_requested folds chats behind a compaction with a document', async () => {
+  it('chat_compact_requested folds chats into a generated doc', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     sessions.graph.chats[a].messages.push({ role: 'user', content: 'stuff', createdAt: 't' });
     await handleChatClientMessage({ type: 'chat_compact_requested', chatIds: [a] }, sessions);
-    const compactions = Object.values(sessions.graph.compactions);
-    expect(compactions).toHaveLength(1);
-    expect(compactions[0].memberIds).toEqual([a]);
-    expect(compactions[0].document).toContain('stuff');
+    const docs = Object.values(sessions.graph.docs);
+    expect(docs).toHaveLength(1);
+    expect(docs[0].canvas.placements).toEqual([{ kind: 'chat', id: a, position: { x: 0, y: 0 } }]);
+    expect(docs[0].body).toContain('stuff');
+    expect(sessions.graph.compactions).toEqual({});
   });
 
-  it('chat_compaction_regenerate_requested re-synthesizes the document', async () => {
+  it('chat_compact_requested honours canvasId', async () => {
+    const sessions = new ChatSessionManager();
+    const host = sessions.createDoc('root', 'Host', { x: 0, y: 0 });
+    const a = sessions.createChat({ x: 0, y: 0 });
+    sessions.placeOnCanvas(host, 'chat', a, { x: 4, y: 4 });
+    expect(isChatClientMessage({ type: 'chat_compact_requested', chatIds: [a], canvasId: host })).toBe(true);
+    await handleChatClientMessage({ type: 'chat_compact_requested', chatIds: [a], canvasId: host }, sessions);
+    expect(sessions.graph.docs[host].canvas.placements).toEqual([
+      { kind: 'doc', id: expect.any(String), position: { x: 4, y: 4 } },
+    ]);
+  });
+
+  it('chat_compaction_regenerate_requested and doc_regenerate_requested re-generate the body', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     const id = await sessions.compact([a]);
@@ -104,10 +168,14 @@ describe('handleChatClientMessage', () => {
       { type: 'chat_compaction_regenerate_requested', compactionId: id },
       sessions,
     );
-    expect(sessions.graph.compactions[id].document).toContain('fresh insight');
+    expect(sessions.graph.docs[id].body).toContain('fresh insight');
+    sessions.graph.chats[a].messages.push({ role: 'user', content: 'even fresher', createdAt: 't' });
+    expect(isChatClientMessage({ type: 'doc_regenerate_requested', docId: id })).toBe(true);
+    await handleChatClientMessage({ type: 'doc_regenerate_requested', docId: id }, sessions);
+    expect(sessions.graph.docs[id].body).toContain('even fresher');
   });
 
-  it('chat_compaction_document_updated stores the user edit', async () => {
+  it('chat_compaction_document_updated stores the user edit on the doc', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     const id = await sessions.compact([a]);
@@ -115,10 +183,10 @@ describe('handleChatClientMessage', () => {
       { type: 'chat_compaction_document_updated', compactionId: id, document: '# Edited' },
       sessions,
     );
-    expect(sessions.graph.compactions[id].document).toBe('# Edited');
+    expect(sessions.graph.docs[id].body).toBe('# Edited');
   });
 
-  it('chat_compaction_move_requested repositions the compaction', async () => {
+  it('chat_compaction_move_requested moves the doc on root', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     const id = await sessions.compact([a]);
@@ -126,7 +194,7 @@ describe('handleChatClientMessage', () => {
       { type: 'chat_compaction_move_requested', compactionId: id, position: { x: 5, y: 6 } },
       sessions,
     );
-    expect(sessions.graph.compactions[id].position).toEqual({ x: 5, y: 6 });
+    expect(sessions.graph.rootCanvas.placements).toEqual([{ kind: 'doc', id, position: { x: 5, y: 6 } }]);
   });
 
   it('chat_stop_requested stops the in-flight stream (partial settles)', async () => {
