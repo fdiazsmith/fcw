@@ -42,7 +42,7 @@ Compaction becomes a Doc. Placements become polymorphic. Everything here is pure
 - [x] **M1.9** `linkPlacement(ws, canvas, placementId, existingDocId)`: swap a generated box for a placement of an existing doc. Edges on that canvas re-point.
 - [x] **M1.10** `graphToMermaid(canvas, ws)`: export direction. Round-trips through `parseMermaid` for the supported subset.
 - [x] **M1.12** Data integrity follow-ups from M1.6: `Doc.createdAt?` preserved by `migrateCompactions` (no field dropped) and set by `compactChats`; `createDoc` ids unique across restarts (no module-counter collisions with persisted docs).
-- [ ] **M1.11** Remove `compaction.ts` exports once nothing imports them (last item of M1, after M2 has migrated callers; may move to M2). _Moved to end of M2 (server still imports them)._
+- [~] **M1.11** Remove `compaction.ts` exports once nothing imports them (last item of M1, after M2 has migrated callers; may move to M2). _Moved to end of M2 (server still imports them)._
 
 Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
 
@@ -53,10 +53,12 @@ Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
 - [x] **M2.1** Persistence: `docs` + `rootCanvas` saved in `.fcw.json`; migration runs on load (M1.6). Test with a fixture from the `compacting` branch.
 - [x] **M2.2** WS protocol (graph-core `chat-messages.ts`): `doc_created`, `doc_updated` (title/body), `doc_placed`, `doc_unplaced`, `doc_moved`, `doc_linked`. Client: matching `*_requested` messages. Replaces the `chat_compaction_*` messages (keep server accepting old ones until M3 lands, then delete).
 - [x] **M2.3** Re-implement compact / regenerate / edit / move on top of doc ops. `chat-session-compaction` tests move over, not deleted.
-- [~] **M2.4** Chat context from docs: a chat placed on a doc's canvas, or a doc-chat, gets `assembleDocContext` blocks in its preamble alongside transcript context. One pipeline (`context-builder.ts`).
-- [~] **M2.5** Mermaid generation: `diagram_requested { canvasId, prompt }` → agent call constrained to the supported subset → `parseMermaid` → on failure, one retry with the parse error → on second failure, a single raw-Mermaid doc box. Then `mermaidToDocNodes` → placements (layout positions come from the client, see M3.4).
-- [~] **M2.6** Doc-chat sessions: a chat bound to a doc (`ChatNode.docId?`) whose context is the doc + its references. "Apply to doc" message → `applyToDoc`.
-- [ ] **M2.7** `scripts/docs-smoke.mjs` + `npm run smoke:docs`: real server, generate a diagram, compact two chats, apply to doc, restart, verify persistence.
+- [x] **M2.4** Chat context from docs: a chat placed on a doc's canvas, or a doc-chat, gets `assembleDocContext` blocks in its preamble alongside transcript context. One pipeline (`context-builder.ts`).
+- [x] **M2.5** Mermaid generation: `diagram_requested { canvasId, prompt }` → agent call constrained to the supported subset → `parseMermaid` → on failure, one retry with the parse error → on second failure, a single raw-Mermaid doc box. Then `mermaidToDocNodes` → placements (layout positions come from the client, see M3.4).
+- [x] **M2.6** Doc-chat sessions: a chat bound to a doc (`ChatNode.docId?`) whose context is the doc + its references. "Apply to doc" message → `applyToDoc`.
+- [~] **M2.8** (added) Doc context freshness: changing a doc's body/title, or placing/unplacing a chat on a doc canvas, marks every affected chat's agent session stale so the doc preamble is re-assembled.
+- [~] **M2.9** (added) `linkDoc` never deletes a doc that has a doc-chat (would orphan the chat).
+- [~] **M2.7** `scripts/docs-smoke.mjs` + `npm run smoke:docs`: real server, generate a diagram, compact two chats, apply to doc, restart, verify persistence.
 
 **Gate M2:** server suite green; `smoke:compaction` **and** `smoke:docs` green; a pre-existing `.fcw.json` with compactions opens and migrates.
 
@@ -126,6 +128,8 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 
 - 2026-10-03: `isolation: worktree` sub-agents branch off `main`, not `structure-first-app`. Briefs must tell them to `git reset --hard structure-first-app` first.
 - Frontend `tsc --noEmit` has **27 pre-existing errors** at baseline (App.tsx, GraphNodeShape, SearchBar, ImportMeta.env, ChatView test fixtures). Verification rule: no *new* errors. Fixing them is a candidate item, not done ad hoc.
+- M2.4 lives in `chat-session.ts` + adapters (`renderDocContext`), not `context-builder.ts` (that file is the v1 system prompt). Default doc budget 24k chars. API engine gets the doc section in its system prompt; agent engine in its fresh-session preamble.
+- `requestDiagram` doesn't pass canvas context to the generator yet (diagram for a nested canvas doesn't know its parent doc). Candidate later item.
 - `compaction-doc.ts` hard-codes model `claude-sonnet-5`; current ids are e.g. `claude-sonnet-5-5`. If invalid, the LLM path silently falls back to the structural doc. Verify at a keyed smoke; not changed (out of scope).
 - Playwright is not configured in the repo; browsers are cached locally (`~/Library/Caches/ms-playwright`). Gate M3 adds `@playwright/test` + an `e2e/` dir.
 - Proto localStorage (`fcw-proto-v1`) holds old `{docId}` placements; a stored proto session misbehaves after M1.1. Throwaway, deleted in M6.2.
