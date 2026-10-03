@@ -106,13 +106,24 @@ export function linkPlacement(
   placedDocId: string,
   existingDocId: string,
 ): DocCanvas {
-  return {
-    placements: canvas.placements.map((p) =>
-      p.kind === 'doc' && p.id === placedDocId ? { ...p, id: existingDocId } : p,
-    ),
-    edges: canvas.edges.map((e) => ({
-      from: e.from === placedDocId ? existingDocId : e.from,
-      to: e.to === placedDocId ? existingDocId : e.to,
-    })),
-  };
+  const alreadyPlaced = canvas.placements.some((p) => p.kind === 'doc' && p.id === existingDocId);
+  const placements: DocPlacement[] = [];
+  for (const p of canvas.placements) {
+    if (p.kind === 'doc' && p.id === placedDocId) {
+      if (!alreadyPlaced) placements.push({ ...p, id: existingDocId });
+    } else {
+      placements.push(p);
+    }
+  }
+  const seen = new Set<string>();
+  const edges: DocEdge[] = [];
+  for (const e of canvas.edges) {
+    const from = e.from === placedDocId ? existingDocId : e.from;
+    const to = e.to === placedDocId ? existingDocId : e.to;
+    const key = JSON.stringify([from, to]);
+    if (from === to || seen.has(key)) continue;
+    seen.add(key);
+    edges.push({ ...e, from, to });
+  }
+  return { placements, edges };
 }

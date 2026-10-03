@@ -121,3 +121,18 @@ it('linkPlacement swaps the placement in place and re-points edges, without muta
   expect(out.edges).toEqual([{ from: a, to: d }, { from: c, to: d }]);
   expect(JSON.stringify(canvas)).toBe(snapshot);
 });
+
+it('linkPlacement dedupes edges and drops self-loops', () => {
+  const { ws, a, b, d } = linkWs();
+  const canvas = { placements: [P(a), P(b), P(d, 5)], edges: [{ from: a, to: b }, { from: a, to: d }, { from: b, to: d }] };
+  const out = linkPlacement(ws, canvas, b, d);
+  expect(out.edges).toEqual([{ from: a, to: d }]);
+});
+
+it('linkPlacement removes the swapped placement when the existing doc is already placed', () => {
+  const { ws, a, b, d } = linkWs();
+  const canvas = { placements: [P(a, 1), P(b, 2), P(d, 3)], edges: [{ from: a, to: b }] };
+  const out = linkPlacement(ws, canvas, b, d);
+  expect(out.placements).toEqual([P(a, 1), P(d, 3)]);
+  expect(out.edges).toEqual([{ from: a, to: d }]);
+});
