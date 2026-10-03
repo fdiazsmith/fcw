@@ -21,11 +21,11 @@ Each milestone ends in a **gate**. Never start a milestone until the previous ga
 
 ## M0: Baseline
 
-- [ ] **M0.1** `npm install`; `npm test` from root; record pass/fail counts below. Fix nothing yet. If red, the failures become M0.2.
-- [ ] **M0.2** Make the baseline green (only pre-existing failures; one fix per commit).
-- [ ] **M0.3** `npm run smoke:compaction` passes (real server). Note the cost and duration.
+- [x] **M0.1** `npm install`; `npm test` from root; record pass/fail counts below. Fix nothing yet. If red, the failures become M0.2.
+- [x] **M0.2** Make the baseline green (only pre-existing failures; one fix per commit). _Nothing to fix: baseline already green._
+- [x] **M0.3** `npm run smoke:compaction` passes (real server). Note the cost and duration. _Passed, ~3s, $0 (runs keyless with the structural generator)._
 
-**Gate M0:** full suite green; compaction smoke green. Baseline: _(fill in)_
+**Gate M0:** full suite green; compaction smoke green. Baseline: **passed 2026-10-03** — frontend 150/150 (18 files), graph-core 147/147 (17), server 252/252 (24); compaction smoke green.
 
 ## M1: Unified model (graph-core, pure, strict TDD)
 
