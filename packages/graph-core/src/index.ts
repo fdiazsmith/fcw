@@ -31,6 +31,9 @@ export { parseWikilinks } from './wikilinks.js';
 export { parseMermaid } from './mermaid.js';
 export type { MermaidNode, MermaidEdge, MermaidGraph } from './mermaid.js';
 
+// Docs canvas → Mermaid (export)
+export { graphToMermaid } from './mermaid-export.js';
+
 // Mermaid → docs: every box is a doc from birth
 export { mermaidToDocNodes } from './mermaid-docs.js';
 export type { MermaidDocNodes, MermaidToDocNodesOptions } from './mermaid-docs.js';
