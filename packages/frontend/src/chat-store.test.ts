@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import type { ChatServerMessage, ChatNode } from '@fcw/graph-core';
-import { compactionDigest } from '@fcw/graph-core';
-import { emptyChatState, applyChatMessage, compactionIsStale, ChatState } from './chat-store';
+import type { ChatServerMessage, ChatNode, Doc } from '@fcw/graph-core';
+import { compactionDigest, createChatGraph } from '@fcw/graph-core';
+import { emptyChatState, applyChatMessage, compactionIsStale, clearPendingLayout, canvasById, placementsOn, canvasesPlacing, rootChatIds, chatIdsOn, ChatState } from './chat-store';
 
 const chat = (id: string): ChatNode => ({
   id,
@@ -362,5 +362,236 @@ describe('applyChatMessage — compactions', () => {
       message: { role: 'user', content: 'changed', createdAt: 't1' },
     });
     expect(compactionIsStale(s, 'k1')).toBe(true);
+  });
+});
+
+const mkDoc = (id: string, over: Partial<Doc> = {}): Doc => ({
+  id,
+  title: id,
+  body: '',
+  canvas: { placements: [], edges: [] },
+  ...over,
+});
+
+describe('doc state: snapshot', () => {
+  it('starts empty', () => {
+    const s = emptyChatState();
+    expect(s.docs).toEqual({});
+    expect(s.rootCanvas).toEqual({ placements: [], edges: [] });
+    expect(s.docChats).toEqual({});
+    expect(s.pendingLayout).toEqual([]);
+  });
+
+  it('chat_snapshot loads docs, rootCanvas and derives docChats', () => {
+    const graph = {
+      ...createChatGraph('t'),
+      chats: { c1: { ...chat('c1'), docId: 'd1' }, c2: chat('c2') },
+      docs: { d1: mkDoc('d1') },
+      rootCanvas: { placements: [{ kind: 'doc' as const, id: 'd1', position: { x: 1, y: 2 } }], edges: [] },
+    };
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph });
+    expect(s.docs.d1.id).toBe('d1');
+    expect(s.rootCanvas.placements).toHaveLength(1);
+    expect(s.docChats).toEqual({ d1: 'c1' });
+  });
+
+  it('chat_snapshot from an old server defaults docs and rootCanvas', () => {
+    const { docs: _d, rootCanvas: _r, ...old } = createChatGraph('t');
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph: old as any });
+    expect(s.docs).toEqual({});
+    expect(s.rootCanvas).toEqual({ placements: [], edges: [] });
+  });
+});
+
+describe('doc state: docs and doc-chats', () => {
+  it('doc_created adds to the table', () => {
+    const s = apply(emptyChatState(), { type: 'doc_created', doc: mkDoc('d1') });
+    expect(s.docs.d1.title).toBe('d1');
+  });
+
+  it('doc_updated patches title, body and generated; ignores unknown ids', () => {
+    let s = apply(emptyChatState(), { type: 'doc_created', doc: mkDoc('d1') });
+    s = apply(
+      s,
+      { type: 'doc_updated', docId: 'd1', title: 'T', body: 'B' },
+      { type: 'doc_updated', docId: 'd1', generated: { sourceDigest: 'x', status: 'idle' } },
+    );
+    expect(s.docs.d1).toMatchObject({ title: 'T', body: 'B', generated: { sourceDigest: 'x', status: 'idle' } });
+    const after = apply(s, { type: 'doc_updated', docId: 'nope', body: 'z' });
+    expect(after.docs).toEqual(s.docs);
+  });
+
+  it('doc_chat_ready records the doc-chat', () => {
+    const s = apply(emptyChatState(), { type: 'doc_chat_ready', docId: 'd1', chatId: 'c1' });
+    expect(s.docChats).toEqual({ d1: 'c1' });
+  });
+});
+
+describe('doc state: placements', () => {
+  const pos = (x: number, y: number) => ({ x, y });
+  const base = () =>
+    apply(emptyChatState(), { type: 'doc_created', doc: mkDoc('d1') }, { type: 'doc_created', doc: mkDoc('d2') });
+
+  it('doc_placed adds a placement to root and to a doc canvas', () => {
+    const s = apply(
+      base(),
+      { type: 'doc_placed', canvasId: 'root', placement: { kind: 'doc', id: 'd1', position: pos(1, 1) } },
+      { type: 'doc_placed', canvasId: 'd1', placement: { kind: 'doc', id: 'd2', position: pos(2, 2) } },
+    );
+    expect(s.rootCanvas.placements).toEqual([{ kind: 'doc', id: 'd1', position: pos(1, 1) }]);
+    expect(s.docs.d1.canvas.placements).toEqual([{ kind: 'doc', id: 'd2', position: pos(2, 2) }]);
+  });
+
+  it('doc_moved updates a position; doc_unplaced removes it', () => {
+    let s = apply(base(), {
+      type: 'doc_placed',
+      canvasId: 'root',
+      placement: { kind: 'doc', id: 'd1', position: pos(1, 1) },
+    });
+    s = apply(s, { type: 'doc_moved', canvasId: 'root', kind: 'doc', id: 'd1', position: pos(9, 9) });
+    expect(s.rootCanvas.placements[0].position).toEqual(pos(9, 9));
+    s = apply(s, { type: 'doc_unplaced', canvasId: 'root', kind: 'doc', id: 'd1' });
+    expect(s.rootCanvas.placements).toEqual([]);
+  });
+
+  it('unknown canvases and ids are ignored without throwing', () => {
+    const s = base();
+    const out = apply(
+      s,
+      { type: 'doc_placed', canvasId: 'nope', placement: { kind: 'doc', id: 'd1', position: pos(0, 0) } },
+      { type: 'doc_moved', canvasId: 'nope', kind: 'doc', id: 'd1', position: pos(0, 0) },
+      { type: 'doc_unplaced', canvasId: 'nope', kind: 'doc', id: 'd1' },
+      { type: 'doc_moved', canvasId: 'root', kind: 'doc', id: 'zzz', position: pos(0, 0) },
+    );
+    expect(out.rootCanvas).toEqual(s.rootCanvas);
+    expect(out.docs).toEqual(s.docs);
+  });
+});
+
+describe('doc state: doc_linked', () => {
+  const pos = { x: 0, y: 0 };
+  const place = (canvasId: string, id: string): ChatServerMessage => ({
+    type: 'doc_placed',
+    canvasId,
+    placement: { kind: 'doc', id, position: pos },
+  });
+  const setup = (...extra: ChatServerMessage[]) =>
+    apply(
+      emptyChatState(),
+      { type: 'doc_created', doc: mkDoc('c') },
+      { type: 'doc_created', doc: mkDoc('a') },
+      { type: 'doc_created', doc: mkDoc('b') },
+      { type: 'doc_created', doc: mkDoc('x') },
+      place('c', 'a'),
+      place('c', 'b'),
+      ...extra,
+    );
+
+  it('swaps the placement, re-points edges, and deletes the empty orphan replaced doc', () => {
+    let s = setup();
+    s = { ...s, docs: { ...s.docs, c: { ...s.docs.c, canvas: { ...s.docs.c.canvas, edges: [{ from: 'a', to: 'b' }] } } } };
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.c.canvas.placements.map((p) => p.id)).toEqual(['a', 'x']);
+    expect(s.docs.c.canvas.edges).toEqual([{ from: 'a', to: 'x' }]);
+    expect(s.docs.b).toBeUndefined();
+  });
+
+  it('keeps the replaced doc when it has a body', () => {
+    let s = setup({ type: 'doc_updated', docId: 'b', body: 'text' });
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.b).toBeDefined();
+  });
+
+  it('keeps the replaced doc when it is still placed elsewhere', () => {
+    let s = setup(place('root', 'b'));
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.b).toBeDefined();
+  });
+
+  it('keeps the replaced doc when it has a doc-chat', () => {
+    let s = setup({ type: 'doc_chat_ready', docId: 'b', chatId: 'k' });
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.b).toBeDefined();
+  });
+
+  it('keeps the replaced doc when its own canvas has content', () => {
+    let s = setup(place('b', 'x'));
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.b).toBeDefined();
+  });
+
+  it('ignores an invalid link without throwing', () => {
+    const s = setup();
+    const out = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'nope' });
+    expect(out.docs).toEqual(s.docs);
+    expect(apply(s, { type: 'doc_linked', canvasId: 'zz', placedDocId: 'b', existingDocId: 'x' }).docs).toEqual(s.docs);
+  });
+});
+
+describe('doc state: diagram_created and pendingLayout', () => {
+  it('mirrors edges once and queues the layout; clearPendingLayout removes it', () => {
+    const edges = [{ from: 'a', to: 'b' }];
+    let s = apply(
+      emptyChatState(),
+      { type: 'doc_created', doc: mkDoc('a') },
+      { type: 'doc_created', doc: mkDoc('b') },
+      { type: 'diagram_created', canvasId: 'root', docIds: ['a', 'b'], edges },
+      { type: 'diagram_created', canvasId: 'a', docIds: ['b'], edges: [] },
+    );
+    const queued = s.pendingLayout.length;
+    expect(queued).toBe(2);
+    expect(s.pendingLayout).toEqual([
+      { canvasId: 'root', docIds: ['a', 'b'], edges },
+      { canvasId: 'a', docIds: ['b'], edges: [] },
+    ]);
+    // The server added the edges to its canvas; mirror them once (no duplicates).
+    expect(s.rootCanvas.edges).toEqual(edges);
+    s = apply(s, { type: 'diagram_created', canvasId: 'root', docIds: ['a', 'b'], edges });
+    expect(s.rootCanvas.edges).toEqual(edges);
+    s = clearPendingLayout(s, 'root');
+    expect(s.pendingLayout.map((p) => p.canvasId)).toEqual(['a']);
+  });
+});
+
+describe('doc selectors', () => {
+  const pos = { x: 0, y: 0 };
+  const state = apply(
+    emptyChatState(),
+    { type: 'chat_created', chat: chat('c1') },
+    { type: 'chat_created', chat: chat('c2') },
+    { type: 'chat_created', chat: chat('c3') },
+    { type: 'chat_created', chat: { ...chat('dc'), docId: 'd1' } },
+    { type: 'doc_created', doc: mkDoc('d1') },
+    { type: 'doc_created', doc: mkDoc('d2') },
+    { type: 'doc_placed', canvasId: 'root', placement: { kind: 'doc', id: 'd1', position: pos } },
+    { type: 'doc_placed', canvasId: 'd2', placement: { kind: 'doc', id: 'd1', position: pos } },
+    { type: 'doc_placed', canvasId: 'd1', placement: { kind: 'chat', id: 'c1', position: pos } },
+    { type: 'doc_placed', canvasId: 'd1', placement: { kind: 'doc', id: 'd2', position: pos } },
+  );
+
+  it('canvasById resolves root, a doc canvas, or undefined', () => {
+    expect(canvasById(state, 'root')).toBe(state.rootCanvas);
+    expect(canvasById(state, 'd1')).toBe(state.docs.d1.canvas);
+    expect(canvasById(state, 'nope')).toBeUndefined();
+  });
+
+  it('placementsOn lists a canvas placements (empty for unknown)', () => {
+    expect(placementsOn(state, 'd1').map((p) => `${p.kind}:${p.id}`)).toEqual(['chat:c1', 'doc:d2']);
+    expect(placementsOn(state, 'nope')).toEqual([]);
+  });
+
+  it('canvasesPlacing lists every canvas that places the doc', () => {
+    expect(canvasesPlacing(state, 'd1').sort()).toEqual(['d2', 'root']);
+    expect(canvasesPlacing(state, 'zzz')).toEqual([]);
+  });
+
+  it('rootChatIds excludes chats on doc canvases and doc-chats', () => {
+    expect(rootChatIds(state).sort()).toEqual(['c2', 'c3']);
+  });
+
+  it('chatIdsOn: root -> rootChatIds, doc canvas -> its chat placements', () => {
+    expect(chatIdsOn(state, 'root').sort()).toEqual(['c2', 'c3']);
+    expect(chatIdsOn(state, 'd1')).toEqual(['c1']);
+    expect(chatIdsOn(state, 'nope')).toEqual([]);
   });
 });

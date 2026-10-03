@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { searchChats } from './chat-search';
-import type { ChatState, ChatView } from './chat-store';
+import { emptyChatState, type ChatState, type ChatView } from './chat-store';
 
 const view = (over: Partial<ChatView> & { id: string }): ChatView => ({
   id: over.id,
@@ -15,10 +15,9 @@ const view = (over: Partial<ChatView> & { id: string }): ChatView => ({
 });
 
 const state = (...views: ChatView[]): ChatState => ({
+  ...emptyChatState(),
   chats: Object.fromEntries(views.map((v) => [v.id, v])),
   edges: [],
-  capabilities: { models: [], commands: [] },
-  compactions: {},
 });
 
 describe('searchChats', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { exportBranchMarkdown } from './export-branch';
-import type { ChatState, ChatView } from './chat-store';
+import { emptyChatState, type ChatState, type ChatView } from './chat-store';
 import type { ContextEdge } from '@fcw/graph-core';
 
 const view = (over: Partial<ChatView> & { id: string }): ChatView => ({
@@ -16,10 +16,9 @@ const view = (over: Partial<ChatView> & { id: string }): ChatView => ({
 });
 
 const mkState = (chats: Record<string, ChatView>, edges: ContextEdge[] = []): ChatState => ({
+  ...emptyChatState(),
   chats,
   edges,
-  capabilities: { models: [], commands: [] },
-  compactions: {},
 });
 
 const edge = (from: string, to: string): ContextEdge => ({

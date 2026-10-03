@@ -8,9 +8,13 @@ import type {
   CapabilityModel,
   CapabilityCommand,
   Compaction,
+  Doc,
+  DocCanvas,
+  DocEdge,
+  DocPlacement,
   TokenUsage,
 } from '@fcw/graph-core';
-import { compactionDigest } from '@fcw/graph-core';
+import { compactionDigest, linkPlacement, ROOT_CANVAS_ID } from '@fcw/graph-core';
 
 export interface PendingPermission {
   requestId: string;
@@ -46,10 +50,26 @@ export interface ChatState {
   edges: ContextEdge[];
   capabilities: Capabilities;
   compactions: Record<string, Compaction>;
+  /** The global doc table — mirrors the server's ChatGraph.docs. */
+  docs: Record<string, Doc>;
+  rootCanvas: DocCanvas;
+  /** docId -> its doc-chat (chats with `docId`; never rendered on a canvas). */
+  docChats: Record<string, string>;
+  /** Diagram boxes awaiting layout; the canvas UI consumes via clearPendingLayout. */
+  pendingLayout: { canvasId: string; docIds: string[]; edges: DocEdge[] }[];
 }
 
 export function emptyChatState(): ChatState {
-  return { chats: {}, edges: [], capabilities: { models: [], commands: [] }, compactions: {} };
+  return {
+    chats: {},
+    edges: [],
+    capabilities: { models: [], commands: [] },
+    compactions: {},
+    docs: {},
+    rootCanvas: { placements: [], edges: [] },
+    docChats: {},
+    pendingLayout: [],
+  };
 }
 
 /** True when a member transcript changed since the document was generated. */
@@ -78,6 +98,58 @@ function viewFrom(chat: ChatNode): ChatView {
   };
 }
 
+/** Drop the queued diagram layouts for a canvas once the UI has run them. */
+export function clearPendingLayout(state: ChatState, canvasId: string): ChatState {
+  return { ...state, pendingLayout: state.pendingLayout.filter((p) => p.canvasId !== canvasId) };
+}
+
+/** The canvas with this id: root, or a doc's own canvas. */
+export function canvasById(state: ChatState, canvasId: string): DocCanvas | undefined {
+  return canvasId === ROOT_CANVAS_ID ? state.rootCanvas : state.docs[canvasId]?.canvas;
+}
+
+export function placementsOn(state: ChatState, canvasId: string): DocPlacement[] {
+  return canvasById(state, canvasId)?.placements ?? [];
+}
+
+/** Every canvas (root or doc id) that places this doc — powers the link badge. */
+export function canvasesPlacing(state: ChatState, docId: string): string[] {
+  const ids: string[] = [];
+  if (state.rootCanvas.placements.some((p) => isPlacement(p, 'doc', docId))) ids.push(ROOT_CANVAS_ID);
+  for (const doc of Object.values(state.docs)) {
+    if (doc.canvas.placements.some((p) => isPlacement(p, 'doc', docId))) ids.push(doc.id);
+  }
+  return ids;
+}
+
+/** Chats on root: placed on no doc canvas, and not a doc-chat (those never render on a canvas). */
+export function rootChatIds(state: ChatState): string[] {
+  const docChatIds = new Set(Object.values(state.docChats));
+  const placed = new Set<string>();
+  for (const doc of Object.values(state.docs)) {
+    for (const p of doc.canvas.placements) if (p.kind === 'chat') placed.add(p.id);
+  }
+  return Object.keys(state.chats).filter((id) => !placed.has(id) && !docChatIds.has(id));
+}
+
+export function chatIdsOn(state: ChatState, canvasId: string): string[] {
+  if (canvasId === ROOT_CANVAS_ID) return rootChatIds(state);
+  return placementsOn(state, canvasId)
+    .filter((p) => p.kind === 'chat')
+    .map((p) => p.id);
+}
+
+/** Replace one canvas (root or a doc's); unknown canvas ids leave state unchanged. */
+function withCanvas(state: ChatState, canvasId: string, fn: (c: DocCanvas) => DocCanvas): ChatState {
+  if (canvasId === ROOT_CANVAS_ID) return { ...state, rootCanvas: fn(state.rootCanvas) };
+  const doc = state.docs[canvasId];
+  if (!doc) return state;
+  return { ...state, docs: { ...state.docs, [canvasId]: { ...doc, canvas: fn(doc.canvas) } } };
+}
+
+const isPlacement = (p: DocPlacement, kind: DocPlacement['kind'], id: string) =>
+  p.kind === kind && p.id === id;
+
 export function applyChatMessage(state: ChatState, msg: ChatServerMessage): ChatState {
   if (msg.type === 'chat_snapshot') {
     const chats: Record<string, ChatView> = {};
@@ -91,9 +163,16 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
         pendingPermissionQueue: prev?.pendingPermissionQueue ?? [],
       };
     }
+    const docChats: Record<string, string> = {};
+    for (const chat of Object.values(msg.graph.chats)) {
+      if (chat.docId) docChats[chat.docId] = chat.id;
+    }
     return {
       ...state,
       chats,
+      docs: { ...(msg.graph.docs ?? {}) },
+      rootCanvas: msg.graph.rootCanvas ?? { placements: [], edges: [] },
+      docChats,
       edges: [...msg.graph.edges],
       compactions: { ...(msg.graph.compactions ?? {}) },
     };
@@ -128,7 +207,11 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
   }
 
   if (msg.type === 'chat_created') {
-    return { ...state, chats: { ...state.chats, [msg.chat.id]: viewFrom(msg.chat) } };
+    return {
+      ...state,
+      chats: { ...state.chats, [msg.chat.id]: viewFrom(msg.chat) },
+      docChats: msg.chat.docId ? { ...state.docChats, [msg.chat.docId]: msg.chat.id } : state.docChats,
+    };
   }
 
   if (msg.type === 'chat_connected') {
@@ -146,7 +229,85 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
     };
   }
 
-  // doc_* messages are not handled yet (M3.1).
+  if (msg.type === 'doc_created') {
+    return { ...state, docs: { ...state.docs, [msg.doc.id]: msg.doc } };
+  }
+
+  if (msg.type === 'doc_updated') {
+    const doc = state.docs[msg.docId];
+    if (!doc) return state;
+    const { type: _type, docId: _docId, ...patch } = msg;
+    return { ...state, docs: { ...state.docs, [msg.docId]: { ...doc, ...patch } } };
+  }
+
+  if (msg.type === 'doc_placed') {
+    return withCanvas(state, msg.canvasId, (c) => ({ ...c, placements: [...c.placements, msg.placement] }));
+  }
+
+  if (msg.type === 'doc_unplaced') {
+    return withCanvas(state, msg.canvasId, (c) => ({
+      ...c,
+      placements: c.placements.filter((p) => !isPlacement(p, msg.kind, msg.id)),
+    }));
+  }
+
+  if (msg.type === 'doc_moved') {
+    return withCanvas(state, msg.canvasId, (c) => ({
+      ...c,
+      placements: c.placements.map((p) => (isPlacement(p, msg.kind, msg.id) ? { ...p, position: msg.position } : p)),
+    }));
+  }
+
+  if (msg.type === 'doc_linked') {
+    // Mirrors ChatSession.linkDoc: swap the placement, then drop the replaced
+    // doc if it is an empty orphan (no body, empty canvas, unplaced, no doc-chat).
+    const canvas = canvasById(state, msg.canvasId);
+    if (!canvas) return state;
+    let linked: DocCanvas;
+    try {
+      linked = linkPlacement(state, canvas, msg.placedDocId, msg.existingDocId);
+    } catch {
+      return state;
+    }
+    const next = withCanvas(state, msg.canvasId, () => linked);
+    const replaced = next.docs[msg.placedDocId];
+    const placedAnywhere = [next.rootCanvas, ...Object.values(next.docs).map((d) => d.canvas)].some((c) =>
+      c.placements.some((p) => isPlacement(p, 'doc', msg.placedDocId)),
+    );
+    if (
+      replaced &&
+      replaced.body === '' &&
+      replaced.canvas.placements.length === 0 &&
+      replaced.canvas.edges.length === 0 &&
+      !placedAnywhere &&
+      !next.docChats[msg.placedDocId]
+    ) {
+      const { [msg.placedDocId]: _gone, ...docs } = next.docs;
+      return { ...next, docs };
+    }
+    return next;
+  }
+
+  if (msg.type === 'diagram_created') {
+    // The server already put these edges on its canvas; mirror them once.
+    const next = withCanvas(state, msg.canvasId, (c) => ({
+      ...c,
+      edges: [
+        ...c.edges,
+        ...msg.edges.filter((e) => !c.edges.some((x) => x.from === e.from && x.to === e.to)),
+      ],
+    }));
+    if (next === state) return state;
+    return {
+      ...next,
+      pendingLayout: [...next.pendingLayout, { canvasId: msg.canvasId, docIds: msg.docIds, edges: msg.edges }],
+    };
+  }
+
+  if (msg.type === 'doc_chat_ready') {
+    return { ...state, docChats: { ...state.docChats, [msg.docId]: msg.chatId } };
+  }
+
   if (!('chatId' in msg)) return state;
 
   const existing = state.chats[msg.chatId];
