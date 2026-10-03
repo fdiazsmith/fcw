@@ -107,6 +107,9 @@ export class ChatSessionManager extends EventEmitter {
 
   createChat(position: Position, title?: string): string {
     const id = addChat(this.graph, { position, title });
+    // M7.5: new chats start with the project's defaults (cwd / model / effort).
+    const defaults = this.graph.meta.settings;
+    if (defaults) this.graph.chats[id].settings = { engine: 'api', ...defaults };
     this.emit('message', { type: 'chat_created', chat: this.graph.chats[id] });
     this.scheduleSave();
     return id;
