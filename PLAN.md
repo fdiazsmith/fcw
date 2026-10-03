@@ -60,8 +60,8 @@ Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
 - [x] **M2.9** (added) `linkDoc` never deletes a doc that has a doc-chat (would orphan the chat).
 - [x] **M2.7** `scripts/docs-smoke.mjs` + `npm run smoke:docs`: real server, generate a diagram, compact two chats, apply to doc, restart, verify persistence.
 
-- [~] **M2.10** (added) Staleness for doc-graph changes: placing / unplacing / linking a doc on a doc canvas, or generating a diagram onto one, marks chats whose doc context reaches that canvas's doc session-stale.
-- [~] **M2.11** (added) `createApp` logs the first 10 chars of the API key at startup; log only presence (`set`/`NOT SET`).
+- [x] **M2.10** (added) Staleness for doc-graph changes: placing / unplacing / linking a doc on a doc canvas, or generating a diagram onto one, marks chats whose doc context reaches that canvas's doc session-stale.
+- [x] **M2.11** (added) `createApp` logs the first 10 chars of the API key at startup; log only presence (`set`/`NOT SET`).
 
 **Gate M2:** server suite green; `smoke:compaction` **and** `smoke:docs` green; a pre-existing `.fcw.json` with compactions opens and migrates. **Passed 2026-10-03**: graph-core 181, server 331, frontend 150 (tsc baseline 27); smoke:compaction ✓; smoke:docs ✓ 15.1s (pasted 4 boxes; model-generated diagram parsed first time, 6 boxes; LLM compaction body; doc-chat Apply; restart persisted 11 docs/9 edges); fixture migration via real load path ✓. Model id `claude-sonnet-5` confirmed working. M2.10/M2.11 are follow-ups found at the gate, run alongside M3.
 
