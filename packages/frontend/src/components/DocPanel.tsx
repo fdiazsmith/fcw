@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { ChatState } from '../chat-store';
+import { docChatBinding } from '../doc-panel-model';
+import { chatActions } from '../shapes/ChatShape';
+import { ChatWindow } from './ChatWindow';
 import { MarkdownEditor } from './MarkdownEditor';
 
 export interface DocPanelProps {
@@ -8,11 +11,25 @@ export interface DocPanelProps {
   onClose: () => void;
   /** Debounced hand edits of the body, as markdown. */
   onBodyChange: (body: string) => void;
+  /** The doc has no doc-chat yet: ask the server for one (`doc_chat_requested`). */
+  onRequestChat: () => void;
 }
 
+const notConnected = () => Promise.reject(new Error('not connected'));
+
 /** Side panel for the selected doc (MERMAID-DOCS.md § Doc-chat placement). */
-export function DocPanel({ state, docId, onClose, onBodyChange }: DocPanelProps) {
+export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat }: DocPanelProps) {
   const doc = state.docs[docId];
+  const { chat, needsRequest } = docChatBinding(state, docId);
+  const caps = state.capabilities;
+  const hasCaps = caps.models.length > 0 || caps.commands.length > 0;
+
+  const exists = !!doc;
+  // Once per doc while its doc-chat is missing; the reply fills docChats.
+  useEffect(() => {
+    if (exists && needsRequest) onRequestChat();
+  }, [docId, exists, needsRequest]);
+
   if (!doc) return null;
 
   return (
@@ -56,6 +73,30 @@ export function DocPanel({ state, docId, onClose, onBodyChange }: DocPanelProps)
           {/* Remount per doc so a pending debounced edit never lands on another doc. */}
           <MarkdownEditor key={docId} markdown={doc.body} editable onChange={onBodyChange} />
         </div>
+      </section>
+      <section style={{ flex: 1, minHeight: 0, borderTop: '1px solid #E2E8F0' }}>
+        {chat ? (
+          // Same paths as canvas chat cards: the registered chat actions.
+          <ChatWindow
+            chat={chat}
+            capabilities={hasCaps ? caps : undefined}
+            onSend={(content, attachmentIds) =>
+              attachmentIds
+                ? chatActions()?.sendPrompt(chat.id, content, attachmentIds)
+                : chatActions()?.sendPrompt(chat.id, content)
+            }
+            onStop={() => chatActions()?.stopStream(chat.id)}
+            onRegenerate={() => chatActions()?.regenerate(chat.id)}
+            onUpdateSettings={(patch) => chatActions()?.updateSettings(chat.id, patch)}
+            onPermissionDecision={(requestId, behavior) =>
+              chatActions()?.permissionDecision(chat.id, requestId, behavior)
+            }
+            uploadAttachment={(file) => chatActions()?.uploadAttachment(file) ?? notConnected()}
+            listDirs={(path) => chatActions()?.listDirs(path) ?? notConnected()}
+          />
+        ) : (
+          <div style={{ padding: 12, fontSize: 12, color: '#94A3B8' }}>Starting doc chat…</div>
+        )}
       </section>
     </aside>
   );

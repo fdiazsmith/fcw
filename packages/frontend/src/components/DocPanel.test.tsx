@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import type { Doc } from '@fcw/graph-core';
-import { emptyChatState, ChatState } from '../chat-store';
+import { emptyChatState, ChatState, ChatView } from '../chat-store';
+import { registerChatActions, ChatActions } from '../shapes/ChatShape';
 import { DocPanel, DocPanelProps } from './DocPanel';
 
 // The TipTap editor has its own tests; here a textarea stands in so the
@@ -31,8 +32,45 @@ const props = (over: Partial<DocPanelProps> = {}): DocPanelProps => ({
   docId: 'd1',
   onClose: vi.fn(),
   onBodyChange: vi.fn(),
+  onRequestChat: vi.fn(),
   ...over,
 });
+
+const chatView = (over: Partial<ChatView> = {}): ChatView => ({
+  id: 'c1',
+  title: 'Auth chat',
+  position: { x: 0, y: 0 },
+  messages: [],
+  streamingText: null,
+  error: null,
+  settings: { engine: 'api' },
+  pendingPermission: null,
+  pendingPermissionQueue: [],
+  usage: null,
+  contextChats: 0,
+  ...over,
+});
+
+const withDocChat = (over: Partial<ChatView> = {}) =>
+  stateWith({
+    chats: { c1: chatView(over) },
+    docChats: { d1: 'c1' },
+    capabilities: { models: [{ id: 'claude-opus-4-8', displayName: 'Claude Opus 4.8' }], commands: [] },
+  });
+
+const mockActions = (): ChatActions => ({
+  sendPrompt: vi.fn(),
+  requestBranch: vi.fn(),
+  stopStream: vi.fn(),
+  regenerate: vi.fn(),
+  updateSettings: vi.fn(),
+  permissionDecision: vi.fn(),
+  uploadAttachment: vi.fn(),
+  listDirs: vi.fn(),
+  compact: vi.fn(),
+});
+
+afterEach(() => registerChatActions(null));
 
 describe('DocPanel', () => {
   it('shows the doc title and a body editor seeded from the store', () => {
@@ -55,5 +93,31 @@ describe('DocPanel', () => {
   it('renders nothing for an unknown doc', () => {
     render(<DocPanel {...props({ docId: 'gone' })} />);
     expect(screen.queryByTestId('doc-panel')).toBeNull();
+  });
+});
+
+describe('DocPanel doc-chat', () => {
+  it('requests a doc-chat when the doc has none', () => {
+    const p = props();
+    render(<DocPanel {...p} />);
+    expect(p.onRequestChat).toHaveBeenCalledOnce();
+    expect(screen.queryByPlaceholderText('Message…')).toBeNull();
+  });
+
+  it('mounts the real ChatWindow bound to the doc-chat, through the canvas chat actions', () => {
+    const actions = mockActions();
+    registerChatActions(actions);
+    const p = props({ state: withDocChat({ settings: { engine: 'agent' } }) });
+    render(<DocPanel {...p} />);
+    expect(p.onRequestChat).not.toHaveBeenCalled();
+
+    const composer = screen.getByPlaceholderText('Message…');
+    fireEvent.change(composer, { target: { value: 'write it' } });
+    fireEvent.keyDown(composer, { key: 'Enter' });
+    expect(actions.sendPrompt).toHaveBeenCalledWith('c1', 'write it');
+
+    // Capabilities flow through: the model dropdown lists the server's models.
+    fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'claude-opus-4-8' } });
+    expect(actions.updateSettings).toHaveBeenCalledWith('c1', { model: 'claude-opus-4-8' });
   });
 });

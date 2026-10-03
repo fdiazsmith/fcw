@@ -4,7 +4,7 @@ import { emptyChatState, applyChatMessage } from './chat-store';
 import { docChatBinding } from './doc-panel-model';
 
 const chatNode = (id: string, docId?: string): ChatNode =>
-  ({ id, title: id, position: { x: 0, y: 0 }, messages: [], ...(docId ? { docId } : {}) }) as ChatNode;
+  ({ id, title: id, position: { x: 0, y: 0 }, messages: [], createdAt: '', ...(docId ? { docId } : {}) });
 
 describe('docChatBinding', () => {
   it('requests a doc-chat when the doc has none', () => {
