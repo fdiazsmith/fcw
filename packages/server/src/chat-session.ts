@@ -439,6 +439,45 @@ export class ChatSessionManager extends EventEmitter {
     this.scheduleSave();
   }
 
+  /** Place an existing doc or chat on a canvas. Root never holds chat
+   *  placements: a chat is on root iff no doc canvas places it. */
+  placeOnCanvas(canvasId: string, kind: DocPlacement['kind'], id: string, position: Position): void {
+    const canvas = this.canvasById(canvasId);
+    if (kind === 'doc') this.docById(id);
+    else if (!this.graph.chats[id]) throw new Error(`unknown chat: ${id}`);
+    if (kind === 'chat' && canvasId === ROOT_CANVAS_ID) {
+      throw new Error('chats are not placed on root; unplace them from their doc canvas instead');
+    }
+    if (canvas.placements.some((p) => p.kind === kind && p.id === id)) {
+      throw new Error(`${kind} ${id} already placed on canvas ${canvasId}`);
+    }
+    const placement: DocPlacement = { kind, id, position: { ...position } };
+    canvas.placements.push(placement);
+    this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
+    this.scheduleSave();
+  }
+
+  moveOnCanvas(canvasId: string, kind: DocPlacement['kind'], id: string, position: Position): void {
+    const placement = this.placementOn(canvasId, kind, id);
+    placement.position = { ...position };
+    this.emit('message', { type: 'doc_moved', canvasId, kind, id, position: { ...position } });
+    this.scheduleSave();
+  }
+
+  unplaceFromCanvas(canvasId: string, kind: DocPlacement['kind'], id: string): void {
+    const canvas = this.canvasById(canvasId);
+    const placement = this.placementOn(canvasId, kind, id);
+    canvas.placements = canvas.placements.filter((p) => p !== placement);
+    this.emit('message', { type: 'doc_unplaced', canvasId, kind, id });
+    this.scheduleSave();
+  }
+
+  private placementOn(canvasId: string, kind: DocPlacement['kind'], id: string): DocPlacement {
+    const placement = this.canvasById(canvasId).placements.find((p) => p.kind === kind && p.id === id);
+    if (!placement) throw new Error(`${kind} ${id} is not placed on canvas ${canvasId}`);
+    return placement;
+  }
+
   private maybeAutoTitle(chatId: string): void {
     const chat = this.graph.chats[chatId];
     if (chat.title !== '') return;

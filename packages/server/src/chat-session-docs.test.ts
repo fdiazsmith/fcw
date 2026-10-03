@@ -85,3 +85,70 @@ describe('ChatSessionManager.updateDoc', () => {
     expect(await savesAfter(sessions, () => sessions.updateDoc(id, { body: 'b' }))).toBe(1);
   });
 });
+
+describe('ChatSessionManager place / unplace / move', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('places an existing doc and a chat on a doc canvas', () => {
+    const sessions = new ChatSessionManager();
+    const host = sessions.createDoc(ROOT_CANVAS_ID, 'Host', { x: 0, y: 0 });
+    const ref = sessions.createDoc(ROOT_CANVAS_ID, 'Ref', { x: 0, y: 0 });
+    const chat = sessions.createChat({ x: 0, y: 0 });
+    const events = collect(sessions);
+    sessions.placeOnCanvas(host, 'doc', ref, { x: 1, y: 2 });
+    sessions.placeOnCanvas(host, 'chat', chat, { x: 3, y: 4 });
+    expect(sessions.graph.docs[host].canvas.placements).toEqual([
+      { kind: 'doc', id: ref, position: { x: 1, y: 2 } },
+      { kind: 'chat', id: chat, position: { x: 3, y: 4 } },
+    ]);
+    expect(events).toEqual([
+      { type: 'doc_placed', canvasId: host, placement: { kind: 'doc', id: ref, position: { x: 1, y: 2 } } },
+      { type: 'doc_placed', canvasId: host, placement: { kind: 'chat', id: chat, position: { x: 3, y: 4 } } },
+    ]);
+  });
+
+  it('rejects unknown ids, duplicates, and chat placements on root', () => {
+    const sessions = new ChatSessionManager();
+    const host = sessions.createDoc(ROOT_CANVAS_ID, 'Host', { x: 0, y: 0 });
+    const chat = sessions.createChat({ x: 0, y: 0 });
+    const p = { x: 0, y: 0 };
+    expect(() => sessions.placeOnCanvas('nope', 'doc', host, p)).toThrow(/unknown canvas/);
+    expect(() => sessions.placeOnCanvas(host, 'doc', 'nope', p)).toThrow(/unknown doc/);
+    expect(() => sessions.placeOnCanvas(host, 'chat', 'nope', p)).toThrow(/unknown chat/);
+    expect(() => sessions.placeOnCanvas(ROOT_CANVAS_ID, 'doc', host, p)).toThrow(/already placed/);
+    expect(() => sessions.placeOnCanvas(ROOT_CANVAS_ID, 'chat', chat, p)).toThrow(/root/);
+  });
+
+  it('moves and unplaces a placement', () => {
+    const sessions = new ChatSessionManager();
+    const host = sessions.createDoc(ROOT_CANVAS_ID, 'Host', { x: 0, y: 0 });
+    const chat = sessions.createChat({ x: 0, y: 0 });
+    sessions.placeOnCanvas(host, 'chat', chat, { x: 0, y: 0 });
+    const events = collect(sessions);
+    sessions.moveOnCanvas(host, 'chat', chat, { x: 9, y: 9 });
+    expect(sessions.graph.docs[host].canvas.placements[0].position).toEqual({ x: 9, y: 9 });
+    sessions.unplaceFromCanvas(host, 'chat', chat);
+    expect(sessions.graph.docs[host].canvas.placements).toEqual([]);
+    expect(events).toEqual([
+      { type: 'doc_moved', canvasId: host, kind: 'chat', id: chat, position: { x: 9, y: 9 } },
+      { type: 'doc_unplaced', canvasId: host, kind: 'chat', id: chat },
+    ]);
+  });
+
+  it('move / unplace reject a placement that is not on the canvas', () => {
+    const sessions = new ChatSessionManager();
+    const host = sessions.createDoc(ROOT_CANVAS_ID, 'Host', { x: 0, y: 0 });
+    expect(() => sessions.moveOnCanvas(host, 'doc', 'nope', { x: 0, y: 0 })).toThrow(/not placed/);
+    expect(() => sessions.unplaceFromCanvas('nope', 'doc', host)).toThrow(/unknown canvas/);
+    expect(() => sessions.unplaceFromCanvas(host, 'doc', 'nope')).toThrow(/not placed/);
+  });
+
+  it('every placement mutation persists', async () => {
+    const sessions = new ChatSessionManager();
+    const host = sessions.createDoc(ROOT_CANVAS_ID, 'Host', { x: 0, y: 0 });
+    const ref = sessions.createDoc(ROOT_CANVAS_ID, 'Ref', { x: 0, y: 0 });
+    expect(await savesAfter(sessions, () => sessions.placeOnCanvas(host, 'doc', ref, { x: 0, y: 0 }))).toBe(1);
+    expect(await savesAfter(sessions, () => sessions.moveOnCanvas(host, 'doc', ref, { x: 1, y: 0 }))).toBe(1);
+    expect(await savesAfter(sessions, () => sessions.unplaceFromCanvas(host, 'doc', ref))).toBe(1);
+  });
+});
