@@ -72,6 +72,35 @@ describe('ChatSessionManager.requestDiagram', () => {
     expect(sessions.graph.docs).toEqual({});
   });
 
+  it('fallback: one doc holding the raw Mermaid in a fence, diagram_created with the error', async () => {
+    const raw = 'graph TD\nA(bad) --> B';
+    const prompt = '  Draw the login flow\nwith sessions and a very long trailing description that keeps going on  ';
+    const sessions = manager(async () => ({ ok: false, raw, error: 'Line 2 bad' }));
+    const events = collect(sessions);
+
+    await sessions.requestDiagram(ROOT_CANVAS_ID, prompt);
+
+    const ids = Object.keys(sessions.graph.docs);
+    expect(ids).toHaveLength(1);
+    const doc = sessions.graph.docs[ids[0]];
+    expect(doc.title).toBe('Draw the login flow with sessions and a very long trailing d');
+    expect(doc.title.length).toBeLessThanOrEqual(60);
+    expect(doc.body).toBe('```mermaid\n' + raw + '\n```');
+    expect(sessions.graph.rootCanvas.placements).toEqual([{ kind: 'doc', id: ids[0], position: { x: 0, y: 0 } }]);
+    expect(sessions.graph.rootCanvas.edges).toEqual([]);
+    expect(events.map((e) => e.type)).toEqual(['doc_created', 'doc_placed', 'diagram_created']);
+    expect(events.at(-1)).toEqual({
+      type: 'diagram_created', canvasId: ROOT_CANVAS_ID, docIds: ids, edges: [], error: 'Line 2 bad',
+    });
+  });
+
+  it('fallback with empty raw (keyless) keeps the prompt as the body', async () => {
+    const sessions = manager(async () => ({ ok: false, raw: '', error: 'no api key' }));
+    await sessions.requestDiagram(ROOT_CANVAS_ID, 'auth flow');
+    const [doc] = Object.values(sessions.graph.docs);
+    expect(doc).toMatchObject({ title: 'auth flow', body: 'auth flow' });
+  });
+
   it('persists', async () => {
     vi.useFakeTimers();
     const sessions = manager(okGenerator);

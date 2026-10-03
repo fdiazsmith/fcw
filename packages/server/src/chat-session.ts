@@ -30,6 +30,7 @@ import type {
   Doc,
   DocCanvas,
   DocPlacement,
+  DocEdge,
 } from '@fcw/graph-core';
 import { structuralCompactionDocument, type GenerateCompactionDoc } from './compaction-doc.js';
 import { createDiagramGenerator, type GenerateDiagram } from './diagram-gen.js';
@@ -496,9 +497,18 @@ export class ChatSessionManager extends EventEmitter {
   async requestDiagram(canvasId: string, prompt: string): Promise<void> {
     const canvas = this.canvasById(canvasId);
     const result = await this.generateDiagram(prompt);
-    if (!result.ok) return;
-    // Mermaid ids are diagram-local; namespace them per generation.
-    const { docs, edges } = mermaidToDocNodes(result.graph, { idPrefix: `${newDocId()}_` });
+    let docs: Doc[];
+    let edges: DocEdge[];
+    if (result.ok) {
+      // Mermaid ids are diagram-local; namespace them per generation.
+      ({ docs, edges } = mermaidToDocNodes(result.graph, { idPrefix: `${newDocId()}_` }));
+    } else {
+      // Unparseable: keep what the model produced in one box, nothing lost.
+      const [, doc] = createDoc({ docs: {} }, prompt.trim().replace(/\s+/g, ' ').slice(0, 60).trimEnd());
+      doc.body = result.raw ? '```mermaid\n' + result.raw.trim() + '\n```' : prompt;
+      docs = [doc];
+      edges = [];
+    }
     docs.forEach((doc, i) => {
       doc.createdAt = new Date().toISOString();
       this.graph.docs[doc.id] = doc;
@@ -514,6 +524,7 @@ export class ChatSessionManager extends EventEmitter {
       canvasId,
       docIds: docs.map((d) => d.id),
       edges: edges.map((e) => ({ ...e })),
+      ...(result.ok ? {} : { error: result.error }),
     });
     this.scheduleSave();
   }
