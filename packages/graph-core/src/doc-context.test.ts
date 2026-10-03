@@ -78,3 +78,19 @@ it('over budget, degrades deepest docs to title-only before anything nearer', ()
   ]);
   expect(blocks[0].body).toBe('');
 });
+
+it('skips chat placements: they contribute nothing to doc context yet', () => {
+  let ws = createWorkspace();
+  let host: Doc, ref: Doc;
+  [ws, host] = docWith(ws, 'Host', 'h');
+  [ws, ref] = docWith(ws, 'Ref', 'r');
+  ws = placeDoc(ws, host.id, ref.id, { x: 0, y: 0 });
+  ws.docs[host.id].canvas.placements.push({
+    kind: 'chat',
+    id: 'chat_not_a_doc',
+    position: { x: 10, y: 10 },
+  });
+
+  const blocks = assembleDocContext(ws, host.id);
+  expect(blocks.map((b) => b.docId)).toEqual([ref.id, host.id]);
+});

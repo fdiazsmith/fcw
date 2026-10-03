@@ -69,7 +69,7 @@ export function buildSpatial(state: ProtoState): Built {
     const oy = frame.y - extent.y * k;
 
     for (const p of host.canvas.placements) {
-      const childPath = [...path, p.docId];
+      const childPath = [...path, p.id];
       const key = childPath.join('>');
       const box: Frame = {
         x: ox + p.position.x * k,
@@ -78,17 +78,17 @@ export function buildSpatial(state: ProtoState): Built {
         h: DOC_H * k,
       };
       // Recurse into the child's own canvas, drawn inside the child's box.
-      const onPath = path.includes(p.docId); // a reference pointing back up
+      const onPath = path.includes(p.id); // a reference pointing back up
       const willNest =
-        depth + 1 < MAX_DEPTH && !onPath && !!state.docs[p.docId]?.canvas.placements.length;
+        depth + 1 < MAX_DEPTH && !onPath && !!state.docs[p.id]?.canvas.placements.length;
 
       built.regions.set(key, box);
       built.docs.push({
         id: docShapeId(`sp-${key}`),
         x: box.x,
         y: box.y,
-        props: propsFor(state, p.docId, k, depth, isReference(state, p.docId), DOC_W, DOC_H, willNest),
-        meta: { fcwDoc: true, canvasId, docId: p.docId, ox, oy, k },
+        props: propsFor(state, p.id, k, depth, isReference(state, p.id), DOC_W, DOC_H, willNest),
+        meta: { fcwDoc: true, canvasId, docId: p.id, ox, oy, k },
       });
 
       if (willNest) {
@@ -99,11 +99,11 @@ export function buildSpatial(state: ProtoState): Built {
           h: box.h - (HEADER + PAD) * k,
         };
         built.contentRegions.set(key, inner);
-        emit(p.docId, inner, depth + 1, childPath);
+        emit(p.id, inner, depth + 1, childPath);
       }
     }
 
-    const placed = new Set(host.canvas.placements.map((p) => p.docId));
+    const placed = new Set(host.canvas.placements.map((p) => p.id));
     for (const e of host.canvas.edges) {
       if (!placed.has(e.from) || !placed.has(e.to)) continue;
       const from = [...path, e.from].join('>');

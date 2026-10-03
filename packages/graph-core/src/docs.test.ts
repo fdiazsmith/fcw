@@ -19,10 +19,21 @@ it('one doc placed on two canvases stays one entity', () => {
   ws = placeDoc(ws, checkout.id, arch.id, { x: 40, y: 60 });
 
   // both canvases reference the same id — placements route, they don't copy
-  expect(ws.docs[signin.id].canvas.placements[0].docId).toBe(arch.id);
-  expect(ws.docs[checkout.id].canvas.placements[0].docId).toBe(arch.id);
+  expect(ws.docs[signin.id].canvas.placements[0].id).toBe(arch.id);
+  expect(ws.docs[checkout.id].canvas.placements[0].id).toBe(arch.id);
 
   // edit once, visible from every canvas that references it
   ws = updateDocBody(ws, arch.id, '# Atoms, Molecules, Cells');
   expect(ws.docs[arch.id].body).toBe('# Atoms, Molecules, Cells');
+});
+
+it('placeDoc produces a doc-kind placement', () => {
+  let ws = createWorkspace();
+  let host, child;
+  [ws, host] = createDoc(ws, 'Host');
+  [ws, child] = createDoc(ws, 'Child');
+  ws = placeDoc(ws, host.id, child.id, { x: 5, y: 7 });
+  expect(ws.docs[host.id].canvas.placements).toEqual([
+    { kind: 'doc', id: child.id, position: { x: 5, y: 7 } },
+  ]);
 });

@@ -54,14 +54,14 @@ export function SwapCanvas({ state, canvasId, onMove, onOpen, onDive }: SwapCanv
     if (editor.getCurrentPageId() !== pageId) editor.setCurrentPage(pageId);
 
     const docs: DesiredDoc[] = host.canvas.placements.map((p) => ({
-      id: docShapeId(`${host.id}-${p.docId}`),
+      id: docShapeId(`${host.id}-${p.id}`),
       x: p.position.x,
       y: p.position.y,
-      props: propsFor(current, p.docId, 1, 0, isReference(current, p.docId), DOC_W, DOC_H),
-      meta: { fcwDoc: true, canvasId: host.id, docId: p.docId, ox: 0, oy: 0, k: 1 },
+      props: propsFor(current, p.id, 1, 0, isReference(current, p.id), DOC_W, DOC_H),
+      meta: { fcwDoc: true, canvasId: host.id, docId: p.id, ox: 0, oy: 0, k: 1 },
     }));
 
-    const placed = new Set(host.canvas.placements.map((p) => p.docId));
+    const placed = new Set(host.canvas.placements.map((p) => p.id));
     const arrows: DesiredArrow[] = host.canvas.edges
       .filter((e) => placed.has(e.from) && placed.has(e.to))
       .map((e) => ({

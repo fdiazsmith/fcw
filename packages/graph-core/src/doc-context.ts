@@ -40,10 +40,11 @@ export function assembleDocContext(
   while (queue.length > 0) {
     const current = queue.shift()!;
     for (const p of ws.docs[current].canvas.placements) {
-      if (depth.has(p.docId)) continue;
-      depth.set(p.docId, depth.get(current)! + 1);
-      order.push(p.docId);
-      queue.push(p.docId);
+      if (p.kind !== 'doc') continue; // chat placements contribute nothing yet
+      if (depth.has(p.id)) continue;
+      depth.set(p.id, depth.get(current)! + 1);
+      order.push(p.id);
+      queue.push(p.id);
     }
   }
 

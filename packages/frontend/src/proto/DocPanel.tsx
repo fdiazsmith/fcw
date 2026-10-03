@@ -81,7 +81,7 @@ export function DocPanel(props: DocPanelProps) {
   };
 
   const candidates = Object.values(state.docs).filter(
-    (d) => d.id !== docId && !doc.canvas.placements.some((p) => p.docId === d.id),
+    (d) => d.id !== docId && !doc.canvas.placements.some((p) => p.id === d.id),
   );
 
   return (
@@ -164,11 +164,11 @@ export function DocPanel(props: DocPanelProps) {
           <div style={S.chips}>
             {doc.canvas.placements.length === 0 && <span style={S.muted}>empty canvas</span>}
             {doc.canvas.placements.map((p) => (
-              <span key={p.docId} style={S.chipRow}>
-                <button onClick={() => onNavigate(p.docId)} style={S.chip}>
-                  {state.docs[p.docId]?.title ?? p.docId}
+              <span key={p.id} style={S.chipRow}>
+                <button onClick={() => onNavigate(p.id)} style={S.chip}>
+                  {state.docs[p.id]?.title ?? p.id}
                 </button>
-                <button onClick={() => onUnplace(p.docId)} style={S.tiny} title="Remove from this canvas">
+                <button onClick={() => onUnplace(p.id)} style={S.tiny} title="Remove from this canvas">
                   ✕
                 </button>
               </span>
