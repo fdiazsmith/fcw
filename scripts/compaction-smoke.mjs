@@ -1,5 +1,6 @@
-// E2E smoke: real server + real WS. Create chats -> compact -> stale -> regenerate
-// -> user edit -> move -> restart -> verify persistence.
+// E2E smoke: real server + real WS, doc_* protocol (M2.3). Create chats ->
+// compact into a generated doc -> stale -> regenerate -> user edit -> move ->
+// restart -> verify persistence.
 import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -48,39 +49,45 @@ ws.send(JSON.stringify({ type: 'chat_prompt_submitted', chatId: c1, content: 'di
 ws.send(JSON.stringify({ type: 'chat_prompt_submitted', chatId: c2, content: 'discuss token storage' }));
 await until(received, () => received.filter((m) => m.type === 'chat_user_message').length === 2, 'prompts');
 
-// 2. compact them
+// 2. compact them -> a generated doc on root, chats on its child canvas
 ws.send(JSON.stringify({ type: 'chat_compact_requested', chatIds: [c1, c2] }));
-const created = await until(received, (m) => m.type === 'chat_compaction_created', 'compaction_created');
-if (created.compaction.status !== 'generating') fail('created status not generating');
-if (created.compaction.memberIds.join() !== [c1, c2].join()) fail('memberIds mismatch');
-const doc1 = await until(received, (m) => m.type === 'chat_compaction_document', 'document');
-if (doc1.status !== 'idle') fail('doc status not idle');
-if (!doc1.document.includes('discuss auth design')) fail('structural doc missing member content');
-if (!doc1.sourceDigest) fail('no sourceDigest');
-const cmpId = created.compaction.id;
-console.log('OK compact -> document generated:', JSON.stringify(doc1.document.slice(0, 60)) + '…');
+const created = await until(received, (m) => m.type === 'doc_created', 'doc_created');
+if (created.doc.generated?.status !== 'generating') fail('created doc not generating');
+if (created.doc.canvas.placements.map((p) => p.id).join() !== [c1, c2].join()) fail('member placements mismatch');
+const docId = created.doc.id;
+await until(
+  received,
+  (m) => m.type === 'doc_placed' && m.canvasId === 'root' && m.placement.id === docId,
+  'doc_placed on root',
+);
+const doc1 = await until(received, (m) => m.type === 'doc_updated' && m.docId === docId && m.body, 'generated body');
+if (doc1.generated?.status !== 'idle') fail('doc status not idle');
+if (!doc1.body.includes('discuss auth design')) fail('structural body missing member content');
+if (!doc1.generated.sourceDigest) fail('no sourceDigest');
+console.log('OK compact -> generated doc:', JSON.stringify(doc1.body.slice(0, 60)) + '…');
 
-// 3. member changes -> regenerate picks up new content and fresh digest
+// 3. member changes (stale) -> regenerate picks up new content and fresh digest
 ws.send(JSON.stringify({ type: 'chat_prompt_submitted', chatId: c1, content: 'new decision: use PKCE' }));
 await until(received, (m) => m.type === 'chat_user_message' && m.message.content.includes('PKCE'), 'new msg');
-ws.send(JSON.stringify({ type: 'chat_compaction_regenerate_requested', compactionId: cmpId }));
+ws.send(JSON.stringify({ type: 'doc_regenerate_requested', docId }));
 const regenStart = await until(
   received,
-  (m) => m.type === 'chat_compaction_document' && m.status === 'generating',
+  (m) => m.type === 'doc_updated' && m.generated?.status === 'generating',
   'regen generating broadcast',
 );
 const doc2 = await until(
   received,
-  (m) => m.type === 'chat_compaction_document' && m.status === 'idle' && m.document.includes('PKCE'),
+  (m) => m.type === 'doc_updated' && m.generated?.status === 'idle' && m.body?.includes('PKCE'),
   'regenerated doc',
 );
-if (doc2.sourceDigest === doc1.sourceDigest) fail('digest did not change after regen');
-console.log('OK regenerate -> doc includes new content, digest refreshed', regenStart.status);
+if (doc2.generated.sourceDigest === doc1.generated.sourceDigest) fail('digest did not change after regen');
+console.log('OK stale -> regenerate -> body includes new content, digest refreshed', regenStart.generated.status);
 
 // 4. user edit + move
-ws.send(JSON.stringify({ type: 'chat_compaction_document_updated', compactionId: cmpId, document: '# Hand edited' }));
-await until(received, (m) => m.type === 'chat_compaction_document' && m.document === '# Hand edited', 'edit echo');
-ws.send(JSON.stringify({ type: 'chat_compaction_move_requested', compactionId: cmpId, position: { x: 77, y: 88 } }));
+ws.send(JSON.stringify({ type: 'doc_update_requested', docId, body: '# Hand edited' }));
+await until(received, (m) => m.type === 'doc_updated' && m.body === '# Hand edited', 'edit echo');
+ws.send(JSON.stringify({ type: 'doc_move_requested', canvasId: 'root', kind: 'doc', id: docId, position: { x: 77, y: 88 } }));
+await until(received, (m) => m.type === 'doc_moved' && m.id === docId && m.position.x === 77, 'doc_moved');
 await new Promise((r) => setTimeout(r, 700)); // debounced save
 console.log('OK edit + move accepted');
 
@@ -90,19 +97,21 @@ await app.stop();
 const files = readdirSync(storageDir).filter((f) => f.endsWith('.fcw2.json'));
 if (files.length !== 1) fail(`expected 1 fcw2 doc, got ${files.length}`);
 const persisted = JSON.parse(readFileSync(join(storageDir, files[0]), 'utf-8'));
-const savedCmp = persisted.compactions?.[cmpId];
-if (!savedCmp) fail('compaction not persisted');
-if (savedCmp.document !== '# Hand edited') fail('edited document not persisted');
-if (savedCmp.position.x !== 77) fail('moved position not persisted');
+const savedDoc = persisted.docs?.[docId];
+if (!savedDoc) fail('doc not persisted');
+if (savedDoc.body !== '# Hand edited') fail('edited body not persisted');
+if (savedDoc.generated?.sourceDigest !== doc2.generated.sourceDigest) fail('digest not persisted');
+const savedPlacement = persisted.rootCanvas?.placements.find((p) => p.id === docId);
+if (savedPlacement?.position.x !== 77) fail('moved position not persisted');
 console.log('OK persisted to disk');
 
 app = createApp({ port: PORT, storageDir, title: 'Smoke' });
 await app.start();
 ({ ws, received } = await connect());
 const snap = await until(received, (m) => m.type === 'chat_snapshot', 'snapshot after restart');
-if (!snap.graph.compactions?.[cmpId]) fail('snapshot after restart missing compaction');
-if (snap.graph.compactions[cmpId].document !== '# Hand edited') fail('restart lost the edit');
-console.log('OK restart -> snapshot carries the compaction');
+if (snap.graph.docs?.[docId]?.body !== '# Hand edited') fail('restart lost the edit');
+if (!snap.graph.rootCanvas.placements.some((p) => p.id === docId && p.position.x === 77)) fail('restart lost the move');
+console.log('OK restart -> snapshot carries the doc');
 
 ws.close();
 await app.stop();
