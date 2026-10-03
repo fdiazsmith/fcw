@@ -36,8 +36,10 @@ import { globalGraph } from './global-graph';
 import type { GlobalGraphData } from './global-graph';
 import { deletionIntents, DeletedShape } from './deletion-intents';
 import { exportBranchMarkdown } from './export-branch';
+import { ProjectMenu } from './components/ProjectMenu';
+import { projectUrl, projectWsUrl, createdProjectId } from './projects';
 import { ROOT_CANVAS_ID } from '@fcw/graph-core';
-import type { ChatServerMessage, ChatClientMessage, Position } from '@fcw/graph-core';
+import type { ChatServerMessage, ChatClientMessage, Position, ProjectSummary } from '@fcw/graph-core';
 
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8009';
 const HTTP_URL = WS_URL.replace(/^ws/, 'http');
@@ -188,6 +190,10 @@ export default function ChatCanvas() {
   const [panelState, setPanelState] = useState<ChatState>(emptyChatState());
   // The global graph modal: a snapshot query of the store, taken when opened.
   const [graph, setGraph] = useState<GlobalGraphData | null>(null);
+  // M7.7: store snapshot for the project menu (open project, list, settings).
+  const [menuState, setMenuState] = useState<ChatState>(emptyChatState());
+  // A create request awaiting its project_list: the title and the list before it.
+  const pendingCreateRef = useRef<{ title: string; before: ProjectSummary[] } | null>(null);
 
   const openPanel = useCallback((docId: string | null) => {
     panelDocIdRef.current = docId;
@@ -432,6 +438,49 @@ export default function ChatCanvas() {
       if (msg.type !== 'chat_snapshot' && next === stateRef.current) return;
       stateRef.current = next;
       if (panelDocIdRef.current) setPanelState(next);
+      if (
+        msg.type === 'project_list' ||
+        msg.type === 'project_opened' ||
+        msg.type === 'chat_snapshot' ||
+        msg.type === 'chat_capabilities'
+      ) {
+        setMenuState(next);
+      }
+
+      if (msg.type === 'project_list' && pendingCreateRef.current) {
+        // The server lists a new project without opening it: open it here.
+        const { title, before } = pendingCreateRef.current;
+        const id = createdProjectId(before, msg.projects, title);
+        if (id) {
+          pendingCreateRef.current = null;
+          send({ type: 'project_open_requested', id });
+        }
+      }
+
+      if (msg.type === 'project_opened') {
+        // The tab now shows another graph: URL, nav, panels and canvas start over.
+        const { pathname, search, hash } = window.location;
+        window.history.replaceState(window.history.state, '', pathname + projectUrl(search, msg.project.id) + hash);
+        navRef.current = [ROOT_CANVAS_ID];
+        pendingPromptsRef.current = [];
+        openPanel(null);
+        setGraph(null);
+        const ed = editorRef.current;
+        const mainPage = mainPageIdRef.current;
+        if (ed && mainPage) {
+          syncingRef.current = true;
+          try {
+            ed.run(() => {
+              if (ed.getCurrentPageId() !== mainPage) ed.setCurrentPage(mainPage);
+              for (const page of ed.getPages()) if (page.id !== mainPage) ed.deletePage(page.id);
+              ed.deleteShapes([...ed.getPageShapeIds(mainPage)]);
+            });
+          } finally {
+            syncingRef.current = false;
+          }
+        }
+      }
+
       const editor = editorRef.current;
       if (!editor) return; // replayed on mount
 
@@ -471,11 +520,12 @@ export default function ChatCanvas() {
         }
       }
     },
-    [syncCanvas, runPendingLayout, showBanner, send],
+    [syncCanvas, runPendingLayout, showBanner, send, openPanel],
   );
 
   useEffect(() => {
-    const ws = createWsClient(WS_URL);
+    // M7.6: bind the socket to the page's project; re-read on reconnect.
+    const ws = createWsClient(() => projectWsUrl(WS_URL, new URLSearchParams(window.location.search).get('project')));
     wsRef.current = ws;
     ws.onMessage((msg) => handleServerMessage(msg as unknown as ChatServerMessage));
     registerChatActions({
@@ -826,13 +876,40 @@ export default function ChatCanvas() {
         {crumbs.map((c, i) => (
           <React.Fragment key={`${i}-${c.canvasId}`}>
             {i > 0 && <span style={{ color: '#94A3B8' }}>›</span>}
-            <button
-              data-testid="breadcrumb-item"
-              onClick={() => navigate(popTo(navRef.current, i))}
-              style={{ ...crumbButton, fontWeight: i === crumbs.length - 1 ? 700 : 500 }}
-            >
-              {c.label}
-            </button>
+            {i === 0 ? (
+              // The root crumb is the project menu; ⌂ walks back to root.
+              <span data-testid="breadcrumb-item">
+                <ProjectMenu
+                  project={menuState.project}
+                  projects={menuState.projects}
+                  fallbackLabel={c.label}
+                  settings={menuState.projectSettings}
+                  capabilities={menuState.capabilities}
+                  listDirs={listDirs}
+                  onOpen={(id) => send({ type: 'project_open_requested', id })}
+                  onCreate={(title) => {
+                    pendingCreateRef.current = { title, before: stateRef.current.projects };
+                    send({ type: 'project_create_requested', title });
+                  }}
+                  onRename={(id, title) => send({ type: 'project_rename_requested', id, title })}
+                  onSaveSettings={(id, settings) => {
+                    send({ type: 'project_settings_requested', id, settings });
+                    // The server doesn't echo settings; keep the prefill current.
+                    stateRef.current = { ...stateRef.current, projectSettings: settings };
+                    setMenuState(stateRef.current);
+                  }}
+                  onTrash={(id) => send({ type: 'project_trash_requested', id })}
+                />
+              </span>
+            ) : (
+              <button
+                data-testid="breadcrumb-item"
+                onClick={() => navigate(popTo(navRef.current, i))}
+                style={{ ...crumbButton, fontWeight: i === crumbs.length - 1 ? 700 : 500 }}
+              >
+                {c.label}
+              </button>
+            )}
           </React.Fragment>
         ))}
         <button
