@@ -30,6 +30,9 @@ import { layoutDocNodes, centerLayoutAt } from './doc-layout';
 import { ChatSearchBar } from './components/ChatSearchBar';
 import { PromptBar, PromptMode } from './components/PromptBar';
 import { DocPanel } from './components/DocPanel';
+import { GlobalGraph } from './components/GlobalGraph';
+import { globalGraph } from './global-graph';
+import type { GlobalGraphData } from './global-graph';
 import { deletionIntents, DeletedShape } from './deletion-intents';
 import { exportBranchMarkdown } from './export-branch';
 import { ROOT_CANVAS_ID } from '@fcw/graph-core';
@@ -182,6 +185,8 @@ export default function ChatCanvas() {
   const [panelDocId, setPanelDocId] = useState<string | null>(null);
   const panelDocIdRef = useRef<string | null>(null);
   const [panelState, setPanelState] = useState<ChatState>(emptyChatState());
+  // The global graph modal: a snapshot query of the store, taken when opened.
+  const [graph, setGraph] = useState<GlobalGraphData | null>(null);
 
   const openPanel = useCallback((docId: string | null) => {
     panelDocIdRef.current = docId;
@@ -832,6 +837,24 @@ export default function ChatCanvas() {
       >
         double-click: new · + : branch · drag arrow: connect
       </div>
+      <button
+        data-testid="global-graph-toggle"
+        title="Global graph"
+        onClick={() => setGraph(globalGraph(stateRef.current))}
+        style={{ ...crumbButton, position: 'absolute', top: 12, left: 12, zIndex: 1000, background: '#fff', border: '1px solid #E2E8F0' }}
+      >
+        Graph
+      </button>
+      {graph && (
+        <GlobalGraph
+          graph={graph}
+          onClose={() => setGraph(null)}
+          onPick={(docId) => {
+            setGraph(null);
+            navigate(pathToRoot(stateRef.current, docId));
+          }}
+        />
+      )}
       {panelDocId && (
         <DocPanel
           state={panelState}
