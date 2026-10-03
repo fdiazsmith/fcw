@@ -552,6 +552,7 @@ export class ChatSessionManager extends EventEmitter {
       throw new Error(`message ${messageIndex} of ${chatId} is not an assistant message`);
     }
     this.graph.docs[docId] = applyToDoc(this.graph, docId, message.content).docs[docId];
+    this.markDocReadersStale(docId);
     this.emit('message', { type: 'doc_updated', docId, body: message.content });
     this.scheduleSave();
   }

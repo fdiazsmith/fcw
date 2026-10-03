@@ -50,4 +50,19 @@ describe('doc context freshness (M2.8)', () => {
     expect(stale(w.sessions, w.hosted)).toBe(true);
     expect(stale(w.sessions, w.otherChat)).toBe(false);
   });
+
+  it('applyToDoc marks the doc-chat and chats reading the doc', () => {
+    const w = world();
+    w.sessions.graph.chats[w.refChat].messages.push(
+      { role: 'user', content: 'draft it', createdAt: '' },
+      { role: 'assistant', content: 'Drafted body.', createdAt: '' },
+    );
+
+    w.sessions.applyToDoc(w.ref, w.refChat, 1);
+
+    expect(stale(w.sessions, w.refChat)).toBe(true);
+    expect(stale(w.sessions, w.hosted)).toBe(true);
+    expect(stale(w.sessions, w.unrelated)).toBe(false);
+    expect(stale(w.sessions, w.otherChat)).toBe(false);
+  });
 });
