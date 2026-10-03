@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:proto": "vite --open /proto.html",
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest"
