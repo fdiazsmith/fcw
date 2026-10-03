@@ -148,6 +148,12 @@ const DocLinkRequestedSchema = z.object({
   existingDocId: z.string(),
 });
 
+const DiagramRequestedSchema = z.object({
+  type: z.literal('diagram_requested'),
+  canvasId: z.string(),
+  prompt: z.string(),
+});
+
 export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatCreateRequestedSchema,
   ChatPromptSubmittedSchema,
@@ -170,6 +176,7 @@ export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   DocMoveRequestedSchema,
   DocLinkRequestedSchema,
   DocRegenerateRequestedSchema,
+  DiagramRequestedSchema,
 ]);
 
 export function isChatClientMessage(value: unknown): value is ChatClientMessage {
@@ -227,5 +234,7 @@ export async function handleChatClientMessage(
     sessions.moveOnCanvas(msg.canvasId, msg.kind, msg.id, msg.position);
   } else if (msg.type === 'doc_link_requested') {
     sessions.linkDoc(msg.canvasId, msg.placedDocId, msg.existingDocId);
+  } else if (msg.type === 'diagram_requested') {
+    await sessions.requestDiagram(msg.canvasId, msg.prompt);
   }
 }

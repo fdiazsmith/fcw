@@ -19,6 +19,7 @@ import { createChatStreamText } from './chat-claude-adapter.js';
 import { createAgentTurnStream } from './chat-agent-adapter.js';
 import { createCapabilitiesProvider } from './capabilities.js';
 import { createCompactionDocGenerator } from './compaction-doc.js';
+import { createDiagramGenerator } from './diagram-gen.js';
 import { AttachmentStore } from './attachments.js';
 import { loadLatestChatGraph, saveChatGraph } from './chat-graph-store.js';
 
@@ -117,6 +118,7 @@ export function createApp(options: ServerOptions = {}) {
     initialGraph,
     (id) => attachmentStore.get(id),
     createCompactionDocGenerator({ apiKey }),
+    createDiagramGenerator({ apiKey }).generate,
   );
   chatSessions.setSaveHandler((graph) => saveChatGraph(storageDir, graph));
 

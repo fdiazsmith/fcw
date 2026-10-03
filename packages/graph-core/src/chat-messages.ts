@@ -70,4 +70,5 @@ export type ChatClientMessage =
   | { type: 'doc_unplace_requested'; canvasId: string; kind: DocPlacement['kind']; id: string }
   | { type: 'doc_move_requested'; canvasId: string; kind: DocPlacement['kind']; id: string; position: Position }
   | { type: 'doc_link_requested'; canvasId: string; placedDocId: string; existingDocId: string }
-  | { type: 'doc_regenerate_requested'; docId: string };
+  | { type: 'doc_regenerate_requested'; docId: string }
+  | { type: 'diagram_requested'; canvasId: string; prompt: string };

@@ -287,3 +287,18 @@ describe('handleChatClientMessage', () => {
     expect(spy).toHaveBeenCalledWith(id, 'r1', { behavior: 'deny', message: 'no' });
   });
 });
+
+describe('diagram_requested (M2.5)', () => {
+  it('validates', () => {
+    expect(isChatClientMessage({ type: 'diagram_requested', canvasId: 'root', prompt: 'p' })).toBe(true);
+    expect(isChatClientMessage({ type: 'diagram_requested', canvasId: 'root' })).toBe(false);
+    expect(isChatClientMessage({ type: 'diagram_requested', prompt: 'p' })).toBe(false);
+  });
+
+  it('dispatches to requestDiagram', async () => {
+    const sessions = new ChatSessionManager();
+    const spy = vi.spyOn(sessions, 'requestDiagram').mockResolvedValue();
+    await handleChatClientMessage({ type: 'diagram_requested', canvasId: 'root', prompt: 'p' }, sessions);
+    expect(spy).toHaveBeenCalledWith('root', 'p');
+  });
+});
