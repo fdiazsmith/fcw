@@ -11,6 +11,7 @@ import type {
   DocCanvas,
   DocEdge,
   DocPlacement,
+  ProjectSummary,
   TokenUsage,
 } from '@fcw/graph-core';
 import { linkPlacement, ROOT_CANVAS_ID } from '@fcw/graph-core';
@@ -55,6 +56,10 @@ export interface ChatState {
   docChats: Record<string, string>;
   /** Diagram boxes awaiting layout; the canvas UI consumes via clearPendingLayout. */
   pendingLayout: { canvasId: string; docIds: string[]; edges: DocEdge[] }[];
+  /** The project this tab is bound to (M7.6). */
+  project?: ProjectSummary;
+  /** Every project, for the project menu. */
+  projects: ProjectSummary[];
 }
 
 export function emptyChatState(): ChatState {
@@ -66,6 +71,7 @@ export function emptyChatState(): ChatState {
     rootCanvas: { placements: [], edges: [] },
     docChats: {},
     pendingLayout: [],
+    projects: [],
   };
 }
 
@@ -138,6 +144,16 @@ const isPlacement = (p: DocPlacement, kind: DocPlacement['kind'], id: string) =>
   p.kind === kind && p.id === id;
 
 export function applyChatMessage(state: ChatState, msg: ChatServerMessage): ChatState {
+  if (msg.type === 'project_list') {
+    const current = state.project && msg.projects.find((p) => p.id === state.project?.id);
+    return { ...state, projects: msg.projects, ...(current ? { project: current } : {}) };
+  }
+
+  if (msg.type === 'project_opened') {
+    // A fresh graph follows as chat_snapshot; capabilities are per server, not per project.
+    return { ...emptyChatState(), capabilities: state.capabilities, projects: state.projects, project: msg.project };
+  }
+
   if (msg.type === 'chat_snapshot') {
     const chats: Record<string, ChatView> = {};
     for (const chat of Object.values(msg.graph.chats)) {

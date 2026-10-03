@@ -511,3 +511,37 @@ describe('doc selectors', () => {
     expect(chatIdsOn(state, 'nope')).toEqual([]);
   });
 });
+
+describe('projects (M7.6)', () => {
+  const alpha = { id: 'p_a', title: 'Alpha', updatedAt: 't0', chatCount: 0, docCount: 0 };
+  const beta = { id: 'p_b', title: 'Beta', updatedAt: 't0', chatCount: 1, docCount: 0 };
+
+  it('project_list stores the list', () => {
+    const s = apply(emptyChatState(), { type: 'project_list', projects: [alpha, beta] });
+    expect(s.projects).toEqual([alpha, beta]);
+  });
+
+  it('project_list refreshes the open project summary (rename)', () => {
+    const s = apply(
+      emptyChatState(),
+      { type: 'project_opened', project: beta },
+      { type: 'project_list', projects: [alpha, { ...beta, title: 'Beta 2' }] },
+    );
+    expect(s.project?.title).toBe('Beta 2');
+  });
+
+  it('project_opened resets graph state but keeps the project list and capabilities', () => {
+    const models = [{ id: 'm', displayName: 'M' }];
+    const s = apply(
+      emptyChatState(),
+      { type: 'project_list', projects: [alpha, beta] },
+      { type: 'chat_capabilities', models, commands: [] } as ChatServerMessage,
+      { type: 'chat_created', chat: chat('c1') },
+      { type: 'project_opened', project: alpha },
+    );
+    expect(s.project).toEqual(alpha);
+    expect(s.chats).toEqual({});
+    expect(s.projects).toEqual([alpha, beta]);
+    expect(s.capabilities.models).toEqual(models);
+  });
+});
