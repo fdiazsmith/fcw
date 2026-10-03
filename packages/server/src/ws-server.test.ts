@@ -345,4 +345,27 @@ describe('WebSocket Server project routing', () => {
     a.ws.send(JSON.stringify({ type: 'project_list_requested' }));
     expect((await until(a.received, (m) => m.type === 'project_list')).projects).toHaveLength(2);
   });
+
+  it('create / rename / settings broadcast project_list to every socket', async () => {
+    const other = await host.create('Other');
+    const a = await client();
+    const b = await client(`/?project=${other.id}`);
+    await until(a.received, (m) => m.type === 'chat_snapshot');
+    await until(b.received, (m) => m.type === 'chat_snapshot');
+    const lists = (r: Msg[]) => r.filter((m) => m.type === 'project_list');
+    const titles = (m: Msg) => m.projects.map((p: Msg) => p.title).sort();
+
+    a.ws.send(JSON.stringify({ type: 'project_create_requested', title: 'New' }));
+    await until(b.received, () => lists(b.received).length === 2);
+    expect(titles(lists(b.received)[1])).toEqual(['New', 'Other', 'Sandbox']);
+
+    a.ws.send(JSON.stringify({ type: 'project_rename_requested', id: other.id, title: 'Renamed' }));
+    await until(b.received, () => lists(b.received).length === 3);
+    expect(titles(lists(b.received)[2])).toEqual(['New', 'Renamed', 'Sandbox']);
+    expect(host.open(other.id).graph.meta.title).toBe('Renamed');
+
+    a.ws.send(JSON.stringify({ type: 'project_settings_requested', id: other.id, settings: { cwd: '/tmp', effort: 'low' } }));
+    await until(a.received, () => lists(a.received).length === 4);
+    expect(host.open(other.id).graph.meta.settings).toEqual({ cwd: '/tmp', effort: 'low' });
+  });
 });
