@@ -483,6 +483,7 @@ export class ChatSessionManager extends EventEmitter {
     }
     const placement: DocPlacement = { kind, id, position: { ...position } };
     canvas.placements.push(placement);
+    if (kind === 'chat') this.graph.chats[id].sessionStale = true;
     this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
     this.scheduleSave();
   }
@@ -498,6 +499,7 @@ export class ChatSessionManager extends EventEmitter {
     const canvas = this.canvasById(canvasId);
     const placement = this.placementOn(canvasId, kind, id);
     canvas.placements = canvas.placements.filter((p) => p !== placement);
+    if (kind === 'chat' && this.graph.chats[id]) this.graph.chats[id].sessionStale = true;
     this.emit('message', { type: 'doc_unplaced', canvasId, kind, id });
     this.scheduleSave();
   }

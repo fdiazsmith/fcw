@@ -83,4 +83,24 @@ describe('doc context freshness (M2.8)', () => {
     expect(stale(w.sessions, w.unrelated)).toBe(false);
     expect(stale(w.sessions, w.otherChat)).toBe(false);
   });
+
+  it('placing a chat on a doc canvas marks that chat only', () => {
+    const w = world();
+
+    w.sessions.placeOnCanvas(w.host, 'chat', w.unrelated, pos);
+
+    expect(stale(w.sessions, w.unrelated)).toBe(true);
+    expect(stale(w.sessions, w.hosted)).toBe(false);
+    expect(stale(w.sessions, w.refChat)).toBe(false);
+  });
+
+  it('unplacing a chat from a doc canvas marks that chat only', () => {
+    const w = world();
+
+    w.sessions.unplaceFromCanvas(w.host, 'chat', w.hosted);
+
+    expect(stale(w.sessions, w.hosted)).toBe(true);
+    expect(stale(w.sessions, w.refChat)).toBe(false);
+    expect(stale(w.sessions, w.unrelated)).toBe(false);
+  });
 });
