@@ -1,5 +1,6 @@
 import { IncomingMessage, Server } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
+import { z } from 'zod';
 import { StateManager } from './state-manager.js';
 import { handleClientMessage } from './ws-handler.js';
 import type { ClaudeClient } from './claude-client.js';
@@ -9,6 +10,11 @@ import { formatErrorMessage } from './error-format.js';
 import { ChatSessionManager } from './chat-session.js';
 import { isChatClientMessage, handleChatClientMessage } from './chat-ws-handler.js';
 import type { ProjectHost } from './project-host.js';
+
+const ProjectClientMessageSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('project_list_requested') }),
+  z.object({ type: z.literal('project_open_requested'), id: z.string() }),
+]);
 
 export interface WsServerOptions {
   claudeClient?: ClaudeClient;
@@ -76,6 +82,18 @@ export function createWsServer(
     send(ws, { type: 'chat_snapshot', graph: sessions.graph });
   }
 
+  async function handleProjectMessage(
+    ws: WebSocket,
+    host: ProjectHost,
+    msg: z.infer<typeof ProjectClientMessageSchema>,
+  ): Promise<void> {
+    if (msg.type === 'project_list_requested') {
+      send(ws, { type: 'project_list', projects: host.list() });
+    } else if (msg.type === 'project_open_requested') {
+      bind(ws, host, msg.id);
+    }
+  }
+
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     console.log('[ws] client connected');
 
@@ -113,6 +131,16 @@ export function createWsServer(
       }
 
       console.log('[ws] received:', msg.type);
+
+      // M7.4: project messages
+      const projectMsg = ProjectClientMessageSchema.safeParse(msg);
+      if (projects && projectMsg.success) {
+        handleProjectMessage(ws, projects, projectMsg.data).catch((err) => {
+          console.error('[ws] project error:', err);
+          send(ws, { type: 'error', message: formatErrorMessage(err) });
+        });
+        return;
+      }
 
       // v2: chat-graph messages take their own path
       const sessions = bindings.get(ws)?.sessions ?? options?.chatSessions;

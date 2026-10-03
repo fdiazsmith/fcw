@@ -321,4 +321,28 @@ describe('WebSocket Server project routing', () => {
     expect(Object.values(host.open(other.id).graph.docs).map((d) => d.title)).toEqual(['in B']);
     expect(host.open(sandbox).graph.docs).toEqual({});
   });
+
+  it('project_open_requested rebinds the socket and makes it the last-opened project', async () => {
+    const other = await host.create('Other');
+    const a = await client();
+    await until(a.received, (m) => m.type === 'chat_snapshot');
+    a.received.length = 0;
+
+    a.ws.send(JSON.stringify({ type: 'project_open_requested', id: other.id }));
+    expect((await until(a.received, (m) => m.type === 'chat_snapshot')).graph.id).toBe(other.id);
+    expect(a.received.map((m) => m.type)).toEqual(['project_opened', 'project_list', 'chat_snapshot']);
+    expect(a.received[0].project.id).toBe(other.id);
+    expect(host.defaultProjectId()).toBe(other.id);
+
+    a.ws.send(JSON.stringify({ type: 'chat_create_requested', position: { x: 0, y: 0 } }));
+    await until(a.received, (m) => m.type === 'chat_created');
+    expect(Object.keys(host.open(other.id).graph.chats)).toHaveLength(1);
+
+    a.ws.send(JSON.stringify({ type: 'project_open_requested', id: 'cg_nope' }));
+    expect((await until(a.received, (m) => m.type === 'error')).message).toMatch(/unknown project/);
+
+    a.received.length = 0;
+    a.ws.send(JSON.stringify({ type: 'project_list_requested' }));
+    expect((await until(a.received, (m) => m.type === 'project_list')).projects).toHaveLength(2);
+  });
 });
