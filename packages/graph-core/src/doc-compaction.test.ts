@@ -29,6 +29,12 @@ describe('compactChats', () => {
     expect(doc.generated).toEqual({ sourceDigest: '', status: 'generating' });
   });
 
+  it('stamps createdAt as an ISO timestamp', () => {
+    const { g, ids } = graphWithChats(1);
+    const doc = g.docs[compactChats(g, ids)];
+    expect(new Date(doc.createdAt!).toISOString()).toBe(doc.createdAt);
+  });
+
   it('places the chats on the new doc canvas at their current positions', () => {
     const { g, ids } = graphWithChats(2);
     const docId = compactChats(g, ids);
@@ -167,6 +173,7 @@ describe('migrateCompactions', () => {
 
   it('turns each compaction into a generated doc with the same id, placed on root', () => {
     const { g, ids, cmp } = legacyGraph();
+    const createdAt = g.compactions[cmp].createdAt;
     migrateCompactions(g);
 
     expect(g.compactions).toEqual({});
@@ -174,6 +181,7 @@ describe('migrateCompactions', () => {
       id: cmp,
       title: 'Legacy',
       body: '# generated',
+      createdAt,
       canvas: {
         placements: [
           { kind: 'chat', id: ids[0], position: { x: 0, y: 0 } },
@@ -228,6 +236,7 @@ describe('migrateCompactions', () => {
       expect(doc.title).toBe(c.title);
       expect(doc.body).toBe(c.document);
       expect(doc.generated).toEqual({ sourceDigest: c.sourceDigest, status: c.status });
+      expect(doc.createdAt).toBe(c.createdAt);
       expect(doc.canvas.placements).toEqual(
         c.memberIds.map((m) => ({ kind: 'chat', id: m, position: before.chats[m].position })),
       );
@@ -244,6 +253,8 @@ describe('migrateCompactions', () => {
     expect(() => compactChats(g, ['chat_1773900000000_1'])).toThrow(/already compacted/);
     expect(() => compactChats(g, ['chat_1773900000000_4'])).not.toThrow();
 
-    expect(chatGraphFromJSON(chatGraphToJSON(g))).toEqual(g);
+    const reloaded = chatGraphFromJSON(chatGraphToJSON(g));
+    expect(reloaded).toEqual(g);
+    expect(reloaded.docs.cmp_1773900100000_1.createdAt).toBe('2026-03-19T06:45:00.000Z');
   });
 });

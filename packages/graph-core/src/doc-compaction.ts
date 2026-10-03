@@ -5,10 +5,9 @@
 import type { ChatGraph } from './chat-graph.js';
 import { compactionDigest } from './compaction.js';
 import type { CompactionMember } from './compaction.js';
+import { newDocId } from './docs.js';
 import type { Doc, DocCanvas } from './docs.js';
 import type { Position } from './types.js';
-
-let docCounter = 0;
 
 export function compactChats(
   graph: ChatGraph,
@@ -46,11 +45,12 @@ export function compactChats(
     y: positions.reduce((sum, p) => sum + p.y, 0) / positions.length,
   };
 
-  const id = `doc_${Date.now()}_${++docCounter}`;
+  const id = newDocId();
   graph.docs[id] = {
     id,
     title: options?.title ?? graph.chats[chatIds[0]].title,
     body: '',
+    createdAt: new Date().toISOString(),
     canvas: {
       placements: chatIds.map((c, i) => ({ kind: 'chat', id: c, position: { ...positions[i] } })),
       edges: [],
@@ -86,6 +86,7 @@ export function migrateCompactions(graph: ChatGraph): void {
       id: c.id,
       title: c.title,
       body: c.document,
+      createdAt: c.createdAt,
       canvas: {
         placements: c.memberIds.map((m) => ({
           kind: 'chat',
