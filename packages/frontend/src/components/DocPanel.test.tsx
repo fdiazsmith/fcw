@@ -33,6 +33,7 @@ const props = (over: Partial<DocPanelProps> = {}): DocPanelProps => ({
   onClose: vi.fn(),
   onBodyChange: vi.fn(),
   onRequestChat: vi.fn(),
+  onApply: vi.fn(),
   ...over,
 });
 
@@ -119,5 +120,22 @@ describe('DocPanel doc-chat', () => {
     // Capabilities flow through: the model dropdown lists the server's models.
     fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'claude-opus-4-8' } });
     expect(actions.updateSettings).toHaveBeenCalledWith('c1', { model: 'claude-opus-4-8' });
+  });
+});
+
+describe('DocPanel apply', () => {
+  it('Apply on an assistant message calls onApply with the doc-chat and message index', () => {
+    const p = props({
+      state: withDocChat({
+        messages: [
+          { role: 'user', content: 'write it', createdAt: '' },
+          { role: 'assistant', content: 'Drafted: write it', createdAt: '' },
+        ],
+      }),
+    });
+    render(<DocPanel {...p} />);
+    fireEvent.click(screen.getByTestId('doc-apply'));
+    expect(p.onApply).toHaveBeenCalledWith('c1', 1);
+    expect(p.onBodyChange).not.toHaveBeenCalled();
   });
 });

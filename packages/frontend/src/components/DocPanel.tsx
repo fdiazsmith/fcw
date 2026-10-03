@@ -13,12 +13,14 @@ export interface DocPanelProps {
   onBodyChange: (body: string) => void;
   /** The doc has no doc-chat yet: ask the server for one (`doc_chat_requested`). */
   onRequestChat: () => void;
+  /** "Apply to doc" pressed on an assistant message (`doc_apply_requested`). */
+  onApply: (chatId: string, messageIndex: number) => void;
 }
 
 const notConnected = () => Promise.reject(new Error('not connected'));
 
 /** Side panel for the selected doc (MERMAID-DOCS.md § Doc-chat placement). */
-export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat }: DocPanelProps) {
+export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat, onApply }: DocPanelProps) {
   const doc = state.docs[docId];
   const { chat, needsRequest } = docChatBinding(state, docId);
   const caps = state.capabilities;
@@ -93,6 +95,7 @@ export function DocPanel({ state, docId, onClose, onBodyChange, onRequestChat }:
             }
             uploadAttachment={(file) => chatActions()?.uploadAttachment(file) ?? notConnected()}
             listDirs={(path) => chatActions()?.listDirs(path) ?? notConnected()}
+            onApply={(i) => onApply(chat.id, i)}
           />
         ) : (
           <div style={{ padding: 12, fontSize: 12, color: '#94A3B8' }}>Starting doc chat…</div>
