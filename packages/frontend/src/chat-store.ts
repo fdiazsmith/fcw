@@ -11,9 +11,10 @@ import type {
   Doc,
   DocCanvas,
   DocEdge,
+  DocPlacement,
   TokenUsage,
 } from '@fcw/graph-core';
-import { compactionDigest } from '@fcw/graph-core';
+import { compactionDigest, ROOT_CANVAS_ID } from '@fcw/graph-core';
 
 export interface PendingPermission {
   requestId: string;
@@ -96,6 +97,17 @@ function viewFrom(chat: ChatNode): ChatView {
     contextChats: 0,
   };
 }
+
+/** Replace one canvas (root or a doc's); unknown canvas ids leave state unchanged. */
+function withCanvas(state: ChatState, canvasId: string, fn: (c: DocCanvas) => DocCanvas): ChatState {
+  if (canvasId === ROOT_CANVAS_ID) return { ...state, rootCanvas: fn(state.rootCanvas) };
+  const doc = state.docs[canvasId];
+  if (!doc) return state;
+  return { ...state, docs: { ...state.docs, [canvasId]: { ...doc, canvas: fn(doc.canvas) } } };
+}
+
+const isPlacement = (p: DocPlacement, kind: DocPlacement['kind'], id: string) =>
+  p.kind === kind && p.id === id;
 
 export function applyChatMessage(state: ChatState, msg: ChatServerMessage): ChatState {
   if (msg.type === 'chat_snapshot') {
@@ -181,6 +193,24 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
     if (!doc) return state;
     const { type: _type, docId: _docId, ...patch } = msg;
     return { ...state, docs: { ...state.docs, [msg.docId]: { ...doc, ...patch } } };
+  }
+
+  if (msg.type === 'doc_placed') {
+    return withCanvas(state, msg.canvasId, (c) => ({ ...c, placements: [...c.placements, msg.placement] }));
+  }
+
+  if (msg.type === 'doc_unplaced') {
+    return withCanvas(state, msg.canvasId, (c) => ({
+      ...c,
+      placements: c.placements.filter((p) => !isPlacement(p, msg.kind, msg.id)),
+    }));
+  }
+
+  if (msg.type === 'doc_moved') {
+    return withCanvas(state, msg.canvasId, (c) => ({
+      ...c,
+      placements: c.placements.map((p) => (isPlacement(p, msg.kind, msg.id) ? { ...p, position: msg.position } : p)),
+    }));
   }
 
   if (msg.type === 'doc_chat_ready') {

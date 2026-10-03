@@ -426,3 +426,44 @@ describe('doc state: docs and doc-chats', () => {
     expect(s.docChats).toEqual({ d1: 'c1' });
   });
 });
+
+describe('doc state: placements', () => {
+  const pos = (x: number, y: number) => ({ x, y });
+  const base = () =>
+    apply(emptyChatState(), { type: 'doc_created', doc: mkDoc('d1') }, { type: 'doc_created', doc: mkDoc('d2') });
+
+  it('doc_placed adds a placement to root and to a doc canvas', () => {
+    const s = apply(
+      base(),
+      { type: 'doc_placed', canvasId: 'root', placement: { kind: 'doc', id: 'd1', position: pos(1, 1) } },
+      { type: 'doc_placed', canvasId: 'd1', placement: { kind: 'doc', id: 'd2', position: pos(2, 2) } },
+    );
+    expect(s.rootCanvas.placements).toEqual([{ kind: 'doc', id: 'd1', position: pos(1, 1) }]);
+    expect(s.docs.d1.canvas.placements).toEqual([{ kind: 'doc', id: 'd2', position: pos(2, 2) }]);
+  });
+
+  it('doc_moved updates a position; doc_unplaced removes it', () => {
+    let s = apply(base(), {
+      type: 'doc_placed',
+      canvasId: 'root',
+      placement: { kind: 'doc', id: 'd1', position: pos(1, 1) },
+    });
+    s = apply(s, { type: 'doc_moved', canvasId: 'root', kind: 'doc', id: 'd1', position: pos(9, 9) });
+    expect(s.rootCanvas.placements[0].position).toEqual(pos(9, 9));
+    s = apply(s, { type: 'doc_unplaced', canvasId: 'root', kind: 'doc', id: 'd1' });
+    expect(s.rootCanvas.placements).toEqual([]);
+  });
+
+  it('unknown canvases and ids are ignored without throwing', () => {
+    const s = base();
+    const out = apply(
+      s,
+      { type: 'doc_placed', canvasId: 'nope', placement: { kind: 'doc', id: 'd1', position: pos(0, 0) } },
+      { type: 'doc_moved', canvasId: 'nope', kind: 'doc', id: 'd1', position: pos(0, 0) },
+      { type: 'doc_unplaced', canvasId: 'nope', kind: 'doc', id: 'd1' },
+      { type: 'doc_moved', canvasId: 'root', kind: 'doc', id: 'zzz', position: pos(0, 0) },
+    );
+    expect(out.rootCanvas).toEqual(s.rootCanvas);
+    expect(out.docs).toEqual(s.docs);
+  });
+});
