@@ -193,6 +193,16 @@ describe('ChatSessionManager.linkDoc', () => {
     expect(elsewhere.sessions.graph.docs[elsewhere.placed]).toBeDefined();
   });
 
+  it('keeps an empty replaced doc that has a doc-chat (M2.9: never orphan a doc-chat)', () => {
+    const { sessions, host, existing, placed } = setup();
+    const docChat = sessions.requestDocChat(placed);
+
+    sessions.linkDoc(host, placed, existing);
+
+    expect(sessions.graph.docs[placed]).toBeDefined();
+    expect(sessions.graph.chats[docChat].docId).toBe(placed);
+  });
+
   it('rejects unknown canvas / docs', () => {
     const { sessions, host, existing, placed } = setup();
     expect(() => sessions.linkDoc('nope', placed, existing)).toThrow(/unknown canvas/);

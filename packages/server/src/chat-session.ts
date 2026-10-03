@@ -508,7 +508,7 @@ export class ChatSessionManager extends EventEmitter {
 
   /** Swap a placed box for a placement of an existing doc. The replaced doc
    *  is deleted when it is now an empty orphan (no body, empty child canvas,
-   *  placed nowhere); doc_linked is the only message — clients drop it too. */
+   *  placed nowhere, no doc-chat); doc_linked is the only message — clients drop it too. */
   linkDoc(canvasId: string, placedDocId: string, existingDocId: string): void {
     const canvas = this.canvasById(canvasId);
     const linked = linkPlacement(this.graph, canvas, placedDocId, existingDocId);
@@ -522,7 +522,8 @@ export class ChatSessionManager extends EventEmitter {
       replaced.body === '' &&
       replaced.canvas.placements.length === 0 &&
       replaced.canvas.edges.length === 0 &&
-      !placedAnywhere
+      !placedAnywhere &&
+      !Object.values(this.graph.chats).some((c) => c.docId === placedDocId)
     ) {
       delete this.graph.docs[placedDocId];
     }
