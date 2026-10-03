@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { createProject, listProjects, loadLatestChatGraph, saveChatGraph } from './chat-graph-store.js';
+import { createProject, listProjects, loadLatestChatGraph, loadProject, renameProject, saveChatGraph } from './chat-graph-store.js';
 
 const FIXTURE = resolve(__dirname, '..', '..', 'graph-core', 'src', '__fixtures__', 'compacting-v2.fcw.json');
 
@@ -74,5 +74,22 @@ describe('listProjects', () => {
     expect(list.map((p) => p.id)).toEqual([a.id, 'cg_1773900000000_1']);
     expect(list[0]).toMatchObject({ title: 'Alpha', updatedAt: '2030-01-01T00:00:00.000Z', chatCount: 0, docCount: 0 });
     expect(existsSync(join(dir, 'bad.fcw2.json'))).toBe(true);
+  });
+});
+
+describe('loadProject / renameProject', () => {
+  it('loadProject migrates compactions and throws "unknown project" for a missing id', () => {
+    const dir = fixtureDir();
+    const graph = loadProject(dir, 'cg_1773900000000_1');
+    expect(graph.compactions).toEqual({});
+    expect(Object.keys(graph.docs).length).toBeGreaterThan(0);
+    expect(() => loadProject(dir, 'nope')).toThrow(/unknown project/);
+  });
+
+  it('renameProject updates meta.title on disk; unknown id throws', async () => {
+    const dir = fixtureDir();
+    await renameProject(dir, 'cg_1773900000000_1', 'Renamed');
+    expect(loadProject(dir, 'cg_1773900000000_1').meta.title).toBe('Renamed');
+    await expect(renameProject(dir, 'nope', 'x')).rejects.toThrow(/unknown project/);
   });
 });

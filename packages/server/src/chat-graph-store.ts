@@ -1,8 +1,8 @@
 // Chat-graph persistence: the newest *.fcw2.json in the storage dir is the
 // workspace. Loading migrates legacy compactions into generated docs (M2.1).
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { chatGraphFromJSON, chatGraphToJSON, createChatGraph, migrateCompactions } from '@fcw/graph-core';
 import type { ChatGraph } from '@fcw/graph-core';
 
@@ -35,6 +35,24 @@ export async function createProject(storageDir: string, title: string): Promise<
   const graph = createChatGraph(title);
   await saveChatGraph(storageDir, graph);
   return graph;
+}
+
+function projectPath(storageDir: string, id: string): string {
+  const path = join(storageDir, `${id}.fcw2.json`);
+  if (basename(id) !== id || !existsSync(path)) throw new Error(`unknown project: ${id}`);
+  return path;
+}
+
+export function loadProject(storageDir: string, id: string): ChatGraph {
+  const graph = chatGraphFromJSON(readFileSync(projectPath(storageDir, id), 'utf-8'));
+  migrateCompactions(graph);
+  return graph;
+}
+
+export async function renameProject(storageDir: string, id: string, title: string): Promise<void> {
+  const graph = loadProject(storageDir, id);
+  graph.meta.title = title;
+  await saveChatGraph(storageDir, graph);
 }
 
 export function listProjects(storageDir: string): ProjectSummary[] {
