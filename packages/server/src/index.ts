@@ -14,7 +14,7 @@ import { createRouter } from './routes.js';
 import { createWsServer } from './ws-server.js';
 import { createClaudeClient } from './claude-client.js';
 import { createLlmSummary } from './llm-summary.js';
-import { ChatSessionManager } from './chat-session.js';
+import { ChatSessionManager, type ManagerStreams } from './chat-session.js';
 import { createChatStreamText } from './chat-claude-adapter.js';
 import { createAgentTurnStream } from './chat-agent-adapter.js';
 import { createCapabilitiesProvider } from './capabilities.js';
@@ -62,6 +62,8 @@ export interface ServerOptions {
   storageDir?: string;
   title?: string;
   anthropicApiKey?: string;
+  /** Replaces the default turn stream per engine for every chat, regardless of API key (e2e/tests). */
+  engines?: Partial<ManagerStreams>;
 }
 
 export function createApp(options: ServerOptions = {}) {
@@ -70,6 +72,7 @@ export function createApp(options: ServerOptions = {}) {
     storageDir = join(process.cwd(), 'data'),
     title = 'Untitled',
     anthropicApiKey,
+    engines,
   } = options;
 
   mkdirSync(storageDir, { recursive: true });
@@ -112,8 +115,8 @@ export function createApp(options: ServerOptions = {}) {
   const chatSessions = new ChatSessionManager(
     title,
     {
-      api: claudeClient ? createChatStreamText(claudeClient) : undefined,
-      agent: createAgentTurnStream(),
+      api: engines?.api ?? (claudeClient ? createChatStreamText(claudeClient) : undefined),
+      agent: engines?.agent ?? createAgentTurnStream(),
     },
     initialGraph,
     (id) => attachmentStore.get(id),
@@ -137,7 +140,7 @@ export function createApp(options: ServerOptions = {}) {
     });
   }
 
-  return { manager, httpServer, wss, start, stop };
+  return { manager, chatSessions, httpServer, wss, start, stop };
 }
 
 // Run if called directly
