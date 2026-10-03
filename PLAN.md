@@ -123,9 +123,9 @@ Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate p
 
 ## M6: Verify + close
 
-- [~] **M6.1** End-to-end Playwright script of the four sketches (`docs/sketches/`) against the real server.
-- [~] **M6.2** Delete `src/proto/`, `proto.html`, the `proto` scripts (parity proven in M5.3).
-- [ ] **M6.3** Update `MERMAID-DOCS.md` build order, this branch's `BRANCH.md` ("What's implemented"), `README.md`.
+- [x] **M6.1** End-to-end Playwright script of the four sketches (`docs/sketches/`) against the real server.
+- [x] **M6.2** Delete `src/proto/`, `proto.html`, the `proto` scripts (parity proven in M5.3).
+- [~] **M6.3** Update `MERMAID-DOCS.md` build order, this branch's `BRANCH.md` ("What's implemented"), `README.md`.
 - [ ] **M6.4** Final report to Fer: what shipped, the decision log, known gaps, how to dogfood.
 
 **Gate M6:** full suite, all smokes, e2e green on a clean `npm install`.
