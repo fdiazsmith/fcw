@@ -1,13 +1,13 @@
 import { config } from 'dotenv';
 import { createServer } from 'node:http';
 import { join, resolve } from 'node:path';
-import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 
 // Load .env.local from project root
 config({ path: resolve(process.cwd(), '.env.local') });
 config({ path: resolve(process.cwd(), '../../.env.local') });
 import { writeFile } from 'node:fs/promises';
-import { toJSON, chatGraphToJSON, chatGraphFromJSON } from '@fcw/graph-core';
+import { toJSON } from '@fcw/graph-core';
 import type { GraphDocument } from '@fcw/graph-core';
 import { StateManager } from './state-manager.js';
 import { createRouter } from './routes.js';
@@ -20,6 +20,7 @@ import { createAgentTurnStream } from './chat-agent-adapter.js';
 import { createCapabilitiesProvider } from './capabilities.js';
 import { createCompactionDocGenerator } from './compaction-doc.js';
 import { AttachmentStore } from './attachments.js';
+import { loadLatestChatGraph, saveChatGraph } from './chat-graph-store.js';
 
 export { StateManager } from './state-manager.js';
 export { createRouter } from './routes.js';
@@ -101,14 +102,8 @@ export function createApp(options: ServerOptions = {}) {
   // Load the most recent .fcw2.json so restarts keep the canvas.
   let initialGraph;
   try {
-    const files = readdirSync(storageDir)
-      .filter((f) => f.endsWith('.fcw2.json'))
-      .map((f) => ({ f, mtime: statSync(join(storageDir, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
-    if (files.length > 0) {
-      initialGraph = chatGraphFromJSON(readFileSync(join(storageDir, files[0].f), 'utf-8'));
-      console.log('[init] loaded chat-graph:', files[0].f);
-    }
+    initialGraph = loadLatestChatGraph(storageDir);
+    if (initialGraph) console.log('[init] loaded chat-graph:', initialGraph.id);
   } catch (err) {
     console.error('[init] failed to load chat-graph, starting fresh:', err);
   }
@@ -123,9 +118,7 @@ export function createApp(options: ServerOptions = {}) {
     (id) => attachmentStore.get(id),
     createCompactionDocGenerator({ apiKey }),
   );
-  chatSessions.setSaveHandler(async (graph) => {
-    await writeFile(join(storageDir, `${graph.id}.fcw2.json`), chatGraphToJSON(graph), 'utf-8');
-  });
+  chatSessions.setSaveHandler((graph) => saveChatGraph(storageDir, graph));
 
   const capabilities = createCapabilitiesProvider();
   const wss = createWsServer(httpServer, manager, { claudeClient, chatSessions, capabilities });
