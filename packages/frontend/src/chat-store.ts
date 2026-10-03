@@ -14,7 +14,7 @@ import type {
   DocPlacement,
   TokenUsage,
 } from '@fcw/graph-core';
-import { compactionDigest, ROOT_CANVAS_ID } from '@fcw/graph-core';
+import { compactionDigest, linkPlacement, ROOT_CANVAS_ID } from '@fcw/graph-core';
 
 export interface PendingPermission {
   requestId: string;
@@ -96,6 +96,11 @@ function viewFrom(chat: ChatNode): ChatView {
     usage: chat.usage ?? null,
     contextChats: 0,
   };
+}
+
+/** The canvas with this id: root, or a doc's own canvas. */
+export function canvasById(state: ChatState, canvasId: string): DocCanvas | undefined {
+  return canvasId === ROOT_CANVAS_ID ? state.rootCanvas : state.docs[canvasId]?.canvas;
 }
 
 /** Replace one canvas (root or a doc's); unknown canvas ids leave state unchanged. */
@@ -211,6 +216,36 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
       ...c,
       placements: c.placements.map((p) => (isPlacement(p, msg.kind, msg.id) ? { ...p, position: msg.position } : p)),
     }));
+  }
+
+  if (msg.type === 'doc_linked') {
+    // Mirrors ChatSession.linkDoc: swap the placement, then drop the replaced
+    // doc if it is an empty orphan (no body, empty canvas, unplaced, no doc-chat).
+    const canvas = canvasById(state, msg.canvasId);
+    if (!canvas) return state;
+    let linked: DocCanvas;
+    try {
+      linked = linkPlacement(state, canvas, msg.placedDocId, msg.existingDocId);
+    } catch {
+      return state;
+    }
+    const next = withCanvas(state, msg.canvasId, () => linked);
+    const replaced = next.docs[msg.placedDocId];
+    const placedAnywhere = [next.rootCanvas, ...Object.values(next.docs).map((d) => d.canvas)].some((c) =>
+      c.placements.some((p) => isPlacement(p, 'doc', msg.placedDocId)),
+    );
+    if (
+      replaced &&
+      replaced.body === '' &&
+      replaced.canvas.placements.length === 0 &&
+      replaced.canvas.edges.length === 0 &&
+      !placedAnywhere &&
+      !next.docChats[msg.placedDocId]
+    ) {
+      const { [msg.placedDocId]: _gone, ...docs } = next.docs;
+      return { ...next, docs };
+    }
+    return next;
   }
 
   if (msg.type === 'doc_chat_ready') {

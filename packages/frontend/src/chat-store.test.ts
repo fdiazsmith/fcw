@@ -467,3 +467,63 @@ describe('doc state: placements', () => {
     expect(out.docs).toEqual(s.docs);
   });
 });
+
+describe('doc state: doc_linked', () => {
+  const pos = { x: 0, y: 0 };
+  const place = (canvasId: string, id: string): ChatServerMessage => ({
+    type: 'doc_placed',
+    canvasId,
+    placement: { kind: 'doc', id, position: pos },
+  });
+  const setup = (...extra: ChatServerMessage[]) =>
+    apply(
+      emptyChatState(),
+      { type: 'doc_created', doc: mkDoc('c') },
+      { type: 'doc_created', doc: mkDoc('a') },
+      { type: 'doc_created', doc: mkDoc('b') },
+      { type: 'doc_created', doc: mkDoc('x') },
+      place('c', 'a'),
+      place('c', 'b'),
+      ...extra,
+    );
+
+  it('swaps the placement, re-points edges, and deletes the empty orphan replaced doc', () => {
+    let s = setup();
+    s = { ...s, docs: { ...s.docs, c: { ...s.docs.c, canvas: { ...s.docs.c.canvas, edges: [{ from: 'a', to: 'b' }] } } } };
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.c.canvas.placements.map((p) => p.id)).toEqual(['a', 'x']);
+    expect(s.docs.c.canvas.edges).toEqual([{ from: 'a', to: 'x' }]);
+    expect(s.docs.b).toBeUndefined();
+  });
+
+  it('keeps the replaced doc when it has a body', () => {
+    let s = setup({ type: 'doc_updated', docId: 'b', body: 'text' });
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.b).toBeDefined();
+  });
+
+  it('keeps the replaced doc when it is still placed elsewhere', () => {
+    let s = setup(place('root', 'b'));
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.b).toBeDefined();
+  });
+
+  it('keeps the replaced doc when it has a doc-chat', () => {
+    let s = setup({ type: 'doc_chat_ready', docId: 'b', chatId: 'k' });
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.b).toBeDefined();
+  });
+
+  it('keeps the replaced doc when its own canvas has content', () => {
+    let s = setup(place('b', 'x'));
+    s = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'x' });
+    expect(s.docs.b).toBeDefined();
+  });
+
+  it('ignores an invalid link without throwing', () => {
+    const s = setup();
+    const out = apply(s, { type: 'doc_linked', canvasId: 'c', placedDocId: 'b', existingDocId: 'nope' });
+    expect(out.docs).toEqual(s.docs);
+    expect(apply(s, { type: 'doc_linked', canvasId: 'zz', placedDocId: 'b', existingDocId: 'x' }).docs).toEqual(s.docs);
+  });
+});
