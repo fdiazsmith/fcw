@@ -5,10 +5,12 @@ import { join } from 'node:path';
 import { chatGraphToJSON, createChatGraph } from '@fcw/graph-core';
 import type { ChatGraph } from '@fcw/graph-core';
 import { ChatSessionManager } from './chat-session.js';
-import { loadProject, saveChatGraph } from './chat-graph-store.js';
+import { listProjects, loadProject, saveChatGraph } from './chat-graph-store.js';
 
 export interface ProjectHostOptions {
   storageDir: string;
+  /** Titles that count as "never named" (besides Untitled): renamed Sandbox on first launch. */
+  defaultTitle?: string;
   /** Builds a manager for a loaded graph (streams/generators wired by the caller). */
   createManager?: (graph: ChatGraph) => ChatSessionManager;
 }
@@ -24,7 +26,19 @@ export class ProjectHost {
   constructor(options: ProjectHostOptions) {
     this.storageDir = options.storageDir;
     this.createManager = options.createManager ?? ((graph) => new ChatSessionManager(undefined, {}, graph));
-    this.defaultId = this.createSync(SANDBOX).id;
+    this.defaultId = this.firstLaunchDefault(options.defaultTitle ?? 'Untitled');
+  }
+
+  /** Newest graph (renamed Sandbox if it still has a default title), else a new Sandbox. */
+  private firstLaunchDefault(defaultTitle: string): string {
+    const newest = listProjects(this.storageDir)[0];
+    if (!newest) return this.createSync(SANDBOX).id;
+    if (newest.title === 'Untitled' || newest.title === defaultTitle) {
+      const graph = loadProject(this.storageDir, newest.id);
+      graph.meta.title = SANDBOX;
+      this.writeSync(graph);
+    }
+    return newest.id;
   }
 
   defaultProjectId(): string {
@@ -44,7 +58,11 @@ export class ProjectHost {
 
   private createSync(title: string): ChatGraph {
     const graph = createChatGraph(title);
-    writeFileSync(join(this.storageDir, `${graph.id}.fcw2.json`), chatGraphToJSON(graph), 'utf-8');
+    this.writeSync(graph);
     return graph;
+  }
+
+  private writeSync(graph: ChatGraph): void {
+    writeFileSync(join(this.storageDir, `${graph.id}.fcw2.json`), chatGraphToJSON(graph), 'utf-8');
   }
 }
