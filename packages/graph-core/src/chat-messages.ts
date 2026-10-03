@@ -1,7 +1,11 @@
 // v2 WebSocket protocol: chat-graph messages (shared server <-> frontend language).
 import type { ChatGraph, ChatMessage, ChatNode, ContextEdge, ChatSettings, TokenUsage } from './chat-graph.js';
 import type { Compaction, CompactionStatus } from './compaction.js';
+import type { Doc, DocPlacement } from './docs.js';
 import type { Position } from './types.js';
+
+/** Canvas address of graph.rootCanvas. Any other canvasId is a docId: that doc's child canvas. */
+export const ROOT_CANVAS_ID = 'root';
 
 export interface CapabilityModel {
   id: string;
@@ -32,7 +36,13 @@ export type ChatServerMessage =
   | { type: 'chat_permission_requested'; chatId: string; requestId: string; toolName: string; input: unknown }
   | { type: 'chat_permission_resolved'; chatId: string; requestId: string }
   | { type: 'chat_compaction_created'; compaction: Compaction }
-  | { type: 'chat_compaction_document'; compactionId: string; document: string; sourceDigest: string; status: CompactionStatus };
+  | { type: 'chat_compaction_document'; compactionId: string; document: string; sourceDigest: string; status: CompactionStatus }
+  | { type: 'doc_created'; doc: Doc }
+  | { type: 'doc_updated'; docId: string; title?: string; body?: string; generated?: Doc['generated'] }
+  | { type: 'doc_placed'; canvasId: string; placement: DocPlacement }
+  | { type: 'doc_unplaced'; canvasId: string; kind: DocPlacement['kind']; id: string }
+  | { type: 'doc_moved'; canvasId: string; kind: DocPlacement['kind']; id: string; position: Position }
+  | { type: 'doc_linked'; canvasId: string; placedDocId: string; existingDocId: string };
 
 // Client -> Server
 export type ChatClientMessage =
@@ -46,7 +56,14 @@ export type ChatClientMessage =
   | { type: 'chat_regenerate_requested'; chatId: string }
   | { type: 'chat_settings_updated'; chatId: string; settings: Partial<ChatSettings> }
   | { type: 'chat_permission_decision'; chatId: string; requestId: string; behavior: 'allow' | 'deny'; message?: string }
-  | { type: 'chat_compact_requested'; chatIds: string[] }
+  | { type: 'chat_compact_requested'; chatIds: string[]; canvasId?: string }
   | { type: 'chat_compaction_regenerate_requested'; compactionId: string }
   | { type: 'chat_compaction_document_updated'; compactionId: string; document: string }
-  | { type: 'chat_compaction_move_requested'; compactionId: string; position: Position };
+  | { type: 'chat_compaction_move_requested'; compactionId: string; position: Position }
+  | { type: 'doc_create_requested'; canvasId: string; title: string; position: Position }
+  | { type: 'doc_update_requested'; docId: string; title?: string; body?: string }
+  | { type: 'doc_place_requested'; canvasId: string; kind: DocPlacement['kind']; id: string; position: Position }
+  | { type: 'doc_unplace_requested'; canvasId: string; kind: DocPlacement['kind']; id: string }
+  | { type: 'doc_move_requested'; canvasId: string; kind: DocPlacement['kind']; id: string; position: Position }
+  | { type: 'doc_link_requested'; canvasId: string; placedDocId: string; existingDocId: string }
+  | { type: 'doc_regenerate_requested'; docId: string };
