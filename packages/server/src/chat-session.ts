@@ -303,6 +303,11 @@ export class ChatSessionManager extends EventEmitter {
     }
   }
 
+  /** The doc graph on a doc canvas changed; root holds no doc context. */
+  private markCanvasReadersStale(canvasId: string): void {
+    if (canvasId !== ROOT_CANVAS_ID) this.markDocReadersStale(canvasId);
+  }
+
   /** Append a role 'tool' message with structured fields and broadcast it.
    *  The graph message keeps the full toolInput; the emitted WS copy is
    *  truncated so large tool outputs don't bloat frames. */
@@ -486,6 +491,7 @@ export class ChatSessionManager extends EventEmitter {
     const placement: DocPlacement = { kind, id, position: { ...position } };
     canvas.placements.push(placement);
     if (kind === 'chat') this.graph.chats[id].sessionStale = true;
+    if (kind === 'doc') this.markCanvasReadersStale(canvasId);
     this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
     this.scheduleSave();
   }
@@ -502,6 +508,7 @@ export class ChatSessionManager extends EventEmitter {
     const placement = this.placementOn(canvasId, kind, id);
     canvas.placements = canvas.placements.filter((p) => p !== placement);
     if (kind === 'chat' && this.graph.chats[id]) this.graph.chats[id].sessionStale = true;
+    if (kind === 'doc') this.markCanvasReadersStale(canvasId);
     this.emit('message', { type: 'doc_unplaced', canvasId, kind, id });
     this.scheduleSave();
   }
@@ -527,6 +534,7 @@ export class ChatSessionManager extends EventEmitter {
     ) {
       delete this.graph.docs[placedDocId];
     }
+    this.markCanvasReadersStale(canvasId);
     this.emit('message', { type: 'doc_linked', canvasId, placedDocId, existingDocId });
     this.scheduleSave();
   }
@@ -590,6 +598,7 @@ export class ChatSessionManager extends EventEmitter {
       this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement, position: { ...position } } });
     });
     canvas.edges.push(...edges);
+    this.markCanvasReadersStale(canvasId);
     this.emit('message', {
       type: 'diagram_created',
       canvasId,
