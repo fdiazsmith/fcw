@@ -402,9 +402,9 @@ describe('ChatWindow', () => {
 
 describe('ChatWindow apply to doc', () => {
   const msgs = [
-    { role: 'user' as const, content: 'draft it' },
-    { role: 'assistant' as const, content: 'here' },
-    { role: 'assistant' as const, content: 'more' },
+    { role: 'user' as const, content: 'draft it', createdAt: 't1' },
+    { role: 'assistant' as const, content: 'here', createdAt: 't2' },
+    { role: 'assistant' as const, content: 'more', createdAt: 't3' },
   ];
 
   it('renders Apply on each assistant message and calls onApply with its index', () => {
