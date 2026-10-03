@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { createChatGraph, addChat, appendMessage } from './chat-graph.js';
-import { addCompaction } from './compaction.js';
-import { compactChats } from './doc-compaction.js';
+import { addCompaction, compactionDigest } from './compaction.js';
+import { compactChats, docIsStale } from './doc-compaction.js';
+import type { Doc } from './docs.js';
 
 function graphWithChats(n: number) {
   const g = createChatGraph('T');
@@ -113,5 +114,39 @@ describe('compactChats', () => {
     const before = JSON.stringify(g);
     expect(() => compactChats(g, ids)).toThrow();
     expect(JSON.stringify(g)).toBe(before);
+  });
+});
+
+describe('docIsStale', () => {
+  const members = [
+    { id: 'a', messages: [{ role: 'user', content: 'hi' }] },
+    { id: 'b', messages: [{ role: 'assistant', content: 'yo' }] },
+  ];
+  const doc = (generated?: Doc['generated']): Doc => ({
+    id: 'd',
+    title: 'D',
+    body: '',
+    canvas: { placements: [], edges: [] },
+    ...(generated && { generated }),
+  });
+
+  it('a doc without a generated body is never stale', () => {
+    expect(docIsStale(doc(), members)).toBe(false);
+  });
+
+  it('is fresh when the members digest matches, regardless of member order', () => {
+    const d = doc({ sourceDigest: compactionDigest(members), status: 'idle' });
+    expect(docIsStale(d, members)).toBe(false);
+    expect(docIsStale(d, [...members].reverse())).toBe(false);
+  });
+
+  it('is stale when a member transcript changed since generation', () => {
+    const d = doc({ sourceDigest: compactionDigest(members), status: 'idle' });
+    const changed = [members[0], { id: 'b', messages: [{ role: 'assistant', content: 'changed' }] }];
+    expect(docIsStale(d, changed)).toBe(true);
+  });
+
+  it('a freshly compacted doc (empty digest) is stale until generated', () => {
+    expect(docIsStale(doc({ sourceDigest: '', status: 'generating' }), members)).toBe(true);
   });
 });

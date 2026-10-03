@@ -3,7 +3,9 @@
 // generated from their transcripts, with those chats placed on its child
 // canvas. Mutates the ChatGraph in place, like addCompaction.
 import type { ChatGraph } from './chat-graph.js';
-import type { DocCanvas } from './docs.js';
+import { compactionDigest } from './compaction.js';
+import type { CompactionMember } from './compaction.js';
+import type { Doc, DocCanvas } from './docs.js';
 import type { Position } from './types.js';
 
 let docCounter = 0;
@@ -65,4 +67,11 @@ export function compactChats(
   }
   target.placements.push({ kind: 'doc', id, position });
   return id;
+}
+
+/** True when a member transcript changed since the body was generated.
+ *  A doc without a generated body is never stale. */
+export function docIsStale(doc: Doc, members: CompactionMember[]): boolean {
+  if (!doc.generated) return false;
+  return compactionDigest(members) !== doc.generated.sourceDigest;
 }
