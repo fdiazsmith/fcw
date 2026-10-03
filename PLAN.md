@@ -131,6 +131,22 @@ Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate p
 
 **Gate M6:** full suite, all smokes, e2e green on a clean `npm install`. **First run red** (clean clone: no graph-core dist → frontend tests unresolved, server tsc 203 / frontend tsc 132 errors) → M6.5. **Passed 2026-10-03** on a fresh clone of `c58c7a8`: frontend 241, graph-core 182, server 336; tsc 0/0/27 (27 pre-existing frontend); smoke:compaction ✓, smoke:docs ✓ (15.6s, model diagram parsed), smoke:agent ✓; e2e 21/21.
 
+
+## M7: Projects
+
+A **project** is one chat graph = one `.fcw2.json` file: its own title, chats, docs, root canvas and edges. Isolation is structural (placements, ContextEdges and doc context never leave a graph); inside a project everything stays reachable (one doc table, global graph = the project). Today the server silently opens the newest file; M7 makes projects named, listable, creatable, switchable per tab, and removable to a trash folder. Decisions confirmed by Fer 2026-10-03 (see Decision log).
+
+- [ ] **M7.1** graph-core: `ChatGraph.meta.settings?: { cwd?: string; model?: string; effort?: ChatSettings['effort'] }` (project defaults); `ProjectSummary { id, title, updatedAt, chatCount, docCount }`; messages — client: `project_list_requested`, `project_create_requested { title }`, `project_open_requested { id }`, `project_rename_requested { id, title }`, `project_settings_requested { id, settings }`, `project_trash_requested { id }`; server: `project_list { projects }`, `project_opened { project: ProjectSummary }` (followed by the usual `chat_snapshot`), `project_closed { id, reason: 'trashed' }`.
+- [ ] **M7.2** Server store (`chat-graph-store.ts`): `listProjects`, `createProject(title)`, `loadProject(id)` (runs `migrateCompactions`), `renameProject`, `trashProject(id)` → moves the file to `data/.trash/` (timestamp suffix on name clash; never deletes). Tests on a temp dir, incl. the M1 compacting fixture.
+- [ ] **M7.3** `ProjectHost`: lazily creates one `ChatSessionManager` per open project (each with its own save handler), remembers the last-opened project in `data/.fcw-state.json`. First launch with no state file: the newest existing graph becomes the default project and, if its title is the default (`Untitled`), is renamed **Sandbox**. No files at all → create an empty "Sandbox".
+- [ ] **M7.4** Per-connection routing (`ws-server.ts`): each WebSocket is bound to a project (`?project=<id>` on the WS URL, else last-opened); `project_open_requested` rebinds it and sends `project_opened` + snapshot; chat/doc messages go to that connection's manager; broadcasts reach only connections on the same project; `project_list` is broadcast to everyone on create/rename/trash. Trashing a project stops its running turns, unloads its manager, and sends `project_closed` to its connections.
+- [ ] **M7.5** New chats inherit the project's `settings` (cwd / model / effort) on creation; existing chats are untouched.
+- [ ] **M7.6** Frontend: ws-client connects with `?project=`; the page URL carries `?project=<id>` (reload/bookmark lands there); store resets on `project_opened`; nav stack resets to the project root.
+- [ ] **M7.7** Project menu: the root breadcrumb item shows the project title with ▾ → list (switch), **New project**, **Rename**, **Project settings** (cwd via the existing FolderPicker, model, effort), **Move to trash** (confirm). Testids: `project-menu`, `project-item` (+`data-project-id`), `project-new`, `project-rename`, `project-settings`, `project-trash`.
+- [ ] **M7.8** e2e `projects.spec.ts` (written first, red): create projects A and B; a diagram in A and a chat in B; switch back and forth — neither leaks; two tabs on A and B at once stay independent; global graph in A shows only A's docs; rename persists; trash B → gone from the list, file in `.trash/`; restart → last-opened project reopens.
+
+**Gate M7:** suites green; smokes green (each smoke's fresh storageDir yields a default project); e2e green incl. `projects.spec.ts`; your existing `packages/server/data` opens as **Sandbox** with all content intact (checked on a copy of the folder).
+
 ---
 
 ## Decision log
@@ -139,6 +155,7 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 
 | Date | Item | Decision | Why | Reversible? |
 |---|---|---|---|---|
+| 2026-10-03 | M7 | **Confirmed by Fer.** Project = one `.fcw2.json` graph. Switching is per tab (each WS bound to a project; server keeps one manager per open project). Removing = move to `data/.trash/`, never hard delete. Projects carry default cwd/model/effort for new chats. Existing canvas becomes "Sandbox". | Isolation is already structural per graph; per-tab keeps running agent turns alive while you look elsewhere; trash honours "no silent data loss". | Yes |
 | 2026-10-03 | M1.3 | A chat is "on the root canvas" iff no doc canvas places it; root keeps using `ChatNode.position`, `rootCanvas` holds only doc placements for now. | v2 graphs load unchanged with zero rewriting. | Yes |
 | 2026-10-03 | M1.4 | `compactChats` mutates the graph in place and returns the doc id (like `addCompaction`), unlike the immutable `docs.ts` fns. Ids `doc_<ts>_<n>`. | Server code already mutates ChatGraph in place; keeps M2 diff small. | Yes |
 | 2026-10-03 | M1.6 | Migration keeps old compaction ids as doc ids and is not yet wired into `chatGraphFromJSON` (M2.1 does it). | Ids referenced by clients stay stable. | Yes |
