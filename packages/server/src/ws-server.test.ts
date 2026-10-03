@@ -301,4 +301,24 @@ describe('WebSocket Server project routing', () => {
     const b = await client('/?project=cg_nope');
     expect((await until(b.received, (m) => m.type === 'chat_snapshot')).graph.id).toBe(fallback);
   });
+
+  it('two clients on two projects: chat messages go to the bound manager, events stay in their project', async () => {
+    const sandbox = host.defaultProjectId();
+    const other = await host.create('Other');
+    const a = await client();
+    const b = await client(`/?project=${other.id}`);
+    await until(b.received, (m) => m.type === 'chat_snapshot');
+
+    a.ws.send(JSON.stringify({ type: 'chat_create_requested', position: { x: 0, y: 0 }, title: 'in A' }));
+    b.ws.send(JSON.stringify({ type: 'doc_create_requested', canvasId: 'root', title: 'in B', position: { x: 0, y: 0 } }));
+    await until(a.received, (m) => m.type === 'chat_created');
+    await until(b.received, (m) => m.type === 'doc_created');
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(a.received.some((m) => m.type === 'doc_created')).toBe(false);
+    expect(b.received.some((m) => m.type === 'chat_created')).toBe(false);
+    expect(Object.values(host.open(sandbox).graph.chats).map((c) => c.title)).toEqual(['in A']);
+    expect(Object.values(host.open(other.id).graph.docs).map((d) => d.title)).toEqual(['in B']);
+    expect(host.open(sandbox).graph.docs).toEqual({});
+  });
 });

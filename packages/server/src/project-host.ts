@@ -1,5 +1,6 @@
 // M7.3: hosts the projects of one storage dir — one ChatSessionManager per
 // open project (lazily created, each saving to its own file).
+import { EventEmitter } from 'node:events';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chatGraphToJSON, createChatGraph, projectSummary } from '@fcw/graph-core';
@@ -18,13 +19,15 @@ export interface ProjectHostOptions {
 const SANDBOX = 'Sandbox';
 const STATE_FILE = '.fcw-state.json';
 
-export class ProjectHost {
+/** Emits 'message' (projectId, msg) for every open manager's chat-graph event. */
+export class ProjectHost extends EventEmitter {
   private readonly storageDir: string;
   private readonly createManager: (graph: ChatGraph) => ChatSessionManager;
   private readonly managers = new Map<string, ChatSessionManager>();
   private defaultId: string;
 
   constructor(options: ProjectHostOptions) {
+    super();
     this.storageDir = options.storageDir;
     this.createManager = options.createManager ?? ((graph) => new ChatSessionManager(undefined, {}, graph));
     const state = this.readState();
@@ -79,6 +82,7 @@ export class ProjectHost {
       manager = this.createManager(loadProject(this.storageDir, id));
       const graph = manager.graph;
       manager.setSaveHandler(() => saveChatGraph(this.storageDir, graph));
+      manager.on('message', (msg) => this.emit('message', id, msg));
       this.managers.set(id, manager);
     }
     this.setLastOpened(id);

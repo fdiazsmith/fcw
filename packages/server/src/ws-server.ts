@@ -49,18 +49,24 @@ export function createWsServer(
   manager.on('path_status_changed', (msg: ServerMessage) => broadcast(msg));
   manager.on('node_auto_collapsed', (msg: ServerMessage) => broadcast(msg));
 
-  // v2: forward chat-graph events to all WS clients
-  options?.chatSessions?.on('message', (msg: ChatServerMessage) => {
-    broadcast(msg as unknown as ServerMessage);
-  });
-
   // M7.4: each socket is bound to one project's manager.
   const projects = options?.projects;
+
+  // v2 (single graph, no projects): forward chat-graph events to all WS clients
+  if (!projects) {
+    options?.chatSessions?.on('message', (msg: ChatServerMessage) => {
+      broadcast(msg as unknown as ServerMessage);
+    });
+  }
   const bindings = new Map<WebSocket, { id: string; sessions: ChatSessionManager }>();
 
   function send(ws: WebSocket, msg: unknown): void {
     if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
   }
+
+  projects?.on('message', (id: string, msg: ChatServerMessage) => {
+    for (const [ws, binding] of bindings) if (binding.id === id) send(ws, msg);
+  });
 
   function bind(ws: WebSocket, host: ProjectHost, id: string): void {
     const sessions = host.open(id);
@@ -109,8 +115,9 @@ export function createWsServer(
       console.log('[ws] received:', msg.type);
 
       // v2: chat-graph messages take their own path
-      if (options?.chatSessions && isChatClientMessage(msg)) {
-        handleChatClientMessage(msg, options.chatSessions).catch((err) => {
+      const sessions = bindings.get(ws)?.sessions ?? options?.chatSessions;
+      if (sessions && isChatClientMessage(msg)) {
+        handleChatClientMessage(msg, sessions).catch((err) => {
           console.error('[ws] chat error:', err);
           ws.send(JSON.stringify({ type: 'error', message: formatErrorMessage(err) }));
         });
