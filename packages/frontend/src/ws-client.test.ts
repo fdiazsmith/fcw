@@ -53,6 +53,19 @@ describe('createWsClient', () => {
     expect(ws.sent).toEqual([JSON.stringify({ type: 'user_prompt_submitted', content: 'hello' })]);
   });
 
+  it('close() cancels a pending reconnect: no orphan socket after a drop', () => {
+    vi.useFakeTimers();
+    try {
+      const client = createWsClient('ws://localhost:8080');
+      MockWebSocket.instances[0].onclose?.(); // server restarted: reconnect scheduled
+      client.close(); // effect cleanup (HMR / unmount) before the timer fires
+      vi.advanceTimersByTime(60_000);
+      expect(MockWebSocket.instances).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('close stops the websocket', () => {
     const client = createWsClient('ws://localhost:8080');
     client.close();

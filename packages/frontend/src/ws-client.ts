@@ -12,6 +12,7 @@ export function createWsClient(url: string | (() => string)): WsClient {
   let messageHandler: ((msg: ServerMessage) => void) | null = null;
   let reconnectDelay = 1000;
   let closed = false;
+  let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
   function connect() {
     ws = new WebSocket(typeof url === 'function' ? url() : url);
@@ -32,7 +33,7 @@ export function createWsClient(url: string | (() => string)): WsClient {
 
     ws.onclose = () => {
       if (!closed) {
-        setTimeout(() => {
+        reconnectTimer = setTimeout(() => {
           reconnectDelay = Math.min(reconnectDelay * 2, 30000);
           connect();
         }, reconnectDelay);
@@ -57,6 +58,7 @@ export function createWsClient(url: string | (() => string)): WsClient {
     },
     close() {
       closed = true;
+      clearTimeout(reconnectTimer);
       ws.close();
     },
   };
