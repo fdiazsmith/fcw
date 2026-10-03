@@ -19,6 +19,7 @@ import {
   createDoc,
   linkPlacement,
   mermaidToDocNodes,
+  applyToDoc,
   newDocId,
   ROOT_CANVAS_ID,
 } from '@fcw/graph-core';
@@ -529,6 +530,21 @@ export class ChatSessionManager extends EventEmitter {
     }
     this.emit('message', { type: 'doc_chat_ready', docId, chatId: chat.id });
     return chat.id;
+  }
+
+  /** Explicit "apply to doc": an assistant message of the doc's own doc-chat
+   *  replaces the doc body. Never implicit. */
+  applyToDoc(docId: string, chatId: string, messageIndex: number): void {
+    this.docById(docId);
+    const chat = this.graph.chats[chatId];
+    if (!chat || chat.docId !== docId) throw new Error(`chat ${chatId} is not the doc-chat of ${docId}`);
+    const message = chat.messages[messageIndex];
+    if (!message || message.role !== 'assistant') {
+      throw new Error(`message ${messageIndex} of ${chatId} is not an assistant message`);
+    }
+    this.graph.docs[docId] = applyToDoc(this.graph, docId, message.content).docs[docId];
+    this.emit('message', { type: 'doc_updated', docId, body: message.content });
+    this.scheduleSave();
   }
 
   /** Generate a diagram onto a canvas: one doc per box, edges on the canvas.
