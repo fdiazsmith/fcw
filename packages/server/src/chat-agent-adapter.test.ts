@@ -103,6 +103,40 @@ describe('createAgentTurnStream options', () => {
     expect(text).toContain('inherited');
   });
 
+  it('renders doc blocks as a delimited "Documents in scope" section in the preamble', async () => {
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
+    const turn = createAgentTurnStream(fakeQuery([], cap));
+    await collect(
+      turn(
+        ctx({
+          context: [msg('user', 'only q')],
+          latest: 'only q',
+          docContext: [
+            { docId: 'r', title: 'Ref', body: '', degraded: true },
+            { docId: 'h', title: 'Host', body: 'host body', degraded: false },
+          ],
+        }),
+      ),
+    );
+    const first = cap.promptMessages[0] as { message: { content: Array<{ type: string; text?: string }> } };
+    const text = first.message.content.find((b) => b.type === 'text')!.text!;
+    expect(text).toContain('Documents in scope');
+    expect(text).toContain('## Ref\n(title only)');
+    expect(text).toContain('## Host\nhost body');
+    expect(text).toContain('--- end of documents ---');
+    expect(text.indexOf('## Ref')).toBeLessThan(text.indexOf('## Host'));
+    expect(text.indexOf('--- end of documents ---')).toBeLessThan(text.indexOf('only q'));
+    expect(text).not.toContain('inherited');
+  });
+
+  it('omits the documents section when there are no doc blocks', async () => {
+    const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };
+    const turn = createAgentTurnStream(fakeQuery([], cap));
+    await collect(turn(ctx({ docContext: [] })));
+    const first = cap.promptMessages[0] as { message: { content: Array<{ type: string; text?: string }> } };
+    expect(first.message.content.find((b) => b.type === 'text')!.text).toBe('hello');
+  });
+
   it('keeps trailing tool messages in the preamble without duplicating the prompt', async () => {
     // After regenerate, the discarded turn's tool messages trail the user prompt.
     const cap: Capture = { promptMessages: [], interrupt: vi.fn(), close: vi.fn() };

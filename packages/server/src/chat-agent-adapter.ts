@@ -6,24 +6,39 @@ import { readFileSync } from 'node:fs';
 import { query as realQuery } from '@anthropic-ai/claude-agent-sdk';
 import type { Options, Query, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { ChatMessage, Attachment } from '@fcw/graph-core';
+import type { ChatMessage, Attachment, DocContextBlock } from '@fcw/graph-core';
 import type { StreamTurnFn, TurnContext, TurnEvent } from './turn-events.js';
 
 /** Injectable for tests; defaults to the real SDK query(). */
 export type QueryFn = (params: { prompt: string | AsyncIterable<SDKUserMessage>; options?: Options }) => Query;
 
-/** Serialize inherited context (everything but the latest user prompt) as a preamble. */
-function preambleFrom(context: ChatMessage[]): string {
+/** Doc blocks (M2.4) as a delimited section; '' when there are none.
+ *  Degraded blocks are title-only. */
+export function renderDocContext(blocks: DocContextBlock[]): string {
+  if (blocks.length === 0) return '';
+  return [
+    'Documents in scope — the doc this chat belongs to and its references (deepest first, that doc last):',
+    '',
+    ...blocks.map((b) => `## ${b.title}\n${b.degraded ? '(title only)' : b.body}\n`),
+    '--- end of documents ---',
+    '',
+  ].join('\n');
+}
+
+/** Serialize doc blocks and inherited context (everything but the latest user prompt) as a preamble. */
+function preambleFrom(context: ChatMessage[], docContext: DocContextBlock[] = []): string {
+  const docs = renderDocContext(docContext);
   // Drop only the latest user message — it is re-sent as the turn's real prompt.
   // Messages after it (a regenerated turn's tool trail) stay in the preamble.
   const lastUser = context.map((m) => m.role).lastIndexOf('user');
   const prior = context.filter((_, i) => i !== lastUser);
-  if (prior.length === 0) return '';
+  if (prior.length === 0) return docs;
   const lines = prior.map((m) => {
     const who = m.role === 'assistant' ? 'Assistant' : m.role === 'tool' ? 'Tool' : 'User';
     return `${who}: ${m.content}`;
   });
   return [
+    ...(docs ? [docs] : []),
     'Context inherited from connected chats — use it to answer the new request:',
     '',
     ...lines,
@@ -37,7 +52,7 @@ function preambleFrom(context: ChatMessage[]): string {
 function buildContent(ctx: TurnContext, fresh: boolean): Anthropic.ContentBlockParam[] {
   const parts: string[] = [];
   if (fresh) {
-    const preamble = preambleFrom(ctx.context);
+    const preamble = preambleFrom(ctx.context, ctx.docContext);
     if (preamble) parts.push(preamble);
   }
   parts.push(ctx.latest);
