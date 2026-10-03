@@ -60,8 +60,8 @@ Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
 - [x] **M2.9** (added) `linkDoc` never deletes a doc that has a doc-chat (would orphan the chat).
 - [x] **M2.7** `scripts/docs-smoke.mjs` + `npm run smoke:docs`: real server, generate a diagram, compact two chats, apply to doc, restart, verify persistence.
 
-- [ ] **M2.10** (added) Staleness for doc-graph changes: placing / unplacing / linking a doc on a doc canvas, or generating a diagram onto one, marks chats whose doc context reaches that canvas's doc session-stale.
-- [ ] **M2.11** (added) `createApp` logs the first 10 chars of the API key at startup; log only presence (`set`/`NOT SET`).
+- [~] **M2.10** (added) Staleness for doc-graph changes: placing / unplacing / linking a doc on a doc canvas, or generating a diagram onto one, marks chats whose doc context reaches that canvas's doc session-stale.
+- [~] **M2.11** (added) `createApp` logs the first 10 chars of the API key at startup; log only presence (`set`/`NOT SET`).
 
 **Gate M2:** server suite green; `smoke:compaction` **and** `smoke:docs` green; a pre-existing `.fcw.json` with compactions opens and migrates. **Passed 2026-10-03**: graph-core 181, server 331, frontend 150 (tsc baseline 27); smoke:compaction ✓; smoke:docs ✓ 15.1s (pasted 4 boxes; model-generated diagram parsed first time, 6 boxes; LLM compaction body; doc-chat Apply; restart persisted 11 docs/9 edges); fixture migration via real load path ✓. Model id `claude-sonnet-5` confirmed working. M2.10/M2.11 are follow-ups found at the gate, run alongside M3.
 
@@ -69,8 +69,9 @@ Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
 
 Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate pieces from `src/proto/` with tests; don't copy wholesale.
 
-- [ ] **M3.1** Frontend store: docs table, canvases, placements; reducer handles the M2.2 messages (`chat-store.ts`).
-- [ ] **M3.2** `DocShape`: title, body preview, child-canvas count, 🔗 marker when the doc is placed on more than one canvas, "generated · stale → regenerate?" state. Replaces `CompactShape`.
+- [~] **M3.0** (added) Playwright: `@playwright/test`, `e2e/` + config booting the real server (keyless, temp storage) and Vite; the Gate M3 scenario written first as a failing spec against agreed `data-testid`s (see Decision log).
+- [~] **M3.1** Frontend store: docs table, canvases, placements; reducer handles the M2.2 messages (`chat-store.ts`).
+- [~] **M3.2** `DocShape`: title, body preview, child-canvas count, 🔗 marker when the doc is placed on more than one canvas, "generated · stale → regenerate?" state. Replaces `CompactShape`.
 - [ ] **M3.3** Navigation: one tldraw page per canvas, breadcrumb (`pathToRoot`), home. Generalize the compaction page logic; delete the compaction-only path.
 - [ ] **M3.4** Prompt bar "diagram" mode → `diagram_requested`; materialize with `layoutDocNodes`; edges as tldraw arrows.
 - [ ] **M3.5** "Link instead?" chip on boxes where `findDocsByTitle` matches → `doc_linked`.
@@ -125,6 +126,9 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 | 2026-10-03 | M2.5 | Server emits `diagram_created { canvasId, docIds, edges, error? }` after the per-box `doc_created`/`doc_placed`; the client runs `layoutDocNodes` and sends `doc_move_requested` per box. Fallback = one doc whose body is the raw Mermaid in a fence. | Positions stay a client concern (M3.4) without a second round-trip protocol. | Yes |
 | 2026-10-03 | M2.4 | A chat placed on a **generated** doc's canvas does not get that doc as context (its body is derived from the chat itself); placed on a regular doc's canvas, it gets `assembleDocContext(that doc)`. | Avoid feeding a chat its own summary. | Yes |
 | 2026-10-03 | M2.6 | Doc-chat = `ChatNode.docId`; at most one per doc, created on `doc_chat_requested`; never rendered on a canvas (frontend must exclude chats with `docId` from root). Apply = `doc_apply_requested { docId, chatId, messageIndex }`, assistant messages only. | Side-panel placement per locked decision; data stays placement-agnostic. | Yes |
+| 2026-10-03 | M3 | UI contract (`data-testid`): `doc-shape` (+`data-doc-id`, `data-doc-title`), `doc-title`, `doc-open-canvas`, `doc-ref-marker` (🔗, only when placed on >1 canvas), `doc-stale`, `doc-regenerate`, `doc-link-chip`; `breadcrumb`, `breadcrumb-item`, `breadcrumb-home`; `prompt-bar` (input), `prompt-mode-diagram`, `prompt-mode-chat`; `doc-panel`, `doc-body-editor`, `doc-apply`; `export-mermaid`; `global-graph`, `global-graph-toggle`. | Lets the e2e spec be written first (TDD for UI glue) while implementation agents work in parallel. | Yes |
+| 2026-10-03 | M3.4 | A canvas-level prompt bar (bottom centre) with modes Chat (create a chat at viewport centre + send the prompt) and Diagram (`diagram_requested` on the current canvas). | The live app has no canvas prompt bar; proto had one. | Yes |
+| 2026-10-03 | M3 | UI glue in `ChatCanvas.tsx` is covered by the Playwright gate spec (written first, red); logic goes in pure, unit-tested modules (like `compaction-view.ts`). | tldraw interaction isn't testable in jsdom; keeps strict TDD honest. | Yes |
 | 2026-10-03 | M1.9 | `linkPlacement` returns the new canvas only; deleting the now-unplaced generated doc is the server's call (M2.2 `doc_linked`), only when it's empty and placed nowhere. | Keeps the pure fn free of deletion policy; no silent data loss. | Yes |
 
 ## Blockers / notes
