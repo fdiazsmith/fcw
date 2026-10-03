@@ -1,8 +1,8 @@
 // Pure projection: what one canvas should show. The store owns doc boxes,
 // chat cards and their arrows; ChatCanvas diffs this against tldraw and leaves
 // every other shape (freehand, user arrows) alone.
-import { ROOT_CANVAS_ID } from '@fcw/graph-core';
-import type { Position } from '@fcw/graph-core';
+import { ROOT_CANVAS_ID, findDocsByTitle } from '@fcw/graph-core';
+import type { Doc, Position } from '@fcw/graph-core';
 import type { ChatState } from './chat-store';
 import { canvasById, canvasesPlacing, chatIdsOn } from './chat-store';
 import { docCardModel, DocCardModel } from './doc-view';
@@ -11,6 +11,8 @@ export interface ProjectedDoc {
   docId: string;
   position: Position;
   model: DocCardModel;
+  /** An existing doc with the same title: offer "link instead?" (M3.5). */
+  linkTo: string | null;
 }
 
 export interface ProjectedChat {
@@ -28,6 +30,13 @@ export interface CanvasProjection {
   chats: ProjectedChat[];
   docEdges: ProjectedEdge[];
   chatEdges: ProjectedEdge[];
+}
+
+/** Other docs titled like this one — candidates to link instead of keeping a new doc. */
+export function linkCandidates(state: ChatState, docId: string): Doc[] {
+  const doc = state.docs[docId];
+  if (!doc) return [];
+  return findDocsByTitle(state, doc.title, { excludeId: docId });
 }
 
 function membersOf(state: ChatState, docId: string) {
@@ -50,6 +59,7 @@ export function projectCanvas(state: ChatState, canvasId: string): CanvasProject
         placedOnCount: canvasesPlacing(state, p.id).length,
         members: membersOf(state, p.id),
       }),
+      linkTo: linkCandidates(state, p.id)[0]?.id ?? null,
     }));
 
   const chats: ProjectedChat[] =

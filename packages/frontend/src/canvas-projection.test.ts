@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { ChatNode, Doc, DocPlacement } from '@fcw/graph-core';
 import { ROOT_CANVAS_ID, compactionDigest } from '@fcw/graph-core';
 import { emptyChatState, applyChatMessage, ChatState } from './chat-store';
-import { projectCanvas } from './canvas-projection';
+import { projectCanvas, linkCandidates } from './canvas-projection';
 
 const at = (x: number, y: number) => ({ x, y });
 const place = (kind: DocPlacement['kind'], id: string, x = 0, y = 0): DocPlacement => ({ kind, id, position: at(x, y) });
@@ -110,5 +110,33 @@ describe('projectCanvas — doc canvas', () => {
       message: { role: 'user', content: 'more', createdAt: 't1' },
     });
     expect(projectCanvas(s, ROOT_CANVAS_ID).docs[0].model.stale).toBe(true);
+  });
+});
+
+describe('linkCandidates (M3.5)', () => {
+  const state = (): ChatState => ({
+    ...emptyChatState(),
+    docs: {
+      old: doc('old', 'API calls'),
+      fresh: doc('fresh', ' api  CALLS '),
+      other: doc('other', 'Form'),
+      C: doc('C', 'Child', [place('doc', 'fresh'), place('doc', 'other')]),
+    },
+    rootCanvas: { placements: [place('doc', 'old')], edges: [] },
+  });
+
+  it('existing docs with the same (normalised) title, never the doc itself', () => {
+    expect(linkCandidates(state(), 'fresh').map((d) => d.id)).toEqual(['old']);
+  });
+
+  it('no match, or an unknown doc, gives none', () => {
+    expect(linkCandidates(state(), 'other')).toEqual([]);
+    expect(linkCandidates(state(), 'nope')).toEqual([]);
+  });
+
+  it('projection carries the first candidate as linkTo', () => {
+    const p = projectCanvas(state(), 'C');
+    expect(p.docs.find((d) => d.docId === 'fresh')!.linkTo).toBe('old');
+    expect(p.docs.find((d) => d.docId === 'other')!.linkTo).toBeNull();
   });
 });
