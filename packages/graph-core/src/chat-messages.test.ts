@@ -31,3 +31,24 @@ describe('doc protocol (M2.2)', () => {
     expect(client).toHaveLength(8);
   });
 });
+
+describe('project protocol (M7.1)', () => {
+  it('declares the project_* server and client messages', () => {
+    const summary = { id: 'p', title: 'P', updatedAt: '2026-10-03T00:00:00.000Z', chatCount: 0, docCount: 0 };
+    const server: ChatServerMessage[] = [
+      { type: 'project_list', projects: [summary] },
+      { type: 'project_opened', project: summary },
+      { type: 'project_closed', id: 'p', reason: 'trashed' },
+    ];
+    const client: ChatClientMessage[] = [
+      { type: 'project_list_requested' },
+      { type: 'project_create_requested', title: 'P' },
+      { type: 'project_open_requested', id: 'p' },
+      { type: 'project_rename_requested', id: 'p', title: 'Q' },
+      { type: 'project_settings_requested', id: 'p', settings: { cwd: '/x', model: 'm', effort: 'low' } },
+      { type: 'project_trash_requested', id: 'p' },
+    ];
+    expect(server).toHaveLength(3);
+    expect(client).toHaveLength(6);
+  });
+});

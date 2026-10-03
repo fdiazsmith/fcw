@@ -2,6 +2,7 @@
 import type { ChatGraph, ChatMessage, ChatNode, ContextEdge, ChatSettings, TokenUsage } from './chat-graph.js';
 import type { Doc, DocEdge, DocPlacement } from './docs.js';
 import type { Position } from './types.js';
+import type { ProjectSummary } from './project.js';
 
 /** Canvas address of graph.rootCanvas. Any other canvasId is a docId: that doc's child canvas. */
 export const ROOT_CANVAS_ID = 'root';
@@ -42,10 +43,19 @@ export type ChatServerMessage =
   | { type: 'doc_linked'; canvasId: string; placedDocId: string; existingDocId: string }
   // After the per-box doc_created/doc_placed; the client lays the boxes out (M3.4).
   | { type: 'doc_chat_ready'; docId: string; chatId: string }
-  | { type: 'diagram_created'; canvasId: string; docIds: string[]; edges: DocEdge[]; error?: string };
+  | { type: 'diagram_created'; canvasId: string; docIds: string[]; edges: DocEdge[]; error?: string }
+  | { type: 'project_list'; projects: ProjectSummary[] }
+  | { type: 'project_opened'; project: ProjectSummary }
+  | { type: 'project_closed'; id: string; reason: 'trashed' };
 
 // Client -> Server
 export type ChatClientMessage =
+  | { type: 'project_list_requested' }
+  | { type: 'project_create_requested'; title: string }
+  | { type: 'project_open_requested'; id: string }
+  | { type: 'project_rename_requested'; id: string; title: string }
+  | { type: 'project_settings_requested'; id: string; settings: NonNullable<ChatGraph['meta']['settings']> }
+  | { type: 'project_trash_requested'; id: string }
   | { type: 'chat_create_requested'; position: Position; title?: string }
   | { type: 'chat_prompt_submitted'; chatId: string; content: string; attachmentIds?: string[] }
   | { type: 'chat_branch_requested'; parentId: string; position: Position }
