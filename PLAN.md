@@ -69,14 +69,14 @@ Parallelizable: M1.7, M1.8, M1.10 are independent of M1.1–M1.6.
 
 Reuse the compacting branch's page-per-canvas + breadcrumb + dive-in. Graduate pieces from `src/proto/` with tests; don't copy wholesale.
 
-- [~] **M3.0** (added) Playwright: `@playwright/test`, `e2e/` + config booting the real server (keyless, temp storage) and Vite; the Gate M3 scenario written first as a failing spec against agreed `data-testid`s (see Decision log).
-- [~] **M3.1** Frontend store: docs table, canvases, placements; reducer handles the M2.2 messages (`chat-store.ts`).
-- [~] **M3.2** `DocShape`: title, body preview, child-canvas count, 🔗 marker when the doc is placed on more than one canvas, "generated · stale → regenerate?" state. Replaces `CompactShape`.
-- [ ] **M3.3** Navigation: one tldraw page per canvas, breadcrumb (`pathToRoot`), home. Generalize the compaction page logic; delete the compaction-only path.
-- [ ] **M3.4** Prompt bar "diagram" mode → `diagram_requested`; materialize with `layoutDocNodes`; edges as tldraw arrows.
-- [ ] **M3.5** "Link instead?" chip on boxes where `findDocsByTitle` matches → `doc_linked`.
-- [ ] **M3.6** Multi-select chats → Compact (existing MultiNodeActions) now produces a DocShape.
-- [ ] **M3.7** Freehand / user shapes coexist with doc shapes and survive navigation (proto `sync.ts` rule: store owns docs, tldraw owns the rest).
+- [x] **M3.0** (added) Playwright: `@playwright/test`, `e2e/` + config booting the real server (keyless, temp storage) and Vite; the Gate M3 scenario written first as a failing spec against agreed `data-testid`s (see Decision log).
+- [x] **M3.1** Frontend store: docs table, canvases, placements; reducer handles the M2.2 messages (`chat-store.ts`).
+- [x] **M3.2** `DocShape`: title, body preview, child-canvas count, 🔗 marker when the doc is placed on more than one canvas, "generated · stale → regenerate?" state. Replaces `CompactShape`.
+- [~] **M3.3** Navigation: one tldraw page per canvas, breadcrumb (`pathToRoot`), home. Generalize the compaction page logic; delete the compaction-only path.
+- [~] **M3.4** Prompt bar "diagram" mode → `diagram_requested`; materialize with `layoutDocNodes`; edges as tldraw arrows.
+- [~] **M3.5** "Link instead?" chip on boxes where `findDocsByTitle` matches → `doc_linked`.
+- [~] **M3.6** Multi-select chats → Compact (existing MultiNodeActions) now produces a DocShape.
+- [~] **M3.7** Freehand / user shapes coexist with doc shapes and survive navigation (proto `sync.ts` rule: store owns docs, tldraw owns the rest).
 
 **Gate M3:** frontend suite green; manual-equivalent Playwright check: generate diagram → dive into a box → breadcrumb back → reference shows 🔗 on both canvases.
 
@@ -139,5 +139,7 @@ Decisions the master agent made that weren't in `MERMAID-DOCS.md`. Each one is f
 - `requestDiagram` doesn't pass canvas context to the generator yet (diagram for a nested canvas doesn't know its parent doc). Candidate later item.
 - ~~Model id `claude-sonnet-5` possibly invalid~~ — verified working by smoke:docs.
 - Playwright is not configured in the repo; browsers are cached locally (`~/Library/Caches/ms-playwright`). Gate M3 adds `@playwright/test` + an `e2e/` dir.
+- `npm run e2e` (root): Playwright 1.63, server :8009 keyless on temp storage + Vite :8008; `reuseExistingServer:false` so stop `npm run dev` first. Dev StrictMode opens 2 WS; the first closing logs one `[ws] error` (tolerated by the smoke spec).
+- `App.tsx` (v1 surface, unmounted) has a stale `ws://localhost:8080` default and most of the 27 baseline tsc errors. Candidate cleanup, not done.
 - Proto localStorage (`fcw-proto-v1`) holds old `{docId}` placements; a stored proto session misbehaves after M1.1. Throwaway, deleted in M6.2.
 
