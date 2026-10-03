@@ -1,6 +1,6 @@
 // M7.3: hosts the projects of one storage dir — one ChatSessionManager per
 // open project (lazily created, each saving to its own file).
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chatGraphToJSON, createChatGraph } from '@fcw/graph-core';
 import type { ChatGraph } from '@fcw/graph-core';
@@ -16,6 +16,7 @@ export interface ProjectHostOptions {
 }
 
 const SANDBOX = 'Sandbox';
+const STATE_FILE = '.fcw-state.json';
 
 export class ProjectHost {
   private readonly storageDir: string;
@@ -26,7 +27,33 @@ export class ProjectHost {
   constructor(options: ProjectHostOptions) {
     this.storageDir = options.storageDir;
     this.createManager = options.createManager ?? ((graph) => new ChatSessionManager(undefined, {}, graph));
-    this.defaultId = this.firstLaunchDefault(options.defaultTitle ?? 'Untitled');
+    const state = this.readState();
+    if (state === undefined) {
+      this.defaultId = this.firstLaunchDefault(options.defaultTitle ?? 'Untitled');
+    } else if (state.lastOpened && this.exists(state.lastOpened)) {
+      this.defaultId = state.lastOpened;
+    } else {
+      this.defaultId = listProjects(this.storageDir)[0]?.id ?? this.createSync(SANDBOX).id;
+    }
+  }
+
+  private readState(): { lastOpened?: string } | undefined {
+    const path = join(this.storageDir, STATE_FILE);
+    if (!existsSync(path)) return undefined;
+    try {
+      return JSON.parse(readFileSync(path, 'utf-8')) as { lastOpened?: string };
+    } catch {
+      return {};
+    }
+  }
+
+  private setLastOpened(id: string): void {
+    this.defaultId = id;
+    writeFileSync(join(this.storageDir, STATE_FILE), JSON.stringify({ lastOpened: id }), 'utf-8');
+  }
+
+  private exists(id: string): boolean {
+    return listProjects(this.storageDir).some((p) => p.id === id);
   }
 
   /** Newest graph (renamed Sandbox if it still has a default title), else a new Sandbox. */
@@ -45,6 +72,7 @@ export class ProjectHost {
     return this.defaultId;
   }
 
+  /** The project's manager (loaded on first use); also records it as last-opened. */
   open(id: string): ChatSessionManager {
     let manager = this.managers.get(id);
     if (!manager) {
@@ -53,6 +81,7 @@ export class ProjectHost {
       manager.setSaveHandler(() => saveChatGraph(this.storageDir, graph));
       this.managers.set(id, manager);
     }
+    this.setLastOpened(id);
     return manager;
   }
 

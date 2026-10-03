@@ -1,7 +1,7 @@
 // M7.3: ProjectHost — one ChatSessionManager per open project, last-opened
 // remembered in <dir>/.fcw-state.json, first launch yields a "Sandbox".
-import { describe, it, expect } from 'vitest';
-import { mkdtempSync, utimesSync } from 'node:fs';
+import { describe, it, expect, vi } from 'vitest';
+import { mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ProjectHost } from './project-host.js';
@@ -42,5 +42,54 @@ describe('ProjectHost first launch', () => {
     const g = await createProject(dir, 'Workspace');
     new ProjectHost({ storageDir: dir, defaultTitle: 'Workspace' });
     expect(loadProject(dir, g.id).meta.title).toBe('Sandbox');
+  });
+});
+
+describe('ProjectHost open', () => {
+  it('caches one manager per project, each saving to its own file', async () => {
+    const dir = tempDir();
+    const a = await createProject(dir, 'A');
+    const b = await createProject(dir, 'B');
+    const host = new ProjectHost({ storageDir: dir });
+    const ma = host.open(a.id);
+    expect(host.open(a.id)).toBe(ma);
+    const mb = host.open(b.id);
+    expect(mb).not.toBe(ma);
+
+    ma.createChat({ x: 0, y: 0 }, 'in A');
+    mb.createDoc('root', 'in B', { x: 0, y: 0 });
+
+    await vi.waitFor(() => {
+      expect(Object.values(loadProject(dir, a.id).chats).map((c) => c.title)).toEqual(['in A']);
+      expect(Object.values(loadProject(dir, b.id).docs).map((d) => d.title)).toEqual(['in B']);
+    }, { timeout: 3000, interval: 50 });
+    expect(loadProject(dir, a.id).docs).toEqual({});
+    expect(loadProject(dir, b.id).chats).toEqual({});
+  });
+
+  it('restart (new host on the same dir) reopens the last-opened project', async () => {
+    const dir = tempDir();
+    const a = await createProject(dir, 'A');
+    const b = await createProject(dir, 'B');
+    utimesSync(join(dir, `${b.id}.fcw2.json`), new Date(1000), new Date(1000));
+    const host = new ProjectHost({ storageDir: dir });
+    expect(host.defaultProjectId()).toBe(a.id);
+    host.open(b.id);
+    expect(host.defaultProjectId()).toBe(b.id);
+    expect(JSON.parse(readFileSync(join(dir, '.fcw-state.json'), 'utf-8'))).toEqual({ lastOpened: b.id });
+
+    expect(new ProjectHost({ storageDir: dir }).defaultProjectId()).toBe(b.id);
+  });
+
+  it('a state file naming a missing project falls back to the newest one', async () => {
+    const dir = tempDir();
+    const a = await createProject(dir, 'A');
+    writeFileSync(join(dir, '.fcw-state.json'), JSON.stringify({ lastOpened: 'cg_gone' }));
+    expect(new ProjectHost({ storageDir: dir }).defaultProjectId()).toBe(a.id);
+  });
+
+  it('opening an unknown project throws', () => {
+    const host = new ProjectHost({ storageDir: tempDir() });
+    expect(() => host.open('cg_nope')).toThrow(/unknown project/);
   });
 });
