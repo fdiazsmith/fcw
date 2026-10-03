@@ -13,12 +13,8 @@ import {
   updateChatSettings,
   markSessionStale,
   addTurnUsage,
-  addCompaction,
   compactionDigest,
-  completeCompactionGeneration,
-  setCompactionDocument,
-  setCompactionStatus,
-  setCompactionPosition,
+  compactChats,
   createDoc,
   linkPlacement,
   ROOT_CANVAS_ID,
@@ -344,62 +340,54 @@ export class ChatSessionManager extends EventEmitter {
     await this.runStream(chatId);
   }
 
-  /** Fold chats behind a new compaction node and synthesize its document. */
-  async compact(chatIds: string[]): Promise<string> {
-    const id = addCompaction(this.graph, chatIds);
-    // Snapshot copy: generation mutates the live object right after this emit.
-    const c = this.graph.compactions[id];
-    this.emit('message', {
-      type: 'chat_compaction_created',
-      compaction: { ...c, memberIds: [...c.memberIds] },
-    });
+  /** Fold chats into a new generated doc on `canvasId` (root by default):
+   *  the chats move onto the doc's child canvas, then the body is generated. */
+  async compact(chatIds: string[], canvasId: string = ROOT_CANVAS_ID): Promise<string> {
+    const source = this.canvasById(canvasId);
+    const before = source.placements;
+    const id = compactChats(
+      this.graph,
+      chatIds,
+      canvasId === ROOT_CANVAS_ID ? undefined : { sourceCanvasDocId: canvasId },
+    );
+    // Snapshot copy: generation mutates the live doc right after this emit.
+    this.emit('message', { type: 'doc_created', doc: structuredClone(this.graph.docs[id]) });
+    for (const p of before) {
+      if (p.kind === 'chat' && chatIds.includes(p.id)) {
+        this.emit('message', { type: 'doc_unplaced', canvasId, kind: 'chat', id: p.id });
+      }
+    }
+    const placement = this.placementOn(canvasId, 'doc', id);
+    this.emit('message', { type: 'doc_placed', canvasId, placement: { ...placement } });
     this.scheduleSave();
     await this.generateInto(id);
     return id;
   }
 
-  /** Re-synthesize the document from the members' current transcripts. */
-  async regenerateCompaction(id: string): Promise<void> {
-    setCompactionStatus(this.graph, id, 'generating');
-    this.emitCompactionDocument(id);
-    await this.generateInto(id);
+  /** Re-generate a generated doc's body from the chats on its canvas. */
+  async regenerateDoc(docId: string): Promise<void> {
+    const doc = this.docById(docId);
+    if (!doc.generated) throw new Error(`doc ${docId} is not generated`);
+    doc.generated.status = 'generating';
+    this.emit('message', { type: 'doc_updated', docId, generated: { ...doc.generated } });
+    await this.generateInto(docId);
   }
 
-  /** User edit of the document — the generation digest is untouched. */
-  updateCompactionDocument(id: string, document: string): void {
-    setCompactionDocument(this.graph, id, document);
-    this.emitCompactionDocument(id);
-    this.scheduleSave();
-  }
-
-  moveCompaction(id: string, position: Position): void {
-    setCompactionPosition(this.graph, id, position);
-    this.scheduleSave();
-  }
-
-  /** Generate the document for a compaction, pinning the digest to the
-   *  transcripts the generator actually saw. */
+  /** Generate a doc's body, pinning the digest to the transcripts the
+   *  generator actually saw. */
   private async generateInto(id: string): Promise<void> {
-    const compaction = this.graph.compactions[id];
-    const members = compaction.memberIds.map((m) => this.graph.chats[m]);
-    const digest = compactionDigest(members);
-    const document = await this.generateCompactionDoc(members).catch(() =>
+    const doc = this.graph.docs[id];
+    const members = doc.canvas.placements
+      .filter((p) => p.kind === 'chat')
+      .map((p) => this.graph.chats[p.id]);
+    const sourceDigest = compactionDigest(members);
+    const body = await this.generateCompactionDoc(members).catch(() =>
       structuralCompactionDocument(members),
     );
-    completeCompactionGeneration(this.graph, id, document, digest);
-    this.emitCompactionDocument(id);
+    doc.body = body;
+    doc.generated = { sourceDigest, status: 'idle' };
+    this.emit('message', { type: 'doc_updated', docId: id, body, generated: { ...doc.generated } });
     this.scheduleSave();
-  }
-
-  private emitCompactionDocument(id: string): void {
-    const c = this.graph.compactions[id];
-    this.emit('message', {
-      type: 'chat_compaction_document',
-      compactionId: id,
-      document: c.document,
-      sourceDigest: c.sourceDigest,
-      status: c.status,
-    });
   }
 
   // ── docs (structure-first): canvasId is ROOT_CANVAS_ID or a docId ──

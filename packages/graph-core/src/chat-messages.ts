@@ -35,6 +35,8 @@ export type ChatServerMessage =
   | { type: 'chat_capabilities'; models: CapabilityModel[]; commands: CapabilityCommand[] }
   | { type: 'chat_permission_requested'; chatId: string; requestId: string; toolName: string; input: unknown }
   | { type: 'chat_permission_resolved'; chatId: string; requestId: string }
+  // Deprecated: the server no longer emits chat_compaction_* (M2.3); kept
+  // until the M3 frontend stops handling them.
   | { type: 'chat_compaction_created'; compaction: Compaction }
   | { type: 'chat_compaction_document'; compactionId: string; document: string; sourceDigest: string; status: CompactionStatus }
   | { type: 'doc_created'; doc: Doc }

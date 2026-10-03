@@ -135,18 +135,31 @@ describe('handleChatClientMessage', () => {
     expect(sessions.graph.chats[id].position).toEqual({ x: 7, y: 8 });
   });
 
-  it('chat_compact_requested folds chats behind a compaction with a document', async () => {
+  it('chat_compact_requested folds chats into a generated doc', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     sessions.graph.chats[a].messages.push({ role: 'user', content: 'stuff', createdAt: 't' });
     await handleChatClientMessage({ type: 'chat_compact_requested', chatIds: [a] }, sessions);
-    const compactions = Object.values(sessions.graph.compactions);
-    expect(compactions).toHaveLength(1);
-    expect(compactions[0].memberIds).toEqual([a]);
-    expect(compactions[0].document).toContain('stuff');
+    const docs = Object.values(sessions.graph.docs);
+    expect(docs).toHaveLength(1);
+    expect(docs[0].canvas.placements).toEqual([{ kind: 'chat', id: a, position: { x: 0, y: 0 } }]);
+    expect(docs[0].body).toContain('stuff');
+    expect(sessions.graph.compactions).toEqual({});
   });
 
-  it('chat_compaction_regenerate_requested re-synthesizes the document', async () => {
+  it('chat_compact_requested honours canvasId', async () => {
+    const sessions = new ChatSessionManager();
+    const host = sessions.createDoc('root', 'Host', { x: 0, y: 0 });
+    const a = sessions.createChat({ x: 0, y: 0 });
+    sessions.placeOnCanvas(host, 'chat', a, { x: 4, y: 4 });
+    expect(isChatClientMessage({ type: 'chat_compact_requested', chatIds: [a], canvasId: host })).toBe(true);
+    await handleChatClientMessage({ type: 'chat_compact_requested', chatIds: [a], canvasId: host }, sessions);
+    expect(sessions.graph.docs[host].canvas.placements).toEqual([
+      { kind: 'doc', id: expect.any(String), position: { x: 4, y: 4 } },
+    ]);
+  });
+
+  it('chat_compaction_regenerate_requested and doc_regenerate_requested re-generate the body', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     const id = await sessions.compact([a]);
@@ -155,10 +168,14 @@ describe('handleChatClientMessage', () => {
       { type: 'chat_compaction_regenerate_requested', compactionId: id },
       sessions,
     );
-    expect(sessions.graph.compactions[id].document).toContain('fresh insight');
+    expect(sessions.graph.docs[id].body).toContain('fresh insight');
+    sessions.graph.chats[a].messages.push({ role: 'user', content: 'even fresher', createdAt: 't' });
+    expect(isChatClientMessage({ type: 'doc_regenerate_requested', docId: id })).toBe(true);
+    await handleChatClientMessage({ type: 'doc_regenerate_requested', docId: id }, sessions);
+    expect(sessions.graph.docs[id].body).toContain('even fresher');
   });
 
-  it('chat_compaction_document_updated stores the user edit', async () => {
+  it('chat_compaction_document_updated stores the user edit on the doc', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     const id = await sessions.compact([a]);
@@ -166,10 +183,10 @@ describe('handleChatClientMessage', () => {
       { type: 'chat_compaction_document_updated', compactionId: id, document: '# Edited' },
       sessions,
     );
-    expect(sessions.graph.compactions[id].document).toBe('# Edited');
+    expect(sessions.graph.docs[id].body).toBe('# Edited');
   });
 
-  it('chat_compaction_move_requested repositions the compaction', async () => {
+  it('chat_compaction_move_requested moves the doc on root', async () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });
     const id = await sessions.compact([a]);
@@ -177,7 +194,7 @@ describe('handleChatClientMessage', () => {
       { type: 'chat_compaction_move_requested', compactionId: id, position: { x: 5, y: 6 } },
       sessions,
     );
-    expect(sessions.graph.compactions[id].position).toEqual({ x: 5, y: 6 });
+    expect(sessions.graph.rootCanvas.placements).toEqual([{ kind: 'doc', id, position: { x: 5, y: 6 } }]);
   });
 
   it('chat_stop_requested stops the in-flight stream (partial settles)', async () => {
