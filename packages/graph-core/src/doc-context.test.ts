@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { createWorkspace, createDoc, placeDoc, updateDocBody } from './docs.js';
-import { assembleDocContext } from './doc-context.js';
+import { assembleDocContext, DEFAULT_DOC_CONTEXT_BUDGET } from './doc-context.js';
 import type { DocWorkspace, Doc } from './docs.js';
 
 function docWith(ws: DocWorkspace, title: string, body: string): [DocWorkspace, Doc] {
@@ -93,4 +93,8 @@ it('skips chat placements: they contribute nothing to doc context yet', () => {
 
   const blocks = assembleDocContext(ws, host.id);
   expect(blocks.map((b) => b.docId)).toEqual([ref.id, host.id]);
+});
+
+it('exports the default context budget shared by server and frontend', () => {
+  expect(DEFAULT_DOC_CONTEXT_BUDGET).toBe(24_000);
 });

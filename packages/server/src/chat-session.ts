@@ -22,6 +22,7 @@ import {
   applyToDoc,
   newDocId,
   ROOT_CANVAS_ID,
+  DEFAULT_DOC_CONTEXT_BUDGET,
 } from '@fcw/graph-core';
 import type {
   ChatGraph,
@@ -52,9 +53,7 @@ export type SaveHandler = (graph: ChatGraph) => Promise<void>;
 
 const SAVE_DEBOUNCE_MS = 500;
 const DIAGRAM_GRID_COLS = 4;
-/** Max chars of doc bodies in a chat's preamble (~6k tokens); past it the most
- *  distant references degrade to title-only. */
-export const DEFAULT_DOC_CONTEXT_BUDGET = 24_000;
+export { DEFAULT_DOC_CONTEXT_BUDGET };
 /** Auto-deny a permission prompt after this long so a turn never hangs forever. */
 const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
 /** Cap toolInput size in emitted WS tool messages (full input stays on disk). */
