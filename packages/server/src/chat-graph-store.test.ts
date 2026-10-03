@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { createProject, listProjects, loadLatestChatGraph, loadProject, renameProject, saveChatGraph } from './chat-graph-store.js';
+import { createProject, listProjects, loadLatestChatGraph, loadProject, renameProject, saveChatGraph, trashProject } from './chat-graph-store.js';
 
 const FIXTURE = resolve(__dirname, '..', '..', 'graph-core', 'src', '__fixtures__', 'compacting-v2.fcw.json');
 
@@ -91,5 +91,28 @@ describe('loadProject / renameProject', () => {
     await renameProject(dir, 'cg_1773900000000_1', 'Renamed');
     expect(loadProject(dir, 'cg_1773900000000_1').meta.title).toBe('Renamed');
     await expect(renameProject(dir, 'nope', 'x')).rejects.toThrow(/unknown project/);
+  });
+});
+
+describe('trashProject', () => {
+  it('moves the file into .trash (never deletes), suffixing a timestamp on clash; unknown id throws', async () => {
+    const dir = fixtureDir();
+    const id = 'cg_1773900000000_1';
+    const original = readFileSync(join(dir, `${id}.fcw2.json`), 'utf-8');
+
+    const first = await trashProject(dir, id);
+    expect(first).toBe(join(dir, '.trash', `${id}.fcw2.json`));
+    expect(existsSync(join(dir, `${id}.fcw2.json`))).toBe(false);
+    expect(readFileSync(first, 'utf-8')).toBe(original);
+    expect(listProjects(dir)).toEqual([]);
+
+    copyFileSync(FIXTURE, join(dir, `${id}.fcw2.json`));
+    const second = await trashProject(dir, id);
+    expect(second).not.toBe(first);
+    expect(second).toMatch(/cg_1773900000000_1\.\d+\.fcw2\.json$/);
+    expect(existsSync(first)).toBe(true);
+    expect(existsSync(second)).toBe(true);
+
+    await expect(trashProject(dir, 'nope')).rejects.toThrow(/unknown project/);
   });
 });

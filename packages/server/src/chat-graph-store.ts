@@ -1,7 +1,7 @@
 // Chat-graph persistence: the newest *.fcw2.json in the storage dir is the
 // workspace. Loading migrates legacy compactions into generated docs (M2.1).
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { chatGraphFromJSON, chatGraphToJSON, createChatGraph, migrateCompactions } from '@fcw/graph-core';
 import type { ChatGraph } from '@fcw/graph-core';
@@ -53,6 +53,17 @@ export async function renameProject(storageDir: string, id: string, title: strin
   const graph = loadProject(storageDir, id);
   graph.meta.title = title;
   await saveChatGraph(storageDir, graph);
+}
+
+// Removal is a move into <dir>/.trash/ — project files are never deleted.
+export async function trashProject(storageDir: string, id: string): Promise<string> {
+  const from = projectPath(storageDir, id);
+  const trashDir = join(storageDir, '.trash');
+  await mkdir(trashDir, { recursive: true });
+  let to = join(trashDir, `${id}.fcw2.json`);
+  if (existsSync(to)) to = join(trashDir, `${id}.${Date.now()}.fcw2.json`);
+  await rename(from, to);
+  return to;
 }
 
 export function listProjects(storageDir: string): ProjectSummary[] {
