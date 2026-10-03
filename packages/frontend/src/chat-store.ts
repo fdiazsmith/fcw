@@ -1,6 +1,7 @@
 // v2 frontend state: pure reducer over chat server messages.
 import type {
   ChatServerMessage,
+  ChatGraph,
   ChatMessage,
   ChatNode,
   ContextEdge,
@@ -60,6 +61,8 @@ export interface ChatState {
   project?: ProjectSummary;
   /** Every project, for the project menu. */
   projects: ProjectSummary[];
+  /** The open project's defaults for new chats (from the snapshot). */
+  projectSettings?: ChatGraph['meta']['settings'];
 }
 
 export function emptyChatState(): ChatState {
@@ -177,6 +180,7 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
       rootCanvas: msg.graph.rootCanvas ?? { placements: [], edges: [] },
       docChats,
       edges: [...msg.graph.edges],
+      projectSettings: msg.graph.meta?.settings,
     };
   }
 

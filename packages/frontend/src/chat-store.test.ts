@@ -544,4 +544,11 @@ describe('projects (M7.6)', () => {
     expect(s.projects).toEqual([alpha, beta]);
     expect(s.capabilities.models).toEqual(models);
   });
+
+  it('chat_snapshot carries the project settings (M7.7 settings form prefill)', () => {
+    const graph = createChatGraph('T');
+    graph.meta.settings = { cwd: '/w', effort: 'high' };
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph });
+    expect(s.projectSettings).toEqual({ cwd: '/w', effort: 'high' });
+  });
 });
