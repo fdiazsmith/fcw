@@ -320,6 +320,14 @@ describe('setChatArchived', () => {
   it('throws for an unknown chat', () => {
     expect(() => setChatArchived(createChatGraph('A'), 'nope', true)).toThrow(/unknown chat/i);
   });
+
+  it('refuses a doc-chat (it never sits on a canvas)', () => {
+    const g = createChatGraph('A');
+    const id = addChat(g);
+    g.chats[id].docId = 'd1';
+    expect(() => setChatArchived(g, id, true)).toThrow(/doc-chat/i);
+    expect(g.chats[id].archived).toBeUndefined();
+  });
 });
 
 describe('deleteChat', () => {

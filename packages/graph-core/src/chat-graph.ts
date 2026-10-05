@@ -199,6 +199,7 @@ export function addTurnUsage(
 export function setChatArchived(graph: ChatGraph, chatId: string, archived: boolean): void {
   const chat = graph.chats[chatId];
   if (!chat) throw new Error(`unknown chat: ${chatId}`);
+  if (chat.docId) throw new Error(`chat ${chatId} is a doc-chat of ${chat.docId}; it cannot be archived`);
   if (archived) chat.archived = true;
   else delete chat.archived;
 }
