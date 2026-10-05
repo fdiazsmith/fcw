@@ -36,6 +36,24 @@ describe('ChatSessionManager.setChatArchived', () => {
     expect(saves).toBe(1);
   });
 
+  it('archiving stops the turn, denying a pending permission prompt', async () => {
+    const sessions = new ChatSessionManager();
+    const id = sessions.createChat({ x: 0, y: 0 }, 'Preset');
+    let decision: unknown;
+    (sessions as unknown as { streams: { api: StreamTurnFn } }).streams.api = async function* (ctx): AsyncIterable<TurnEvent> {
+      yield { type: 'permission_request', requestId: 'r1', toolName: 'Bash', input: {} };
+      const pending = ctx.waitForPermission('r1');
+      sessions.setChatArchived(id, true);
+      decision = await pending;
+      yield { type: 'text_delta', text: 'ignored' };
+    };
+    const events = collect(sessions);
+    await sessions.prompt(id, 'hi');
+    expect(decision).toMatchObject({ behavior: 'deny' });
+    expect(events).toContainEqual({ type: 'chat_permission_resolved', chatId: id, requestId: 'r1' });
+    expect(events.some((e) => e.type === 'chat_stream_delta')).toBe(false);
+  });
+
   it('unarchives', () => {
     const sessions = new ChatSessionManager();
     const a = sessions.createChat({ x: 0, y: 0 });

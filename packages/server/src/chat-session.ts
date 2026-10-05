@@ -133,9 +133,11 @@ export class ChatSessionManager extends EventEmitter {
     this.scheduleSave();
   }
 
-  /** Archive hides a chat from every canvas; its data and edges are kept. */
+  /** Archive hides a chat from every canvas; its data and edges are kept.
+   *  Its turn stops (pending permission prompts are denied): nobody can see them. */
   setChatArchived(chatId: string, archived: boolean): void {
     setChatArchived(this.graph, chatId, archived);
+    if (archived) this.stop(chatId);
     this.emit('message', { type: 'chat_archived_changed', chatId, archived });
     this.scheduleSave();
   }
