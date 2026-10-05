@@ -796,7 +796,7 @@ export default function ChatCanvas() {
           queueMicrotask(() => {
             const batch = deleted;
             deleted = [];
-            for (const msg of deletionIntents(batch, currentCanvas(navRef.current))) {
+            for (const msg of deletionIntents(batch, ROOT_CANVAS_ID)) {
               const key = JSON.stringify(msg);
               if (recentIntents.has(key)) continue;
               recentIntents.add(key);

@@ -8,14 +8,17 @@ import type { ChatClientMessage } from '@fcw/graph-core';
 export interface DeletedShape {
   type: string;
   props: { docId?: string; chatId?: string } | Record<string, unknown>;
-  meta?: { fcwCtx?: unknown; from?: unknown; to?: unknown } | Record<string, unknown>;
+  meta?: { canvasId?: unknown; fcwCtx?: unknown; from?: unknown; to?: unknown } | Record<string, unknown>;
 }
 
-export function deletionIntents(shapes: DeletedShape[], canvasId: string): ChatClientMessage[] {
+/** Cards and boxes act on their own canvas (meta.canvasId, else `fallbackCanvasId`):
+ *  undo can delete shapes on a page that is not the current one. */
+export function deletionIntents(shapes: DeletedShape[], fallbackCanvasId: string): ChatClientMessage[] {
   const out: ChatClientMessage[] = [];
   const archived = new Set<string>();
   for (const s of shapes) {
     const props = s.props as { docId?: string; chatId?: string };
+    const canvasId = String((s.meta as { canvasId?: unknown } | undefined)?.canvasId ?? fallbackCanvasId);
     if (s.type === 'doc-node' && props.docId) {
       out.push({ type: 'doc_unplace_requested', canvasId, kind: 'doc', id: props.docId });
     } else if (s.type === 'chat-node' && props.chatId) {

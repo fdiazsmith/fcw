@@ -39,6 +39,18 @@ describe('deletionIntents', () => {
     expect(deletionIntents([{ type: 'draw', props: {} }, { type: 'arrow', props: {} }, doc(''), chat('')], 'docA')).toEqual([]);
   });
 
+  it("each card/box uses its own meta.canvasId (undo can delete off the current page)", () => {
+    const on = (shape: { type: string; props: object }, canvasId: string) => ({ ...shape, meta: { canvasId } });
+    expect(
+      deletionIntents([on(chat('c1'), 'docD'), on(chat('c2'), 'root'), on(doc('d1'), 'docE'), ctx('c1', 'c2'), ctx('c1', 'c3')], 'root'),
+    ).toEqual([
+      { type: 'doc_unplace_requested', canvasId: 'docD', kind: 'chat', id: 'c1' },
+      { type: 'chat_archive_requested', chatId: 'c2' },
+      { type: 'doc_unplace_requested', canvasId: 'docE', kind: 'doc', id: 'd1' },
+      { type: 'chat_disconnect_requested', from: 'c1', to: 'c3' },
+    ]);
+  });
+
   it('handles several shapes at once', () => {
     expect(deletionIntents([doc('d1'), doc('d2')], 'docA')).toHaveLength(2);
   });
