@@ -14,6 +14,8 @@ import {
   updateChatSettings,
   markSessionStale,
   addTurnUsage,
+  setChatArchived,
+  deleteChat,
   compactionDigest,
   compactChats,
   createDoc,
@@ -128,6 +130,23 @@ export class ChatSessionManager extends EventEmitter {
     removeContextEdge(this.graph, from, to);
     markSessionStale(this.graph, to);
     this.emit('message', { type: 'chat_disconnected', from, to });
+    this.scheduleSave();
+  }
+
+  /** Archive hides a chat from every canvas; its data and edges are kept. */
+  setChatArchived(chatId: string, archived: boolean): void {
+    setChatArchived(this.graph, chatId, archived);
+    this.emit('message', { type: 'chat_archived_changed', chatId, archived });
+    this.scheduleSave();
+  }
+
+  /** Permanently remove a chat (edges and placements too), stopping its turn. */
+  deleteChat(chatId: string): void {
+    const inheritors = this.graph.edges.filter((e) => e.from === chatId).map((e) => e.to);
+    deleteChat(this.graph, chatId);
+    for (const id of inheritors) markSessionStale(this.graph, id);
+    this.stop(chatId);
+    this.emit('message', { type: 'chat_deleted', chatId });
     this.scheduleSave();
   }
 
@@ -251,6 +270,7 @@ export class ChatSessionManager extends EventEmitter {
           }
         }
       }
+      if (!this.graph.chats[chatId]) return; // deleted mid-turn
       if (!emittedAny && text === '') {
         // The stream produced no output at all — surface as an error instead
         // of a blank assistant bubble.

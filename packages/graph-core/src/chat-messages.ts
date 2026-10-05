@@ -35,6 +35,8 @@ export type ChatServerMessage =
   | { type: 'chat_capabilities'; models: CapabilityModel[]; commands: CapabilityCommand[] }
   | { type: 'chat_permission_requested'; chatId: string; requestId: string; toolName: string; input: unknown }
   | { type: 'chat_permission_resolved'; chatId: string; requestId: string }
+  | { type: 'chat_archived_changed'; chatId: string; archived: boolean }
+  | { type: 'chat_deleted'; chatId: string }
   | { type: 'doc_created'; doc: Doc }
   | { type: 'doc_updated'; docId: string; title?: string; body?: string; generated?: Doc['generated'] }
   | { type: 'doc_placed'; canvasId: string; placement: DocPlacement }
@@ -67,6 +69,9 @@ export type ChatClientMessage =
   | { type: 'chat_settings_updated'; chatId: string; settings: Partial<ChatSettings> }
   | { type: 'chat_permission_decision'; chatId: string; requestId: string; behavior: 'allow' | 'deny'; message?: string }
   | { type: 'chat_compact_requested'; chatIds: string[]; canvasId?: string }
+  | { type: 'chat_archive_requested'; chatId: string }
+  | { type: 'chat_unarchive_requested'; chatId: string }
+  | { type: 'chat_delete_requested'; chatId: string }
   | { type: 'doc_create_requested'; canvasId: string; title: string; position: Position }
   | { type: 'doc_update_requested'; docId: string; title?: string; body?: string }
   | { type: 'doc_place_requested'; canvasId: string; kind: DocPlacement['kind']; id: string; position: Position }
