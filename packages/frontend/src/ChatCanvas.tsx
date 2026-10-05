@@ -552,6 +552,7 @@ export default function ChatCanvas() {
         pendingPromptsRef.current = [];
         openPanel(null);
         setGraph(null);
+        setDeleteIds(null);
         const ed = editorRef.current;
         const mainPage = mainPageIdRef.current;
         if (ed && mainPage) {
@@ -1097,7 +1098,10 @@ export default function ChatCanvas() {
           <button
             data-testid="chat-delete-confirm"
             onClick={() => {
-              deleteIds.forEach((chatId) => send({ type: 'chat_delete_requested', chatId }));
+              // Only chats still in this project (the dialog may outlive them).
+              deleteIds
+                .filter((chatId) => stateRef.current.chats[chatId])
+                .forEach((chatId) => send({ type: 'chat_delete_requested', chatId }));
               setDeleteIds(null);
             }}
             style={{ ...crumbButton, fontWeight: 600, color: '#B91C1C' }}
