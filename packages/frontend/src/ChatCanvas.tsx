@@ -130,6 +130,10 @@ const chromeComponents: TLComponents = {
   ContextMenu: ChatContextMenu,
 };
 
+/** Canvas mutations that mirror the store stay out of the undo stack: undoing
+ *  them would delete cards the user never touched (and archive their chats). */
+const SERVER_DRIVEN = { history: 'ignore' } as const;
+
 function chatShapeId(chatId: string): TLShapeId {
   return createShapeId(`chat-${chatId}`);
 }
@@ -336,7 +340,7 @@ export default function ChatCanvas() {
     if (canvasId === ROOT_CANVAS_ID) return mainPageIdRef.current ?? editor.getCurrentPageId();
     const pageId = PageRecordType.createId(canvasPageSlug(canvasId));
     if (!editor.getPage(pageId)) {
-      editor.createPage({ id: pageId, name: stateRef.current.docs[canvasId]?.title || 'Canvas' });
+      editor.run(() => editor.createPage({ id: pageId, name: stateRef.current.docs[canvasId]?.title || 'Canvas' }), SERVER_DRIVEN);
     }
     return pageId;
   }, []);
@@ -433,7 +437,7 @@ export default function ChatCanvas() {
           });
           bindArrow(editor, arrowId, docShapeId(canvasId, e.from), docShapeId(canvasId, e.to));
         }
-      });
+      }, SERVER_DRIVEN);
     } finally {
       syncingRef.current = false;
     }
@@ -557,7 +561,7 @@ export default function ChatCanvas() {
               if (ed.getCurrentPageId() !== mainPage) ed.setCurrentPage(mainPage);
               for (const page of ed.getPages()) if (page.id !== mainPage) ed.deletePage(page.id);
               ed.deleteShapes([...ed.getPageShapeIds(mainPage)]);
-            });
+            }, SERVER_DRIVEN);
           } finally {
             syncingRef.current = false;
           }
@@ -574,7 +578,7 @@ export default function ChatCanvas() {
         if (view && editor.getShape(id)) {
           syncingRef.current = true;
           try {
-            editor.updateShape<ChatShape>({ id, type: 'chat-node', props: chatProps(view, next) });
+            editor.run(() => editor.updateShape<ChatShape>({ id, type: 'chat-node', props: chatProps(view, next) }), SERVER_DRIVEN);
           } finally {
             syncingRef.current = false;
           }
@@ -764,7 +768,7 @@ export default function ChatCanvas() {
           if (existing && existing.id !== a.id) {
             // duplicate of an existing edge — drop the extra arrow only
             syncingRef.current = true;
-            editor.deleteShape(a.id);
+            editor.run(() => editor.deleteShape(a.id), SERVER_DRIVEN);
             syncingRef.current = false;
             return;
           }
@@ -772,12 +776,16 @@ export default function ChatCanvas() {
           // Adopt the user's arrow in place: it stays exactly where they drew it,
           // restyled as a context edge. The server event is a no-op thanks to meta.
           syncingRef.current = true;
-          editor.updateShape({
-            id: a.id,
-            type: 'arrow',
-            meta: { fcwCtx: true, from, to },
-            props: { dash: 'dashed', color: 'blue' },
-          });
+          editor.run(
+            () =>
+              editor.updateShape({
+                id: a.id,
+                type: 'arrow',
+                meta: { fcwCtx: true, from, to },
+                props: { dash: 'dashed', color: 'blue' },
+              }),
+            SERVER_DRIVEN,
+          );
           syncingRef.current = false;
           send({ type: 'chat_connect_requested', from, to });
         };

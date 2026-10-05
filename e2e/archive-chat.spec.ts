@@ -84,3 +84,22 @@ test('context menu: Delete chat permanently, after confirming', async ({ page })
   await expect(card(page, chatId)).toHaveCount(0);
   await expect(page.getByTestId('archived-toggle')).toHaveCount(0);
 });
+
+test('undo does not remove (archive) a card the server created', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.tl-canvas')).toBeVisible();
+
+  const chatId = await newChat(page);
+  await page.mouse.click(30, 200); // focus the canvas
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.keyboard.press('ControlOrMeta+z');
+  await page.waitForTimeout(300);
+  await expect(card(page, chatId)).toHaveCount(1);
+  await expect(page.getByTestId('archived-toggle')).toHaveCount(0);
+
+  // Leave root as we found it (one shared server).
+  await clickCard(page, chatId, 'right');
+  await page.getByTestId('context-menu.fcw-delete-chat').click();
+  await page.getByTestId('chat-delete-confirm').click();
+  await expect(card(page, chatId)).toHaveCount(0);
+});
