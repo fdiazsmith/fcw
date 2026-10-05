@@ -47,4 +47,13 @@ describe('ArchivedChats', () => {
     fireEvent.click(screen.getByTestId('archived-delete-confirm'));
     expect(onDelete).toHaveBeenCalledWith('a');
   });
+
+  it('closes once the list empties, so it starts closed next time', () => {
+    const p = { onRestore: vi.fn(), onDelete: vi.fn() };
+    const { rerender } = render(<ArchivedChats chats={chats} {...p} />);
+    fireEvent.click(screen.getByTestId('archived-toggle'));
+    rerender(<ArchivedChats chats={[]} {...p} />);
+    rerender(<ArchivedChats chats={chats} {...p} />);
+    expect(screen.queryByTestId('archived-list')).toBeNull();
+  });
 });

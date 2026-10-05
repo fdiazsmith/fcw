@@ -20,7 +20,10 @@ const actionStyle: React.CSSProperties = {
 export function ArchivedChats({ chats, onRestore, onDelete }: ArchivedChatsProps) {
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
-  if (chats.length === 0) return null;
+  if (chats.length === 0) {
+    if (open) setOpen(false); // start closed next time
+    return null;
+  }
 
   return (
     <span style={{ position: 'relative', display: 'inline-flex' }}>
