@@ -203,6 +203,22 @@ export function setChatArchived(graph: ChatGraph, chatId: string, archived: bool
   else delete chat.archived;
 }
 
+/** Permanently remove a chat with its context edges and every canvas placement.
+ *  Doc-chats belong to their doc and cannot be deleted on their own. */
+export function deleteChat(graph: ChatGraph, chatId: string): void {
+  const chat = graph.chats[chatId];
+  if (!chat) throw new Error(`unknown chat: ${chatId}`);
+  if (chat.docId) throw new Error(`chat ${chatId} is a doc-chat of ${chat.docId}; it cannot be deleted`);
+  delete graph.chats[chatId];
+  graph.edges = graph.edges.filter((e) => e.from !== chatId && e.to !== chatId);
+  for (const canvas of [graph.rootCanvas, ...Object.values(graph.docs).map((d) => d.canvas)]) {
+    canvas.placements = canvas.placements.filter((p) => !(p.kind === 'chat' && p.id === chatId));
+  }
+  for (const compaction of Object.values(graph.compactions)) {
+    compaction.memberIds = compaction.memberIds.filter((id) => id !== chatId);
+  }
+}
+
 export function setChatPosition(graph: ChatGraph, chatId: string, position: Position): void {
   const chat = graph.chats[chatId];
   if (!chat) throw new Error(`unknown chat: ${chatId}`);

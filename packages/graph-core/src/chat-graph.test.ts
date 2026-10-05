@@ -12,6 +12,7 @@ import {
   markSessionStale,
   addTurnUsage,
   setChatArchived,
+  deleteChat,
 } from './chat-graph.js';
 import type { DocWorkspace } from './docs.js';
 
@@ -318,5 +319,43 @@ describe('setChatArchived', () => {
 
   it('throws for an unknown chat', () => {
     expect(() => setChatArchived(createChatGraph('A'), 'nope', true)).toThrow(/unknown chat/i);
+  });
+});
+
+describe('deleteChat', () => {
+  it('removes the chat, every edge touching it, and every placement of it', () => {
+    const g = createChatGraph('D');
+    const a = addChat(g);
+    const b = addChat(g);
+    const c = addChat(g);
+    addContextEdge(g, a, b);
+    addContextEdge(g, b, c);
+    addContextEdge(g, a, c);
+    const pos = { x: 0, y: 0 };
+    g.docs.d1 = { id: 'd1', title: 'D1', body: '', canvas: { placements: [{ kind: 'chat', id: b, position: pos }, { kind: 'chat', id: a, position: pos }], edges: [] } };
+    g.rootCanvas.placements.push({ kind: 'chat', id: b, position: pos });
+    deleteChat(g, b);
+    expect(g.chats[b]).toBeUndefined();
+    expect(g.edges).toEqual([expect.objectContaining({ from: a, to: c })]);
+    expect(g.docs.d1.canvas.placements.map((p) => p.id)).toEqual([a]);
+    expect(g.rootCanvas.placements).toEqual([]);
+  });
+
+  it('drops the chat from legacy compaction members so the graph still loads', () => {
+    const g = createChatGraph('D');
+    const a = addChat(g);
+    const b = addChat(g);
+    g.compactions.k = { id: 'k', title: 'K', memberIds: [a, b], document: '', sourceDigest: '', position: { x: 0, y: 0 }, createdAt: 't', status: 'idle' };
+    deleteChat(g, a);
+    expect(g.compactions.k.memberIds).toEqual([b]);
+  });
+
+  it('refuses a doc-chat and unknown chats', () => {
+    const g = createChatGraph('D');
+    const a = addChat(g);
+    g.chats[a].docId = 'd1';
+    expect(() => deleteChat(g, a)).toThrow(/doc-chat/i);
+    expect(g.chats[a]).toBeDefined();
+    expect(() => deleteChat(g, 'nope')).toThrow(/unknown chat/i);
   });
 });
