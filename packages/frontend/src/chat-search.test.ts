@@ -12,6 +12,7 @@ const view = (over: Partial<ChatView> & { id: string }): ChatView => ({
   settings: over.settings ?? { engine: 'api' },
   pendingPermission: null,
   pendingPermissionQueue: [],
+  archived: over.archived,
 });
 
 const state = (...views: ChatView[]): ChatState => ({
@@ -25,6 +26,11 @@ describe('searchChats', () => {
     const s = state(view({ id: 'c1', title: 'Hello' }));
     expect(searchChats(s, '')).toEqual([]);
     expect(searchChats(s, '   ')).toEqual([]);
+  });
+
+  it('skips archived chats (they are on no canvas to zoom to)', () => {
+    const s = state(view({ id: 'c1', title: 'Hello' }), view({ id: 'c2', title: 'Hello there', archived: true }));
+    expect(searchChats(s, 'hello').map((r) => r.chatId)).toEqual(['c1']);
   });
 
   it('matches on title case-insensitively', () => {

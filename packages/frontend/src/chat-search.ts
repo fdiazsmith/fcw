@@ -30,6 +30,7 @@ export function searchChats(state: ChatState, query: string): ChatSearchResult[]
   const results: Array<ChatSearchResult & { rank: number }> = [];
 
   for (const chat of Object.values(state.chats)) {
+    if (chat.archived) continue;
     const titleLower = chat.title.toLowerCase();
     const titleHit = titleLower.includes(needle);
 
