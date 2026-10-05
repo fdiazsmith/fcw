@@ -290,3 +290,23 @@ describe('diagram_requested (M2.5)', () => {
     expect(spy).toHaveBeenCalledWith('root', 'p');
   });
 });
+
+describe('chat archive / delete messages', () => {
+  it('validates', () => {
+    for (const type of ['chat_archive_requested', 'chat_unarchive_requested', 'chat_delete_requested']) {
+      expect(isChatClientMessage({ type, chatId: 'c' })).toBe(true);
+      expect(isChatClientMessage({ type })).toBe(false);
+    }
+  });
+
+  it('dispatches to setChatArchived and deleteChat', async () => {
+    const sessions = new ChatSessionManager();
+    const id = sessions.createChat({ x: 0, y: 0 });
+    await handleChatClientMessage({ type: 'chat_archive_requested', chatId: id }, sessions);
+    expect(sessions.graph.chats[id].archived).toBe(true);
+    await handleChatClientMessage({ type: 'chat_unarchive_requested', chatId: id }, sessions);
+    expect(sessions.graph.chats[id].archived).toBeUndefined();
+    await handleChatClientMessage({ type: 'chat_delete_requested', chatId: id }, sessions);
+    expect(sessions.graph.chats[id]).toBeUndefined();
+  });
+});

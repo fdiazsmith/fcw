@@ -78,6 +78,21 @@ const ChatCompactRequestedSchema = z.object({
   canvasId: z.string().optional(),
 });
 
+const ChatArchiveRequestedSchema = z.object({
+  type: z.literal('chat_archive_requested'),
+  chatId: z.string(),
+});
+
+const ChatUnarchiveRequestedSchema = z.object({
+  type: z.literal('chat_unarchive_requested'),
+  chatId: z.string(),
+});
+
+const ChatDeleteRequestedSchema = z.object({
+  type: z.literal('chat_delete_requested'),
+  chatId: z.string(),
+});
+
 const PositionSchema = z.object({ x: z.number(), y: z.number() });
 const PlacementKindSchema = z.enum(['doc', 'chat']);
 
@@ -160,6 +175,9 @@ export const ChatClientMessageSchema = z.discriminatedUnion('type', [
   ChatSettingsUpdatedSchema,
   ChatPermissionDecisionSchema,
   ChatCompactRequestedSchema,
+  ChatArchiveRequestedSchema,
+  ChatUnarchiveRequestedSchema,
+  ChatDeleteRequestedSchema,
   DocCreateRequestedSchema,
   DocUpdateRequestedSchema,
   DocPlaceRequestedSchema,
@@ -205,6 +223,12 @@ export async function handleChatClientMessage(
     await sessions.regenerate(msg.chatId);
   } else if (msg.type === 'chat_compact_requested') {
     await sessions.compact(msg.chatIds, msg.canvasId);
+  } else if (msg.type === 'chat_archive_requested') {
+    sessions.setChatArchived(msg.chatId, true);
+  } else if (msg.type === 'chat_unarchive_requested') {
+    sessions.setChatArchived(msg.chatId, false);
+  } else if (msg.type === 'chat_delete_requested') {
+    sessions.deleteChat(msg.chatId);
   } else if (msg.type === 'doc_regenerate_requested') {
     await sessions.regenerateDoc(msg.docId);
   } else if (msg.type === 'doc_create_requested') {
