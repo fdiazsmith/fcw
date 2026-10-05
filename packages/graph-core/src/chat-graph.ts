@@ -61,6 +61,8 @@ export interface ChatNode {
   usage?: TokenUsage;
   /** Set on a doc-chat (M2.6): bound to this doc, never placed on a canvas. */
   docId?: string;
+  /** Hidden from every canvas; data and edges are kept so it can be restored. */
+  archived?: boolean;
 }
 
 export interface ContextEdge {
@@ -192,6 +194,13 @@ export function addTurnUsage(
     costUSD: prev.costUSD + turn.costUSD,
     turns: prev.turns + 1,
   };
+}
+
+export function setChatArchived(graph: ChatGraph, chatId: string, archived: boolean): void {
+  const chat = graph.chats[chatId];
+  if (!chat) throw new Error(`unknown chat: ${chatId}`);
+  if (archived) chat.archived = true;
+  else delete chat.archived;
 }
 
 export function setChatPosition(graph: ChatGraph, chatId: string, position: Position): void {

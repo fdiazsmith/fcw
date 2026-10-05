@@ -94,6 +94,7 @@ export {
   updateChatSettings,
   markSessionStale,
   addTurnUsage,
+  setChatArchived,
 } from './chat-graph.js';
 export type { Compaction, CompactionStatus } from './compaction.js';
 export type { CompactionMember } from './doc-compaction.js';

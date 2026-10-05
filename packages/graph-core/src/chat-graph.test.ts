@@ -11,6 +11,7 @@ import {
   updateChatSettings,
   markSessionStale,
   addTurnUsage,
+  setChatArchived,
 } from './chat-graph.js';
 import type { DocWorkspace } from './docs.js';
 
@@ -300,5 +301,22 @@ describe('addTurnUsage', () => {
   it('throws for an unknown chat', () => {
     const g = createChatGraph('U');
     expect(() => addTurnUsage(g, 'nope', turn)).toThrow(/unknown chat/i);
+  });
+});
+
+describe('setChatArchived', () => {
+  it('flags and unflags a chat, keeping its data', () => {
+    const g = createChatGraph('A');
+    const id = addChat(g, { title: 'keep' });
+    appendMessage(g, id, 'user', 'hi');
+    setChatArchived(g, id, true);
+    expect(g.chats[id]).toMatchObject({ archived: true, title: 'keep' });
+    expect(g.chats[id].messages).toHaveLength(1);
+    setChatArchived(g, id, false);
+    expect(g.chats[id].archived).toBeUndefined();
+  });
+
+  it('throws for an unknown chat', () => {
+    expect(() => setChatArchived(createChatGraph('A'), 'nope', true)).toThrow(/unknown chat/i);
   });
 });

@@ -33,6 +33,13 @@ describe('chat-graph serialization', () => {
     expect(restored).toEqual(g);
   });
 
+  it('round-trips the archived flag', () => {
+    const g = createChatGraph('Archive');
+    const a = addChat(g);
+    g.chats[a].archived = true;
+    expect(chatGraphFromJSON(chatGraphToJSON(g)).chats[a].archived).toBe(true);
+  });
+
   it('round-trips new settings/session/attachment/tool fields', () => {
     const g = createChatGraph('New Fields');
     const a = addChat(g, { title: 'root' });
