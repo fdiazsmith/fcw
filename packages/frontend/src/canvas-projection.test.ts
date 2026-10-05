@@ -32,6 +32,15 @@ describe('projectCanvas — root', () => {
     expect(p.docs[0].model).toMatchObject({ docId: 'A', title: 'Auth', isReference: false, refCount: 1 });
   });
 
+  it('archived chats are on no canvas', () => {
+    let s = withChats(emptyChatState(), chat('c1'), chat('c2'));
+    s = { ...s, docs: { A: doc('A', 'A', [place('chat', 'c2')]) } };
+    s = applyChatMessage(s, { type: 'chat_archived_changed', chatId: 'c1', archived: true });
+    s = applyChatMessage(s, { type: 'chat_archived_changed', chatId: 'c2', archived: true });
+    expect(projectCanvas(s, ROOT_CANVAS_ID).chats).toEqual([]);
+    expect(projectCanvas(s, 'A').chats).toEqual([]);
+  });
+
   it('root chats are the unplaced ones, at their own position; doc-chats are excluded', () => {
     let s = withChats(emptyChatState(), chat('c1', 5, 6), chat('c2'), chat('dc'));
     s = { ...s, docs: { A: doc('A', 'A', [place('chat', 'c2')]) }, docChats: { A: 'dc' } };

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { ChatServerMessage, ChatNode, Doc } from '@fcw/graph-core';
 import { createChatGraph } from '@fcw/graph-core';
-import { emptyChatState, applyChatMessage, clearPendingLayout, canvasById, placementsOn, canvasesPlacing, rootChatIds, chatIdsOn, ChatState } from './chat-store';
+import { emptyChatState, applyChatMessage, clearPendingLayout, canvasById, placementsOn, canvasesPlacing, rootChatIds, chatIdsOn, archivedChats, ChatState } from './chat-store';
 
 const chat = (id: string): ChatNode => ({
   id,
@@ -550,5 +550,43 @@ describe('projects (M7.6)', () => {
     graph.meta.settings = { cwd: '/w', effort: 'high' };
     const s = apply(emptyChatState(), { type: 'chat_snapshot', graph });
     expect(s.projectSettings).toEqual({ cwd: '/w', effort: 'high' });
+  });
+});
+
+describe('archive and delete', () => {
+  const place = (id: string) => ({ kind: 'chat' as const, id, position: { x: 0, y: 0 } });
+
+  it('snapshot and chat_created carry the archived flag', () => {
+    const g = createChatGraph('G');
+    g.chats.a = { ...chat('a'), archived: true };
+    const s = apply(emptyChatState(), { type: 'chat_snapshot', graph: g }, { type: 'chat_created', chat: chat('b') });
+    expect(s.chats.a.archived).toBe(true);
+    expect(s.chats.b.archived).toBe(false);
+  });
+
+  it('chat_archived_changed toggles it; archived chats leave root and are listed', () => {
+    let s = apply(emptyChatState(), { type: 'chat_created', chat: chat('a') }, { type: 'chat_created', chat: chat('b') });
+    s = apply(s, { type: 'chat_archived_changed', chatId: 'a', archived: true });
+    expect(rootChatIds(s)).toEqual(['b']);
+    expect(archivedChats(s).map((c) => c.id)).toEqual(['a']);
+    s = apply(s, { type: 'chat_archived_changed', chatId: 'a', archived: false });
+    expect(rootChatIds(s)).toEqual(['a', 'b']);
+    expect(archivedChats(s)).toEqual([]);
+  });
+
+  it('chat_deleted removes the chat, its edges and its placements', () => {
+    let s = apply(
+      emptyChatState(),
+      { type: 'chat_created', chat: chat('a') },
+      { type: 'chat_created', chat: chat('b') },
+      { type: 'chat_connected', edge: { from: 'a', to: 'b', enabled: true, priority: 0 } },
+    );
+    const d: Doc = { id: 'd', title: 'D', body: '', canvas: { placements: [place('a'), place('b')], edges: [] } };
+    s = { ...s, docs: { d }, rootCanvas: { placements: [place('a')], edges: [] } };
+    s = apply(s, { type: 'chat_deleted', chatId: 'a' });
+    expect(s.chats.a).toBeUndefined();
+    expect(s.edges).toEqual([]);
+    expect(s.docs.d.canvas.placements).toEqual([place('b')]);
+    expect(s.rootCanvas.placements).toEqual([]);
   });
 });

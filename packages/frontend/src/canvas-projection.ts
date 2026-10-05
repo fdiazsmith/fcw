@@ -66,7 +66,7 @@ export function projectCanvas(state: ChatState, canvasId: string): CanvasProject
     canvasId === ROOT_CANVAS_ID
       ? chatIdsOn(state, canvasId).map((id) => ({ chatId: id, position: state.chats[id].position }))
       : canvas.placements
-          .filter((p) => p.kind === 'chat' && state.chats[p.id])
+          .filter((p) => p.kind === 'chat' && state.chats[p.id] && !state.chats[p.id].archived)
           .map((p) => ({ chatId: p.id, position: p.position }));
 
   const docIds = new Set(docs.map((d) => d.docId));

@@ -39,6 +39,8 @@ export interface ChatView {
   usage: TokenUsage | null;
   /** Enabled incoming context edges at the last usage update. */
   contextChats: number;
+  /** Hidden from every canvas; listed in the Archived drawer. */
+  archived?: boolean;
 }
 
 export interface Capabilities {
@@ -91,6 +93,7 @@ function viewFrom(chat: ChatNode): ChatView {
     pendingPermissionQueue: [],
     usage: chat.usage ?? null,
     contextChats: 0,
+    archived: chat.archived === true,
   };
 }
 
@@ -118,14 +121,22 @@ export function canvasesPlacing(state: ChatState, docId: string): string[] {
   return ids;
 }
 
-/** Chats on root: placed on no doc canvas, and not a doc-chat (those never render on a canvas). */
+/** Chats on root: placed on no doc canvas, not archived, and not a doc-chat
+ *  (those never render on a canvas). */
 export function rootChatIds(state: ChatState): string[] {
   const docChatIds = new Set(Object.values(state.docChats));
   const placed = new Set<string>();
   for (const doc of Object.values(state.docs)) {
     for (const p of doc.canvas.placements) if (p.kind === 'chat') placed.add(p.id);
   }
-  return Object.keys(state.chats).filter((id) => !placed.has(id) && !docChatIds.has(id));
+  return Object.keys(state.chats).filter(
+    (id) => !placed.has(id) && !docChatIds.has(id) && !state.chats[id].archived,
+  );
+}
+
+/** Archived chats, for the Archived drawer. */
+export function archivedChats(state: ChatState): ChatView[] {
+  return Object.values(state.chats).filter((c) => c.archived);
 }
 
 export function chatIdsOn(state: ChatState, canvasId: string): string[] {
@@ -208,6 +219,24 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
     return {
       ...state,
       edges: state.edges.filter((e) => !(e.from === msg.from && e.to === msg.to)),
+    };
+  }
+
+  if (msg.type === 'chat_deleted') {
+    if (!state.chats[msg.chatId]) return state;
+    const { [msg.chatId]: _gone, ...chats } = state.chats;
+    const dropChat = (c: DocCanvas): DocCanvas => ({
+      ...c,
+      placements: c.placements.filter((p) => !isPlacement(p, 'chat', msg.chatId)),
+    });
+    const docs: Record<string, Doc> = {};
+    for (const [id, doc] of Object.entries(state.docs)) docs[id] = { ...doc, canvas: dropChat(doc.canvas) };
+    return {
+      ...state,
+      chats,
+      edges: state.edges.filter((e) => e.from !== msg.chatId && e.to !== msg.chatId),
+      docs,
+      rootCanvas: dropChat(state.rootCanvas),
     };
   }
 
@@ -328,6 +357,8 @@ export function applyChatMessage(state: ChatState, msg: ChatServerMessage): Chat
       return update({ streamingText: (existing.streamingText ?? '') + msg.delta });
     case 'chat_stream_completed':
       return update({ streamingText: null, messages: [...existing.messages, msg.message] });
+    case 'chat_archived_changed':
+      return update({ archived: msg.archived });
     case 'chat_title_changed':
       return update({ title: msg.title });
     case 'chat_last_message_removed':
