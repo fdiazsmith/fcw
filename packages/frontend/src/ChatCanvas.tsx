@@ -9,13 +9,20 @@ import {
   TLShape,
   PageRecordType,
   DefaultHelperButtons,
+  DefaultContextMenu,
+  DefaultContextMenuContent,
+  TldrawUiMenuGroup,
+  TldrawUiMenuItem,
   TLComponents,
+  TLUiContextMenuProps,
+  useEditor,
+  useValue,
 } from 'tldraw';
 import 'tldraw/tldraw.css';
 import { ChatShapeUtil, ChatShape, registerChatActions } from './shapes/ChatShape';
 import { DocShapeUtil, DocShape, registerDocActions } from './shapes/DocShape';
 import { createWsClient, WsClient } from './ws-client';
-import { emptyChatState, applyChatMessage, clearPendingLayout, chatIdsOn, ChatState, ChatView } from './chat-store';
+import { emptyChatState, applyChatMessage, clearPendingLayout, chatIdsOn, archivedChats, ChatState, ChatView } from './chat-store';
 import {
   canvasPageSlug,
   canvasIdForPageSlug,
@@ -39,6 +46,7 @@ import type { GlobalGraphData } from './global-graph';
 import { deletionIntents, DeletedShape } from './deletion-intents';
 import { exportBranchMarkdown } from './export-branch';
 import { ProjectMenu } from './components/ProjectMenu';
+import { ArchivedChats } from './components/ArchivedChats';
 import { projectUrl, projectWsUrl, createdProjectId } from './projects';
 import { ROOT_CANVAS_ID } from '@fcw/graph-core';
 import type { ChatServerMessage, ChatClientMessage, Position, ProjectSummary } from '@fcw/graph-core';
@@ -65,6 +73,44 @@ interface ChromeSlots {
   right: React.ReactNode;
 }
 const ChromeContext = React.createContext<ChromeSlots>({ left: null, top: null, right: null });
+
+// The chat card context menu acts on the selected chat cards.
+interface ChatMenuActions {
+  archive: (chatIds: string[]) => void;
+  requestDelete: (chatIds: string[]) => void;
+}
+const ChatMenuContext = React.createContext<ChatMenuActions>({ archive: () => {}, requestDelete: () => {} });
+
+function ChatContextMenu(props: TLUiContextMenuProps) {
+  const editor = useEditor();
+  const actions = React.useContext(ChatMenuContext);
+  const chatIds = useValue(
+    'selected chats',
+    () =>
+      editor
+        .getSelectedShapes()
+        .filter((s): s is ChatShape => s.type === 'chat-node')
+        .map((s) => s.props.chatId)
+        .filter(Boolean),
+    [editor],
+  );
+  return (
+    <DefaultContextMenu {...props}>
+      {chatIds.length > 0 && (
+        <TldrawUiMenuGroup id="fcw-chat">
+          <TldrawUiMenuItem id="fcw-archive-chat" label="Archive chat" onSelect={() => actions.archive(chatIds)} />
+          <TldrawUiMenuItem
+            id="fcw-delete-chat"
+            label="Delete chat permanently"
+            onSelect={() => actions.requestDelete(chatIds)}
+          />
+        </TldrawUiMenuGroup>
+      )}
+      <DefaultContextMenuContent />
+    </DefaultContextMenu>
+  );
+}
+
 const slot: React.CSSProperties = { pointerEvents: 'all' };
 const chromeComponents: TLComponents = {
   // Canvases are tldraw pages driven by the breadcrumb; a second page menu would desync it.
@@ -81,6 +127,7 @@ const chromeComponents: TLComponents = {
     </div>
   ),
   SharePanel: () => <div style={{ ...slot, margin: '8px 8px 0 0' }}>{React.useContext(ChromeContext).right}</div>,
+  ContextMenu: ChatContextMenu,
 };
 
 function chatShapeId(chatId: string): TLShapeId {
@@ -222,6 +269,10 @@ export default function ChatCanvas() {
   const [menuState, setMenuState] = useState<ChatState>(emptyChatState());
   // A create request awaiting its project_list: the title and the list before it.
   const pendingCreateRef = useRef<{ title: string; before: ProjectSummary[] } | null>(null);
+  // "Archived (n)": the archived chats' ids and titles, refreshed from the store.
+  const [archived, setArchived] = useState<{ id: string; title: string }[]>([]);
+  // Chats awaiting the "Delete permanently?" confirm from the context menu.
+  const [deleteIds, setDeleteIds] = useState<string[] | null>(null);
 
   const openPanel = useCallback((docId: string | null) => {
     panelDocIdRef.current = docId;
@@ -473,6 +524,10 @@ export default function ChatCanvas() {
         msg.type === 'chat_capabilities'
       ) {
         setMenuState(next);
+      }
+      if (msg.type !== 'chat_stream_delta') {
+        const list = archivedChats(next).map((c) => ({ id: c.id, title: c.title }));
+        setArchived((prev) => (JSON.stringify(prev) === JSON.stringify(list) ? prev : list));
       }
 
       if (msg.type === 'project_list' && pendingCreateRef.current) {
@@ -776,6 +831,11 @@ export default function ChatCanvas() {
     compactChats(chatIds);
   }, [compactChats]);
 
+  const chatMenu: ChatMenuActions = {
+    archive: (chatIds) => chatIds.forEach((chatId) => send({ type: 'chat_archive_requested', chatId })),
+    requestDelete: setDeleteIds,
+  };
+
   const chrome: ChromeSlots = {
     left: <ChatSearchBar getState={() => stateRef.current} onSelect={zoomToChat} />,
     top: (
@@ -904,6 +964,11 @@ export default function ChatCanvas() {
     ),
     right: (
       <div data-testid="canvas-actions" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <ArchivedChats
+          chats={archived}
+          onRestore={(chatId) => send({ type: 'chat_unarchive_requested', chatId })}
+          onDelete={(chatId) => send({ type: 'chat_delete_requested', chatId })}
+        />
         <button
           onClick={() => {
             const editor = editorRef.current;
@@ -965,7 +1030,9 @@ export default function ChatCanvas() {
       {/* The canvas and its chrome shrink beside an open doc panel instead of hiding under it. */}
       <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: panelDocId ? DOC_PANEL_WIDTH : 0 }}>
         <ChromeContext.Provider value={chrome}>
-          <Tldraw shapeUtils={customShapes} components={chromeComponents} onMount={onMount} />
+          <ChatMenuContext.Provider value={chatMenu}>
+            <Tldraw shapeUtils={customShapes} components={chromeComponents} onMount={onMount} />
+          </ChatMenuContext.Provider>
         </ChromeContext.Provider>
         {/* Prompt dock, bottom centre above tldraw's toolbar, with the usage hint under it. */}
         <div
@@ -991,6 +1058,46 @@ export default function ChatCanvas() {
           </div>
         </div>
       </div>
+      {deleteIds && (
+        <div
+          data-testid="chat-delete-dialog"
+          style={{
+            position: 'absolute',
+            top: 80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1003,
+            background: '#fff',
+            border: '1px solid #FECACA',
+            borderRadius: 8,
+            padding: '10px 14px',
+            boxShadow: '0 4px 14px rgba(15,23,42,0.16)',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: 13,
+            color: '#334155',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <span>
+            Delete {deleteIds.length === 1 ? 'this chat' : `${deleteIds.length} chats`} permanently? This cannot be undone.
+          </span>
+          <button data-testid="chat-delete-cancel" onClick={() => setDeleteIds(null)} style={{ ...crumbButton, fontWeight: 600 }}>
+            Cancel
+          </button>
+          <button
+            data-testid="chat-delete-confirm"
+            onClick={() => {
+              deleteIds.forEach((chatId) => send({ type: 'chat_delete_requested', chatId }));
+              setDeleteIds(null);
+            }}
+            style={{ ...crumbButton, fontWeight: 600, color: '#B91C1C' }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
       {graph && (
         <GlobalGraph
           graph={graph}
