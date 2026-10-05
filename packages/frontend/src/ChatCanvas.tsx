@@ -691,7 +691,7 @@ export default function ChatCanvas() {
           }, 500),
         );
       };
-      editor.sideEffects.registerAfterChangeHandler('shape', (prev, next) => {
+      const stopChange = editor.sideEffects.registerAfterChangeHandler('shape', (prev, next) => {
         if (syncingRef.current) return;
         if (prev.x === next.x && prev.y === next.y) return;
         const canvasId = String(next.meta?.canvasId ?? ROOT_CANVAS_ID);
@@ -740,7 +740,7 @@ export default function ChatCanvas() {
 
       // Hand-drawn arrow between two chat cards -> context edge.
       // Wait for the drag to finish, verify both terminals, then convert.
-      editor.sideEffects.registerAfterCreateHandler('binding', (binding) => {
+      const stopBinding = editor.sideEffects.registerAfterCreateHandler('binding', (binding) => {
         if (syncingRef.current || binding.type !== 'arrow') return;
         const arrowId = binding.fromId;
         const arrow = editor.getShape(arrowId);
@@ -799,7 +799,7 @@ export default function ChatCanvas() {
       // than once per deletion, so dedupe briefly.
       const recentIntents = new Set<string>();
       let deleted: DeletedShape[] = [];
-      editor.sideEffects.registerAfterDeleteHandler('shape', (shape) => {
+      const stopDelete = editor.sideEffects.registerAfterDeleteHandler('shape', (shape) => {
         if (syncingRef.current) return;
         if (deleted.length === 0) {
           queueMicrotask(() => {
@@ -818,6 +818,9 @@ export default function ChatCanvas() {
       });
 
       return () => {
+        stopChange();
+        stopBinding();
+        stopDelete();
         stopPageListen();
         stopSelectListen();
         container.removeEventListener('dblclick', onDblClick);
