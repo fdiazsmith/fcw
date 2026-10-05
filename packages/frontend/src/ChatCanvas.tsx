@@ -729,27 +729,28 @@ export default function ChatCanvas() {
         setTimeout(tryConvert, 150);
       });
 
-      // Deleting a context arrow -> disconnect (unless we deleted it ourselves).
-      const recentUnplaces = new Set<string>();
+      // User deletions (not ours) -> unplace / archive / disconnect. One user
+      // delete removes several shapes; collect them so deletionIntents sees a
+      // chat card together with its arrows. Side-effect handlers can fire more
+      // than once per deletion, so dedupe briefly.
+      const recentIntents = new Set<string>();
+      let deleted: DeletedShape[] = [];
       editor.sideEffects.registerAfterDeleteHandler('shape', (shape) => {
         if (syncingRef.current) return;
-        if (shape.type === 'arrow' && shape.meta?.fcwCtx) {
-          send({
-            type: 'chat_disconnect_requested',
-            from: String(shape.meta.from),
-            to: String(shape.meta.to),
+        if (deleted.length === 0) {
+          queueMicrotask(() => {
+            const batch = deleted;
+            deleted = [];
+            for (const msg of deletionIntents(batch, currentCanvas(navRef.current))) {
+              const key = JSON.stringify(msg);
+              if (recentIntents.has(key)) continue;
+              recentIntents.add(key);
+              setTimeout(() => recentIntents.delete(key), 500);
+              send(msg);
+            }
           });
         }
-        // Deleting a doc box / chat card unplaces it from its canvas. Side-effect
-        // handlers can fire more than once per deletion, so dedupe briefly.
-        const canvasId = String(shape.meta?.canvasId ?? ROOT_CANVAS_ID);
-        for (const msg of deletionIntents([shape as DeletedShape], canvasId)) {
-          const key = JSON.stringify(msg);
-          if (recentUnplaces.has(key)) continue;
-          recentUnplaces.add(key);
-          setTimeout(() => recentUnplaces.delete(key), 500);
-          send(msg);
-        }
+        deleted.push(shape as DeletedShape);
       });
 
       return () => {
